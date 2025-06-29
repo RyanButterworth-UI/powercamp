@@ -41,6 +41,20 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../dist/powercamp/index.html'));
 });
 
+// DEBUG route to check what files exist on the server
+app.get('/debug-list', (req, res) => {
+  import('fs').then((fs) => {
+    fs.readdir(path.join(__dirname, '../dist/powercamp'), (err, files) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send(`Error reading directory: ${err.message}`);
+      } else {
+        res.send(`Files in dist/powercamp: ${files.join(', ')}`);
+      }
+    });
+  });
+});
+
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
