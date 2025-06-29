@@ -1,7 +1,7 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { JsonPipe } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-root',
@@ -1208,8 +1208,7 @@ import { JsonPipe } from '@angular/common';
                     Back
                   </button>
                   <button
-                    type="button"
-                    (click)="fadeToStep(currentStep() + 1)"
+                    type="submit"
                     class="bg-green-600 text-white px-4 py-2 rounded"
                   >
                     Submit
@@ -1248,6 +1247,8 @@ export class AppComponent {
   });
   stepVisible = signal(true);
 
+  private http = inject(HttpClient);
+
   nextStep() {
     if (this.currentStep() < 13) this.currentStep.update((v) => v + 1);
   }
@@ -1264,26 +1265,21 @@ export class AppComponent {
     this.formData.update((fd) => ({ ...fd, friends }));
   }
   onSubmit() {
-    // TODO: handle form submission (e.g., send to API)
-    alert('Form submitted!');
-    this.currentStep.set(1);
-    this.formData.set({
-      firstName: '',
-      lastName: '',
-      camperCell: '',
-      gender: '',
-      email: '',
-      age: '',
-      grade: '',
-      friends: [],
-      medical: '',
-      parentName: '',
-      parentPhone: '',
-      parentEmail: '',
-      church: '',
-      tshirt: '',
-      generalInfo: '',
-      dob: '',
+    const data = this.formData();
+
+    console.log('Sending to local Node server:', data);
+
+    const url = 'http://localhost:3000/submit'; // hitting YOUR node backend
+
+    this.http.post(url, data).subscribe({
+      next: (response) => {
+        console.log('Server response:', response);
+        alert('Submitted successfully!');
+      },
+      error: (err: any) => {
+        console.error('Error:', err);
+        alert('Something went wrong.');
+      },
     });
   }
 
