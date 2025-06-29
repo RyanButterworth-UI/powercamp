@@ -4,13 +4,15 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.get('/', (req, res) => {
-  res.send('Welcome to the PowerCamp backend!');
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+app.use(express.static(path.join(__dirname, 'dist/powercamp/browser')));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist/powercamp/browser/index.html'));
 });
 
 app.listen(port, '0.0.0.0', () => {
