@@ -1,9 +1,9 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js"
   },
   "keywords": [],
   "type": "module",
@@ -11,7 +11,9 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "express": "^5.1.0",
-    "fetch": "^1.1.0"
+    "express": "^5.1.0"
+  },
+  "engines": {
+    "node": "20.x"
   }
 }

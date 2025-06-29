@@ -1,6 +1,6 @@
 {
-  "name": "tread-media",
-  "version": "0.0.0",
+  "name": "powercamp",
+  "version": "1.0.0",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -8,7 +8,8 @@
     "watch": "ng build --watch --configuration development",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:ci": "jest --runInBand"
+    "test:ci": "jest --runInBand",
+    "build:prod": "ng build --configuration production"
   },
   "private": true,
   "dependencies": {
@@ -39,7 +40,6 @@
     "typescript": "~5.7.2"
   },
   "description": "This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.5.",
-  "main": "index.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/RyanButterworth-UI/powercamp.git"

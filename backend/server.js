@@ -3,18 +3,17 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// needed for __dirname in ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
 
 // serve Angular static files
-app.use(express.static(path.join(__dirname, '../dist/your-app-name')));
+app.use(express.static(path.join(__dirname, '../dist/powercamp')));
 
 app.post('/submit', async (req, res) => {
   console.log('Received data:', req.body);
@@ -39,7 +38,7 @@ app.post('/submit', async (req, res) => {
 
 // fallback to index.html for Angular routing
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../dist/your-app-name/index.html'));
+  res.sendFile(path.join(__dirname, '../dist/powercamp/index.html'));
 });
 
 app.listen(port, () => {
