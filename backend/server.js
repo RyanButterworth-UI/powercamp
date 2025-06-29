@@ -12,8 +12,8 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// serve Angular static files
-app.use(express.static(path.join(__dirname, '../dist/powercamp')));
+const staticPath = path.resolve(__dirname, '../dist/powercamp');
+app.use(express.static(staticPath));
 
 app.post('/submit', async (req, res) => {
   console.log('Received data:', req.body);
@@ -38,22 +38,10 @@ app.post('/submit', async (req, res) => {
 
 // fallback to index.html for Angular routing
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../dist/powercamp/index.html'));
+  res.sendFile(path.join(staticPath, 'index.html'));
 });
 
 // DEBUG route to check what files exist on the server
-app.get('/debug-list', (req, res) => {
-  import('fs').then((fs) => {
-    fs.readdir(path.join(__dirname, '../dist/powercamp'), (err, files) => {
-      if (err) {
-        console.error(err);
-        res.status(500).send(`Error reading directory: ${err.message}`);
-      } else {
-        res.send(`Files in dist/powercamp: ${files.join(', ')}`);
-      }
-    });
-  });
-});
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
