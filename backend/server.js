@@ -37,12 +37,15 @@ app.post('/submit', async (req, res) => {
 });
 
 // fallback to index.html for Angular routing
-app.get('*', (req, res) => {
-  res.sendFile(path.join(staticPath, 'index.html'));
-});
+if (process.env.NODE_ENV === 'production') {
+  const staticPath = path.resolve(__dirname, '../dist/powercamp');
+  app.use(express.static(staticPath));
 
-// DEBUG route to check what files exist on the server
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(staticPath, 'index.html'));
+  });
+}
 
-app.listen(port, () => {
+app.listen(port, '0.0.0.0', () => {
   console.log(`Server running on http://localhost:${port}`);
 });
