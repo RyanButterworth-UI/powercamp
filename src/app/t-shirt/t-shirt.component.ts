@@ -52,6 +52,7 @@ import { StepKey } from '../../models';
             ><span class="text-red-700">*</span>
             <input
               formControlName="church"
+              placeholder="Name of the church you attend"
               type="text"
               name="generalInfo"
               rows="3"
@@ -63,7 +64,7 @@ import { StepKey } from '../../models';
           <div class="flex gap-6 mt-6">
             <button
               type="button"
-              (click)="goToStep.emit(StepKey.Friends)"
+              (click)="goToStep.emit(StepKey.ParentInfo)"
               class="px-8 py-2 rounded border"
             >
               Back
@@ -90,7 +91,7 @@ export class TShirtComponent {
   StepKey = StepKey;
   grades = signal(['8', '9', '10', '11', '12']);
   ageOptions = signal([14, 15, 16, 17, 18]);
-  camperFields = ['firstName', 'lastName'];
+  camperFields = ['tshirt', 'church'];
 
   constructor(private rootFormGroup: FormGroupDirective) {
     this.form = this.rootFormGroup.control;

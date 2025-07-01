@@ -1,9 +1,8 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { IntroComponent } from './intro/intro.component';
-import { CampFormData } from '../models';
 import { DetailsComponent } from './details/details.component';
 import {
   FormBuilder,
@@ -19,6 +18,7 @@ import { MedicalComponent } from './medical/medical.component';
 import { ParentComponent } from './parent/parent.component';
 import { TShirtComponent } from './t-shirt/t-shirt.component';
 import { OtherInfoComponent } from './other-info/other-info.component';
+import { SummaryComponent } from './summary/summary.component';
 
 @Component({
   selector: 'app-root',
@@ -35,9 +35,12 @@ import { OtherInfoComponent } from './other-info/other-info.component';
     ParentComponent,
     TShirtComponent,
     OtherInfoComponent,
+    SummaryComponent,
   ],
   template: `
-    <div class="container mx-auto bg:white lg:bg-slate-100 my-0 h-screen">
+    <div
+      class="container mx-auto bg:white lg:bg-slate-100 my-0 h-screen font-inter"
+    >
       <div class="w-full lg:w-1/2 mx-auto">
         <form [formGroup]="rootFormGroup" (ngSubmit)="onSubmit()">
           <div class="">
@@ -101,9 +104,12 @@ import { OtherInfoComponent } from './other-info/other-info.component';
               ></app-other-info>
             }
             @if (currentStep() === StepKey.CheckData && stepVisible()) {
-              <div>
-                <pre>{{ rootFormGroup.getRawValue() | json }}</pre>
-              </div>
+              <app-summary
+                [stepVisible]="stepVisible()"
+                (goToStep)="fadeToStep($event)"
+                (triggerSubmission)="onSubmit()"
+              >
+              </app-summary>
             }
           </div>
         </form>
@@ -125,7 +131,7 @@ export class AppComponent {
     this.rootFormGroup = this.fb.group({
       firstName: ['', Validators.required],
       lastName: ['', Validators.required],
-      camperCell: ['', Validators.pattern(/^0[6-8][0-9]{8}$/)],
+      camperCell: ['', [Validators.pattern(/^0[6-8][0-9]{8}$/)]],
       gender: ['', Validators.required],
       email: ['', [Validators.email, Validators.email]],
       age: ['', Validators.required],
@@ -135,8 +141,7 @@ export class AppComponent {
       parentName: ['', Validators.required],
       parentPhone: [
         '',
-        Validators.required,
-        Validators.pattern(/^0[6-8][0-9]{8}$/),
+        [Validators.required, Validators.pattern(/^0[6-8][0-9]{8}$/)],
       ],
       parentEmail: ['', [Validators.required, Validators.email]],
       church: ['', Validators.required],

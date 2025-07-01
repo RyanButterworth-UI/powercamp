@@ -56,15 +56,15 @@ import { CommonModule } from '@angular/common';
             (click)="addFriend()"
             class="my-4 bg-green-300 text-green-900 px-3 py-1 rounded self-start"
           >
-            Add
+            Add Another Friend
           </button>
         </div>
 
         <div class="flex gap-6 mt-6">
           <button
             type="button"
-            (click)="goToStep.emit(StepKey.Medical)"
-            class="px-8 py-2 rounded border"
+            (click)="goToStep.emit(StepKey.CamperAdditionalInfo)"
+            class="px-8 py-2 rounded border border-gray-300  text-gray-600 cursor-pointer"
           >
             Back
           </button>

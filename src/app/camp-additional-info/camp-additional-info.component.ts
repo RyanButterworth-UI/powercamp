@@ -25,7 +25,7 @@ import { StepKey } from '../../models';
             All fields marked <span class="text-red-700">*</span> are required.
           </p>
           <fieldset aria-label="Camper Gender">
-            <label class="block mb-2 font-medium">
+            <label class="block text-sm/2 font-medium text-gray-900">
               Gender <span class="text-red-700">*</span>
             </label>
             <div class="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-2 mb-4">
@@ -46,7 +46,7 @@ import { StepKey } from '../../models';
               </label>
               <label
                 aria-label="Female"
-                class="group relative flex items-center justify-center rounded-md border border-gray-300 bg-white p-3 has-checked:border-green-600 has-checked:bg-green-600 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-green-600 has-disabled:border-gray-400 has-disabled:bg-gray-200 has-disabled:opacity-25 cursor-pointer"
+                class="group relative flex items-center justify-center rounded-md border border-gray-300 bg-white p-3 has-checked:border-green-300 has-checked:bg-green-300 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-green-600 has-disabled:border-gray-400 has-disabled:bg-gray-200 has-disabled:opacity-25 cursor-pointer"
               >
                 <input
                   type="radio"
@@ -55,15 +55,15 @@ import { StepKey } from '../../models';
                   class="absolute inset-0 appearance-none focus:outline-none disabled:cursor-not-allowed"
                 />
                 <span
-                  class="text-sm font-medium uppercase group-has-checked:text-white"
+                  class="text-sm font-medium uppercase group-has-checked:text-green-900"
                   >Female</span
                 >
               </label>
             </div>
           </fieldset>
           <fieldset aria-label="Camper Age">
-            <label class="block mb-2 font-medium">
-              Age <span class="text-red-500">*</span>
+            <label class="block text-sm/2 font-medium text-gray-900">
+              Age <span class="text-red-700">*</span>
             </label>
             <div class="mt-2 grid grid-cols-3 gap-3 sm:grid-cols-5 mb-4">
               @for (age of ageOptions(); track age) {
@@ -85,17 +85,18 @@ import { StepKey } from '../../models';
               }
             </div>
           </fieldset>
-          <label class="block mb-2 font-medium">
+
+          <label class="block text-sm/2 font-medium text-gray-900 mb-2">
             Date of Birth <span class="text-red-700">*</span>
           </label>
           <input
             type="date"
             formControlName="dob"
-            class="w-full border rounded px-3 py-2 mb-4"
+            class="w-full border border-gray-500 rounded px-3 py-2 mb-4"
           />
           <fieldset aria-label="Camper Grade">
-            <label class="block mb-2 font-medium">
-              Grade <span class="text-red-500">*</span>
+            <label class="block text-sm/2 font-medium text-gray-900">
+              Grade <span class="text-red-700">*</span>
             </label>
             <div class="mt-2 grid grid-cols-3 gap-3 sm:grid-cols-5 mb-4">
               @for (grade of grades(); track grade) {
@@ -121,8 +122,8 @@ import { StepKey } from '../../models';
         <div class="flex gap-6 mt-6">
           <button
             type="button"
-            (click)="goToStep.emit(StepKey.Friends)"
-            class="px-8 py-2 rounded border"
+            (click)="goToStep.emit(StepKey.Details)"
+            class="px-8 py-2 rounded border border-gray-300  text-gray-600 cursor-pointer"
           >
             Back
           </button>
@@ -130,7 +131,7 @@ import { StepKey } from '../../models';
             [disabled]="!areCamperFieldsValid()"
             type="button"
             (click)="goToStep.emit(StepKey.Friends)"
-            class="bg-green-300 text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed"
+            class="bg-green-300 text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
           >
             Next
           </button>
@@ -147,7 +148,7 @@ export class CampAdditionalInfoComponent {
   StepKey = StepKey;
   grades = signal(['8', '9', '10', '11', '12']);
   ageOptions = signal([14, 15, 16, 17, 18]);
-  camperFields = ['firstName', 'lastName'];
+  camperFields = ['gender', 'age', 'dob', 'grade'];
 
   constructor(private rootFormGroup: FormGroupDirective) {
     this.form = this.rootFormGroup.control;

@@ -172,7 +172,7 @@ import {
           <button
             type="button"
             (click)="goToStep.emit(StepKey.Details)"
-            class="px-8 py-2 rounded border"
+            class="px-8 py-2 rounded border border-gray-300  text-gray-600 cursor-pointer"
           >
             Back
           </button>
@@ -180,7 +180,7 @@ import {
             [disabled]="!areCamperFieldsValid()"
             type="button"
             (click)="goToStep.emit(StepKey.CamperAdditionalInfo)"
-            class="bg-green-300 text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed"
+            class="bg-green-300 text-green-900 px-8 py-2 rounded disabled:bg-red-700 cursor-pointer disabled:text-white disabled:cursor-not-allowed"
           >
             Next
           </button>

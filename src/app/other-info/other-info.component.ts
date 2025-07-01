@@ -20,14 +20,14 @@ import { StepKey } from '../../models';
           <label class="my-2 text-sm text-gray-500">
             Before you cross the finish line, is there anything else we should
             know? We want to make sure you have everything you need for an
-            amazing camp experience this winter!
+            amazing camp experience this winter! (You can skip this too!)
           </label>
           <textarea
             formControlName="generalInfo"
             placeholder="Share any additional information or special requests you have for us. This could include dietary restrictions,or anything else that will help us support you during camp."
             name="generalInfo"
             rows="3"
-            class="w-full border rounded px-3 py-2 my-4"
+            class="w-full border rounded px-3 py-2 my-4 text-sm"
           ></textarea>
         </div>
         <div class="flex gap-6 mt-6">

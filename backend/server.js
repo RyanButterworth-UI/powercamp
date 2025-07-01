@@ -1,19 +1,30 @@
 import express from 'express';
-import cors from 'cors';
 import path from 'path';
+import cors from 'cors';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// ✅ add CORS for local Angular dev
+app.use(
+  cors({
+    origin: 'http://localhost:4200',
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type'],
+  })
+);
+
+app.use(express.json());
 app.use(express.static(path.join(__dirname, 'dist/powercamp/browser')));
 
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist/powercamp/browser/index.html'));
 });
+
 app.post('/submit', async (req, res) => {
   console.log('Received data:', req.body);
 

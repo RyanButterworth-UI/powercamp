@@ -17,11 +17,11 @@ import { StepKey } from '../../models';
         [class.opacity-100]="stepVisible()"
       >
         <div>
-          <label class="block mb-2 font-medium">Any Medical Issues?</label>
-          <p class="my-2 text-md text-gray-500">
+          <p class="text-red-800">Medical Information:</p>
+          <p class="block text-sm/4 font-medium text-gray-500">
             We want to be prepared. Please give any important medical info.
           </p>
-          <label class="block text-sm/6 font-medium text-gray-900 mb-6">
+          <label class="block text-xs/6 font-medium text-gray-900 my-2">
             You can skip this section if you are fighting fit.
             <span class="text-red-700">*</span>
           </label>
@@ -30,7 +30,7 @@ import { StepKey } from '../../models';
             placeholder="Please provide any medical information that we should be aware of, such as allergies, medications, or other health concerns."
             name="medical"
             rows="3"
-            class="w-full border rounded px-3 py-2 mb-4"
+            class="w-full border rounded px-3 py-2 mb-4 text-sm"
           ></textarea>
         </div>
         <div class="flex gap-6 mt-6">
@@ -60,15 +60,11 @@ export class MedicalComponent {
   stepVisible = input.required<boolean>();
   goToStep = output<StepKey>();
   StepKey = StepKey;
-  grades = signal(['8', '9', '10', '11', '12']);
-  ageOptions = signal([14, 15, 16, 17, 18]);
-  camperFields = ['firstName', 'lastName'];
+  camperFields = [];
 
   constructor(private rootFormGroup: FormGroupDirective) {
     this.form = this.rootFormGroup.control;
   }
-
-  firstName = computed(() => this.form.get('firstName')?.value || '');
 
   areCamperFieldsValid(): boolean {
     return this.camperFields.every((field) => this.form.get(field)?.valid);

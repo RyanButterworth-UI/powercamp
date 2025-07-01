@@ -22,11 +22,11 @@ import { StepKey } from '../../models';
             {{ firstName() }}. Please fill out each field carefully!
           </p>
           <p class="mb-6 text-xs font-extrabold text-gray-800">
-            All fields marked <span class="text-red-500">*</span> are required.
+            All fields marked <span class="text-red-700">*</span> are required.
           </p>
           <fieldset aria-label="Parent/Guardian Details">
-            <label class="block mb-2 font-medium"
-              >Parent/Guardian Name <span class="text-red-500">*</span></label
+            <label class="block text-sm/2 font-medium text-gray-900"
+              >Parent/Guardian Name <span class="text-red-700">*</span></label
             >
             <div class="relative mt-2 mb-4">
               <input
@@ -52,10 +52,10 @@ import { StepKey } from '../../models';
                 />
               </svg>
             </div>
-            <label class="block mb-2 font-medium"
+            <label class="block text-sm/2 font-medium text-gray-900"
               >Parent/Guardian Phone <span class="text-red-500">*</span></label
             >
-            <div class="relative mt-2 mb-4">
+            <div class="relative mt-2 mb-2">
               <input
                 type="tel"
                 formControlName="parentPhone"
@@ -82,10 +82,21 @@ import { StepKey } from '../../models';
                 />
               </svg>
             </div>
-            <label class="block mb-2 font-medium"
+            @if (
+              form.get('parentPhone')?.invalid &&
+              form.get('parentPhone')?.dirty &&
+              form.get('parentPhone')?.value
+            ) {
+              <div class="mb-2">
+                <p class="text-red-700 text-sm">
+                  Please enter a valid cell number
+                </p>
+              </div>
+            }
+            <label class="block text-sm/2 font-medium text-gray-900"
               >Parent/Guardian Email <span class="text-red-500">*</span></label
             >
-            <div class="relative mt-2 mb-4">
+            <div class="relative mt-2 ">
               <input
                 type="email"
                 formControlName="parentEmail"
@@ -109,13 +120,22 @@ import { StepKey } from '../../models';
                 />
               </svg>
             </div>
+            @if (
+              form.get('parentEmail')?.invalid &&
+              form.get('parentEmail')?.dirty &&
+              form.get('parentEmail')?.value
+            ) {
+              <div class="mb-2">
+                <p class="text-red-700 text-sm">Please enter a valid email</p>
+              </div>
+            }
           </fieldset>
         </div>
         <div class="flex gap-6 mt-6">
           <button
             type="button"
-            (click)="goToStep.emit(StepKey.Friends)"
-            class="px-8 py-2 rounded border"
+            (click)="goToStep.emit(StepKey.Medical)"
+            class="px-8 py-2 rounded border border-gray-300  text-gray-600 cursor-pointer"
           >
             Back
           </button>
@@ -138,9 +158,8 @@ export class ParentComponent {
   stepVisible = input.required<boolean>();
   goToStep = output<StepKey>();
   StepKey = StepKey;
-  grades = signal(['8', '9', '10', '11', '12']);
-  ageOptions = signal([14, 15, 16, 17, 18]);
-  camperFields = ['firstName', 'lastName'];
+
+  camperFields = ['parentPhone', 'parentEmail', 'parentName'];
 
   constructor(private rootFormGroup: FormGroupDirective) {
     this.form = this.rootFormGroup.control;
