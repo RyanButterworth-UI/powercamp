@@ -12,7 +12,10 @@ const port = process.env.PORT || 3000;
 // ✅ add CORS for local Angular dev
 app.use(
   cors({
-    origin: 'http://localhost:4200',
+    origin: [
+      'http://localhost:4200',
+      'https://powercamp-registration.onrender.com',
+    ],
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type'],
   })
