@@ -176,6 +176,7 @@ export class AppComponent {
   }
 
   onSubmit() {
+    console.log('Submitting form...');
     const data = this.rootFormGroup.getRawValue();
 
     this.submittedCamperName.set(data.firstName);
@@ -187,9 +188,10 @@ export class AppComponent {
         this.submissionStatus.set('success');
         this.showDialog.set(true);
       },
-      error: (_) => {
+      error: (error) => {
         this.submissionStatus.set('error');
         this.showDialog.set(true);
+        console.log('Error submitting form:', error);
       },
     });
   }
