@@ -6,9 +6,7 @@ import { StepKey } from '../../models';
   selector: 'app-summary',
   imports: [],
   template: `
-    <div
-      class="p-5 inset-0 flex flex-col justify-between transition-all duration-700 ease-in-out w-full h-full"
-    >
+    <div class="customer-wrapper">
       <h2 class="text-xl font-bold mb-4 text-gray-800">
         Camper & Parent Summary
       </h2>

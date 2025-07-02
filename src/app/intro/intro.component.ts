@@ -6,7 +6,7 @@ import { StepKey } from '../../models';
   imports: [],
   template: `
     <div
-      class="p-5 absolute inset-0 flex flex-col items-center justify-center text-center transition-all duration-700 ease-in-out w-full h-full"
+      class="customer-wrapper"
       [class.opacity-0]="!stepVisible()"
       [class.opacity-100]="stepVisible()"
     >

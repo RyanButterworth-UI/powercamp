@@ -39,80 +39,82 @@ import { SummaryComponent } from './summary/summary.component';
   ],
   template: `
     <div
-      class="container mx-auto bg:white lg:bg-slate-100 my-0 h-screen font-inter"
+      class="container mx-auto bg:white lg:bg-slate-100 my-0 min-h-dvh font-inter flex lg:justify-center lg:items-center"
     >
-      <div class="w-full lg:w-1/2 mx-auto">
-        <form [formGroup]="rootFormGroup" (ngSubmit)="onSubmit()">
-          <div class="">
-            @if (currentStep() === StepKey.Intro && stepVisible()) {
-              <app-intro
-                [stepVisible]="stepVisible()"
-                (goToStep)="fadeToStep($event)"
-              ></app-intro>
-            }
-            @if (currentStep() === StepKey.Details && stepVisible()) {
-              <app-details
-                [stepVisible]="stepVisible()"
-                (goToStep)="fadeToStep($event)"
-              ></app-details>
-            }
-            @if (currentStep() === StepKey.CamperInfo) {
-              <app-camper-info
-                [stepVisible]="stepVisible()"
-                (goToStep)="fadeToStep($event)"
-              ></app-camper-info>
-            }
-            @if (
-              currentStep() === StepKey.CamperAdditionalInfo && stepVisible()
-            ) {
-              <app-camp-additional-info
-                [stepVisible]="stepVisible()"
-                (goToStep)="fadeToStep($event)"
-              >
-              </app-camp-additional-info>
-            }
-            @if (currentStep() === StepKey.Friends && stepVisible()) {
-              <app-friends
-                [stepVisible]="stepVisible()"
-                (goToStep)="fadeToStep($event)"
-              ></app-friends>
-            }
-            @if (currentStep() === StepKey.Medical && stepVisible()) {
-              <app-medical
-                [stepVisible]="stepVisible()"
-                (goToStep)="fadeToStep($event)"
-              ></app-medical>
-            }
-            @if (currentStep() === StepKey.ParentInfo && stepVisible()) {
-              <app-parent
-                [stepVisible]="stepVisible()"
-                (goToStep)="fadeToStep($event)"
-              ></app-parent>
-            }
-            @if (currentStep() === StepKey.Tshirt && stepVisible()) {
-              <app-t-shirt
-                [stepVisible]="stepVisible()"
-                (goToStep)="fadeToStep($event)"
-              >
-              </app-t-shirt>
-            }
+      <div class="w-full lg:w-1/2 h-full flex flex-col">
+        <div class="w-full  mx-auto h-full flex flex-col">
+          <form [formGroup]="rootFormGroup">
+            <div class="">
+              @if (currentStep() === StepKey.Intro && stepVisible()) {
+                <app-intro
+                  [stepVisible]="stepVisible()"
+                  (goToStep)="fadeToStep($event)"
+                ></app-intro>
+              }
+              @if (currentStep() === StepKey.Details && stepVisible()) {
+                <app-details
+                  [stepVisible]="stepVisible()"
+                  (goToStep)="fadeToStep($event)"
+                ></app-details>
+              }
+              @if (currentStep() === StepKey.CamperInfo) {
+                <app-camper-info
+                  [stepVisible]="stepVisible()"
+                  (goToStep)="fadeToStep($event)"
+                ></app-camper-info>
+              }
+              @if (
+                currentStep() === StepKey.CamperAdditionalInfo && stepVisible()
+              ) {
+                <app-camp-additional-info
+                  [stepVisible]="stepVisible()"
+                  (goToStep)="fadeToStep($event)"
+                >
+                </app-camp-additional-info>
+              }
+              @if (currentStep() === StepKey.Friends && stepVisible()) {
+                <app-friends
+                  [stepVisible]="stepVisible()"
+                  (goToStep)="fadeToStep($event)"
+                ></app-friends>
+              }
+              @if (currentStep() === StepKey.Medical && stepVisible()) {
+                <app-medical
+                  [stepVisible]="stepVisible()"
+                  (goToStep)="fadeToStep($event)"
+                ></app-medical>
+              }
+              @if (currentStep() === StepKey.ParentInfo && stepVisible()) {
+                <app-parent
+                  [stepVisible]="stepVisible()"
+                  (goToStep)="fadeToStep($event)"
+                ></app-parent>
+              }
+              @if (currentStep() === StepKey.Tshirt && stepVisible()) {
+                <app-t-shirt
+                  [stepVisible]="stepVisible()"
+                  (goToStep)="fadeToStep($event)"
+                >
+                </app-t-shirt>
+              }
 
-            @if (currentStep() === StepKey.OtherInfo && stepVisible()) {
-              <app-other-info
-                [stepVisible]="stepVisible()"
-                (goToStep)="fadeToStep($event)"
-              ></app-other-info>
-            }
-            @if (currentStep() === StepKey.CheckData && stepVisible()) {
-              <app-summary
-                [stepVisible]="stepVisible()"
-                (goToStep)="fadeToStep($event)"
-                (triggerSubmission)="onSubmit()"
-              >
-              </app-summary>
-            }
-          </div>
-        </form>
+              @if (currentStep() === StepKey.OtherInfo && stepVisible()) {
+                <app-other-info
+                  [stepVisible]="stepVisible()"
+                  (goToStep)="fadeToStep($event)"
+                ></app-other-info>
+              }
+              @if (currentStep() === StepKey.CheckData && stepVisible()) {
+                <app-summary
+                  [stepVisible]="stepVisible()"
+                  (goToStep)="fadeToStep($event)"
+                  (triggerSubmission)="onSubmit()"
+                >
+                </app-summary>
+              }
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   `,

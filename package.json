@@ -9,7 +9,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:ci": "jest --runInBand",
-    "build:prod": "ng build --configuration production"
+    "build:prod": "ng build --configuration production",
+    "run:network": "ng serve --host 0.0.0.0 --port 4200"
   },
   "private": true,
   "dependencies": {

@@ -6,7 +6,7 @@ import { StepKey } from '../../models';
   imports: [],
   template: `
     <div
-      class="p-5 absolute inset-0 flex flex-col items-center justify-center text-center transition-all duration-700 ease-in-out w-full h-full"
+      class="customer-wrapper"
       [class.opacity-0]="!stepVisible()"
       [class.opacity-100]="stepVisible()"
     >
@@ -27,7 +27,7 @@ import { StepKey } from '../../models';
           <span class="text-blue-700 font-bold">ONLY grade 8 - grade 12</span>
         </div>
         <div>
-          <span class="font-semibold">Cost:</span> R3200 (accommodation, meals,
+          <span class="font-semibold">Cost:</span> R1300 (accommodation, meals,
           all activities, and the POWER camp T-shirt)
         </div>
         <div class="text-xs text-gray-500">

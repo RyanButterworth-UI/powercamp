@@ -16,7 +16,7 @@ import { CommonModule } from '@angular/common';
   template: `
     <form [formGroup]="form">
       <div
-        class="p-5 inset-0 flex flex-col justify-between transition-all duration-700 ease-in-out w-full h-full"
+        class="customer-wrapper"
         [class.opacity-0]="!stepVisible()"
         [class.opacity-100]="stepVisible()"
       >

@@ -1,3 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 /* You can add global styles to this file, and also import other style files */
 @import 'tailwindcss';
+
+.customer-wrapper {
+  @apply h-full p-5 overflow-auto flex flex-col justify-between transition-all duration-700 ease-in-out;
+}

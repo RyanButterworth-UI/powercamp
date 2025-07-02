@@ -10,12 +10,12 @@ import {
   selector: 'app-camper-info',
   imports: [ReactiveFormsModule],
   template: `
-    <form [formGroup]="form">
-      <div
-        class="h-full p-5 overflow-auto flex flex-col justify-between transition-all duration-700 ease-in-out font-inter"
-        [class.opacity-0]="!stepVisible()"
-        [class.opacity-100]="stepVisible()"
-      >
+    <div
+      class="customer-wrapper"
+      [class.opacity-0]="!stepVisible()"
+      [class.opacity-100]="stepVisible()"
+    >
+      <form [formGroup]="form">
         <div>
           <p class="my-2 text-md text-gray-500">
             The details below are for the camper attending Power Camp. Please
@@ -185,8 +185,8 @@ import {
             Next
           </button>
         </div>
-      </div>
-    </form>
+      </form>
+    </div>
   `,
   styles: ``,
 })
