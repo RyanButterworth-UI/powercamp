@@ -19,6 +19,7 @@ import { ParentComponent } from './parent/parent.component';
 import { TShirtComponent } from './t-shirt/t-shirt.component';
 import { OtherInfoComponent } from './other-info/other-info.component';
 import { SummaryComponent } from './summary/summary.component';
+import { SuccessDialogComponent } from './success-dialog/success-dialog.component';
 
 @Component({
   selector: 'app-root',
@@ -36,6 +37,7 @@ import { SummaryComponent } from './summary/summary.component';
     TShirtComponent,
     OtherInfoComponent,
     SummaryComponent,
+    SuccessDialogComponent,
   ],
   template: `
     <div
@@ -43,77 +45,86 @@ import { SummaryComponent } from './summary/summary.component';
     >
       <div class="w-full lg:w-1/2 h-full flex flex-col">
         <div class="w-full  mx-auto h-full flex flex-col">
-          <form [formGroup]="rootFormGroup">
-            <div class="">
-              @if (currentStep() === StepKey.Intro && stepVisible()) {
-                <app-intro
-                  [stepVisible]="stepVisible()"
-                  (goToStep)="fadeToStep($event)"
-                ></app-intro>
-              }
-              @if (currentStep() === StepKey.Details && stepVisible()) {
-                <app-details
-                  [stepVisible]="stepVisible()"
-                  (goToStep)="fadeToStep($event)"
-                ></app-details>
-              }
-              @if (currentStep() === StepKey.CamperInfo) {
-                <app-camper-info
-                  [stepVisible]="stepVisible()"
-                  (goToStep)="fadeToStep($event)"
-                ></app-camper-info>
-              }
-              @if (
-                currentStep() === StepKey.CamperAdditionalInfo && stepVisible()
-              ) {
-                <app-camp-additional-info
-                  [stepVisible]="stepVisible()"
-                  (goToStep)="fadeToStep($event)"
-                >
-                </app-camp-additional-info>
-              }
-              @if (currentStep() === StepKey.Friends && stepVisible()) {
-                <app-friends
-                  [stepVisible]="stepVisible()"
-                  (goToStep)="fadeToStep($event)"
-                ></app-friends>
-              }
-              @if (currentStep() === StepKey.Medical && stepVisible()) {
-                <app-medical
-                  [stepVisible]="stepVisible()"
-                  (goToStep)="fadeToStep($event)"
-                ></app-medical>
-              }
-              @if (currentStep() === StepKey.ParentInfo && stepVisible()) {
-                <app-parent
-                  [stepVisible]="stepVisible()"
-                  (goToStep)="fadeToStep($event)"
-                ></app-parent>
-              }
-              @if (currentStep() === StepKey.Tshirt && stepVisible()) {
-                <app-t-shirt
-                  [stepVisible]="stepVisible()"
-                  (goToStep)="fadeToStep($event)"
-                >
-                </app-t-shirt>
-              }
+          @if (showDialog()) {
+            <app-success-dialog
+              [camperName]="submittedCamperName()"
+              [status]="submissionStatus()"
+              (refreshApp)="refreshApp()"
+            ></app-success-dialog>
+          } @else {
+            <form [formGroup]="rootFormGroup">
+              <div class="">
+                @if (currentStep() === StepKey.Intro && stepVisible()) {
+                  <app-intro
+                    [stepVisible]="stepVisible()"
+                    (goToStep)="fadeToStep($event)"
+                  ></app-intro>
+                }
+                @if (currentStep() === StepKey.Details && stepVisible()) {
+                  <app-details
+                    [stepVisible]="stepVisible()"
+                    (goToStep)="fadeToStep($event)"
+                  ></app-details>
+                }
+                @if (currentStep() === StepKey.CamperInfo) {
+                  <app-camper-info
+                    [stepVisible]="stepVisible()"
+                    (goToStep)="fadeToStep($event)"
+                  ></app-camper-info>
+                }
+                @if (
+                  currentStep() === StepKey.CamperAdditionalInfo &&
+                  stepVisible()
+                ) {
+                  <app-camp-additional-info
+                    [stepVisible]="stepVisible()"
+                    (goToStep)="fadeToStep($event)"
+                  >
+                  </app-camp-additional-info>
+                }
+                @if (currentStep() === StepKey.Friends && stepVisible()) {
+                  <app-friends
+                    [stepVisible]="stepVisible()"
+                    (goToStep)="fadeToStep($event)"
+                  ></app-friends>
+                }
+                @if (currentStep() === StepKey.Medical && stepVisible()) {
+                  <app-medical
+                    [stepVisible]="stepVisible()"
+                    (goToStep)="fadeToStep($event)"
+                  ></app-medical>
+                }
+                @if (currentStep() === StepKey.ParentInfo && stepVisible()) {
+                  <app-parent
+                    [stepVisible]="stepVisible()"
+                    (goToStep)="fadeToStep($event)"
+                  ></app-parent>
+                }
+                @if (currentStep() === StepKey.Tshirt && stepVisible()) {
+                  <app-t-shirt
+                    [stepVisible]="stepVisible()"
+                    (goToStep)="fadeToStep($event)"
+                  >
+                  </app-t-shirt>
+                }
 
-              @if (currentStep() === StepKey.OtherInfo && stepVisible()) {
-                <app-other-info
-                  [stepVisible]="stepVisible()"
-                  (goToStep)="fadeToStep($event)"
-                ></app-other-info>
-              }
-              @if (currentStep() === StepKey.CheckData && stepVisible()) {
-                <app-summary
-                  [stepVisible]="stepVisible()"
-                  (goToStep)="fadeToStep($event)"
-                  (triggerSubmission)="onSubmit()"
-                >
-                </app-summary>
-              }
-            </div>
-          </form>
+                @if (currentStep() === StepKey.OtherInfo && stepVisible()) {
+                  <app-other-info
+                    [stepVisible]="stepVisible()"
+                    (goToStep)="fadeToStep($event)"
+                  ></app-other-info>
+                }
+                @if (currentStep() === StepKey.CheckData && stepVisible()) {
+                  <app-summary
+                    [stepVisible]="stepVisible()"
+                    (goToStep)="fadeToStep($event)"
+                    (triggerSubmission)="onSubmit()"
+                  >
+                  </app-summary>
+                }
+              </div>
+            </form>
+          }
         </div>
       </div>
     </div>
@@ -153,6 +164,10 @@ export class AppComponent {
     });
   }
 
+  showDialog = signal(false);
+  submissionStatus = signal<'success' | 'error'>('success');
+  submittedCamperName = signal('Dear Camper');
+
   nextStep() {
     if (this.currentStep() < 13) this.currentStep.update((v) => v + 1);
   }
@@ -163,18 +178,18 @@ export class AppComponent {
   onSubmit() {
     const data = this.rootFormGroup.getRawValue();
 
-    console.log('Sending to local Node server:', data);
+    this.submittedCamperName.set(data.firstName);
 
-    const url = 'https://powercamp-registration.onrender.com/submit'; // hitting YOUR node backend
+    const url = 'https://powercamp-registration.onrender.com/submit';
 
     this.http.post(url, data).subscribe({
-      next: (response) => {
-        console.log('Server response:', response);
-        alert('Submitted successfully!');
+      next: (_) => {
+        this.submissionStatus.set('success');
+        this.showDialog.set(true);
       },
-      error: (err: any) => {
-        console.error('Error:', err);
-        alert('Something went wrong.');
+      error: (_) => {
+        this.submissionStatus.set('error');
+        this.showDialog.set(true);
       },
     });
   }
@@ -186,5 +201,12 @@ export class AppComponent {
       this.currentStep.set(idx);
       this.stepVisible.set(true);
     }, 700);
+  }
+
+  refreshApp() {
+    console.log;
+    ('Refreshing app...');
+    window.location.reload();
+    this.showDialog.set(false);
   }
 }
