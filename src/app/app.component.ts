@@ -52,6 +52,15 @@ import { SuccessDialogComponent } from './success-dialog/success-dialog.componen
               (refreshApp)="refreshApp()"
             ></app-success-dialog>
           } @else {
+            @if (isSubmitting()) {
+              <div
+                class="fixed inset-0 z-50 flex items-center justify-center bg-white/80"
+              >
+                <div
+                  class="animate-spin rounded-full h-16 w-16 border-t-4 border-indigo-600 border-solid"
+                ></div>
+              </div>
+            }
             <form [formGroup]="rootFormGroup">
               <div class="">
                 @if (currentStep() === StepKey.Intro && stepVisible()) {
@@ -136,6 +145,8 @@ export class AppComponent {
   StepKey = StepKey;
 
   stepVisible = signal(true);
+  isSubmitting = signal(false);
+
   rootFormGroup: FormGroup;
 
   private http = inject(HttpClient);
@@ -176,22 +187,24 @@ export class AppComponent {
   }
 
   onSubmit() {
-    console.log('Submitting form...');
     const data = this.rootFormGroup.getRawValue();
-
     this.submittedCamperName.set(data.firstName);
+
+    this.isSubmitting.set(true); // start loader
 
     const url = 'https://powercamp-registration.onrender.com/submit';
 
     this.http.post(url, data).subscribe({
-      next: (_) => {
+      next: () => {
         this.submissionStatus.set('success');
         this.showDialog.set(true);
+        this.isSubmitting.set(false); // stop loader
       },
-      error: (error) => {
+      error: (err: any) => {
+        console.error('Error:', err);
         this.submissionStatus.set('error');
         this.showDialog.set(true);
-        console.log('Error submitting form:', error);
+        this.isSubmitting.set(false); // stop loader
       },
     });
   }
