@@ -165,7 +165,7 @@ export class AppComponent {
 
     console.log('Sending to local Node server:', data);
 
-    const url = 'http://localhost:3000/submit'; // hitting YOUR node backend
+    const url = 'https://powercamp-registration.onrender.com/submit'; // hitting YOUR node backend
 
     this.http.post(url, data).subscribe({
       next: (response) => {
