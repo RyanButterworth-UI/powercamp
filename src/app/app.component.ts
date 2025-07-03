@@ -20,6 +20,9 @@ import { TShirtComponent } from './t-shirt/t-shirt.component';
 import { OtherInfoComponent } from './other-info/other-info.component';
 import { SummaryComponent } from './summary/summary.component';
 import { SuccessDialogComponent } from './success-dialog/success-dialog.component';
+import { environment } from '../environments/environment';
+import { LeaderApplicationComponent } from './leader-application/leader-application.component';
+import { LeaderInfoComponent } from './leader-info/leader-info.component';
 
 @Component({
   selector: 'app-root',
@@ -38,6 +41,8 @@ import { SuccessDialogComponent } from './success-dialog/success-dialog.componen
     OtherInfoComponent,
     SummaryComponent,
     SuccessDialogComponent,
+    LeaderApplicationComponent,
+    LeaderInfoComponent,
   ],
   template: `
     <div
@@ -74,6 +79,15 @@ import { SuccessDialogComponent } from './success-dialog/success-dialog.componen
                     [stepVisible]="stepVisible()"
                     (goToStep)="fadeToStep($event)"
                   ></app-details>
+                }
+                @if (
+                  currentStep() === StepKey.LeaderApplication && stepVisible()
+                ) {
+                  <app-leader-application
+                    [stepVisible]="stepVisible()"
+                    (goToStep)="fadeToStep($event)"
+                  >
+                  </app-leader-application>
                 }
                 @if (currentStep() === StepKey.CamperInfo) {
                   <app-camper-info
@@ -130,6 +144,15 @@ import { SuccessDialogComponent } from './success-dialog/success-dialog.componen
                     (triggerSubmission)="onSubmit()"
                   >
                   </app-summary>
+                }
+                @if (
+                  currentStep() === StepKey.LeaderQuestion && stepVisible()
+                ) {
+                  <app-leader-info
+                    [stepVisible]="stepVisible()"
+                    (goToStep)="fadeToStep($event)"
+                  >
+                  </app-leader-info>
                 }
               </div>
             </form>
@@ -192,7 +215,7 @@ export class AppComponent {
 
     this.isSubmitting.set(true); // start loader
 
-    const url = 'https://powercamp-registration.onrender.com/submit';
+    const url = `${environment.baseApi}/submit`;
 
     this.http.post(url, data).subscribe({
       next: () => {
@@ -215,12 +238,10 @@ export class AppComponent {
     setTimeout(() => {
       this.currentStep.set(idx);
       this.stepVisible.set(true);
-    }, 700);
+    }, 600);
   }
 
   refreshApp() {
-    console.log;
-    ('Refreshing app...');
     window.location.reload();
     this.showDialog.set(false);
   }

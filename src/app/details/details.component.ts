@@ -36,7 +36,7 @@ import { StepKey } from '../../models';
       </div>
       <button
         type="button"
-        (click)="goToStep.emit(StepKey.CamperInfo)"
+        (click)="goToStep.emit(StepKey.LeaderApplication)"
         class="rounded-full bg-white mt-4 px-4 py-2.5 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50"
       >
         Let me Register already!

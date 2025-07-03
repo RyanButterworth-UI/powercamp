@@ -1,4 +1,4 @@
-import { Component, input, OnInit, output } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { StepKey } from '../../models';
 import {
   FormGroup,
@@ -171,7 +171,7 @@ import {
         <div class="flex gap-6 mt-10">
           <button
             type="button"
-            (click)="goToStep.emit(StepKey.Details)"
+            (click)="goToStep.emit(StepKey.LeaderApplication)"
             class="px-8 py-2 rounded border border-gray-300  text-gray-600 cursor-pointer"
           >
             Back

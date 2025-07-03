@@ -147,7 +147,7 @@ export class CampAdditionalInfoComponent {
   goToStep = output<StepKey>();
   StepKey = StepKey;
   grades = signal(['8', '9', '10', '11', '12']);
-  ageOptions = signal([14, 15, 16, 17, 18]);
+  ageOptions = signal<(number | string)[]>([14, 15, 16, 17, 18, 'Leader 18+']);
   camperFields = ['gender', 'age', 'dob', 'grade'];
 
   constructor(private rootFormGroup: FormGroupDirective) {
