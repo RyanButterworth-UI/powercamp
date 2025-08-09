@@ -1,5 +1,6 @@
-import { Component, input, output } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 import { StepKey } from '../../models';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-intro',
@@ -26,20 +27,31 @@ import { StepKey } from '../../models';
         Here's the deal: Each camper, even if they're from the same family, must
         complete this form. It's your key to unlocking the adventure ahead!
       </p>
-
-      <button
-        type="button"
-        (click)="goToStep.emit(StepKey.Details)"
-        class="rounded-full bg-white mt-4 px-4 py-2.5 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50"
-      >
-        Start Registration
-      </button>
+      <div class="flex w-full justify-between">
+        <button
+          type="button"
+          (click)="goToStep.emit(StepKey.Details)"
+          class="rounded-full bg-white mt-4 px-4 py-2.5 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50"
+        >
+          Start Registration
+        </button>
+        <button
+          class="rounded-full bg-white mt-4 px-4 py-2.5 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50"
+          (click)="navigateToConsent()"
+        >Consent form
+        </button>
+      </div>
     </div>
   `,
   styles: ``,
 })
 export class IntroComponent {
+  router = inject(Router);
   stepVisible = input.required<boolean>();
   goToStep = output<StepKey>();
   StepKey = StepKey;
+
+  navigateToConsent():void {
+    this.router.navigate(['consent']);
+  }
 }
