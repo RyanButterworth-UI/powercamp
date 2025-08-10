@@ -57,11 +57,9 @@ export class OtherInfoComponent {
   stepVisible = input.required<boolean>();
   goToStep = output<StepKey>();
   StepKey = StepKey;
-  grades = signal(['8', '9', '10', '11', '12']);
-  ageOptions = signal([14, 15, 16, 17, 18]);
   camperFields = ['firstName', 'lastName'];
 
-  constructor(private rootFormGroup: FormGroupDirective) {
+  constructor(private readonly rootFormGroup: FormGroupDirective) {
     this.form = this.rootFormGroup.control;
   }
 

@@ -32,3 +32,6 @@ export enum StepKey {
   LeaderApplication = 11,
   LeaderQuestion = 12,
 }
+export enum consentKey {
+  Intro
+}

@@ -164,9 +164,9 @@ export class FormComponent {
 
   rootFormGroup: FormGroup;
 
-  private http = inject(HttpClient);
+  private readonly http = inject(HttpClient);
 
-  constructor(private fb: FormBuilder) {
+  constructor(private readonly fb: FormBuilder) {
     this.rootFormGroup = this.fb.group({
       firstName: ['', Validators.required],
       lastName: ['', Validators.required],
