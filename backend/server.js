@@ -33,11 +33,39 @@ app.post('/submit', async (req, res) => {
 
   try {
     const response = await fetch(
+
       'https://script.google.com/macros/s/AKfycbxAJI1fVRvfpLlg35GyEMFUBZzNfepfU3b-NJRZZvS7Y2QnEdiYEo5qEUhESDQmoHIgHQ/exec',
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(req.body),
+      }
+    );
+
+    const result = await response.json();
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to forward data' });
+  }
+});
+
+app.post('/consent', async (req, res) => {
+  console.log('Received data:', req.body);
+
+
+  const bodyWithType = {
+    ...req.body,
+    formType: 'consent'
+  };
+
+  try {
+    const response = await fetch(
+      'https://script.google.com/macros/s/AKfycbxAJI1fVRvfpLlg35GyEMFUBZzNfepfU3b-NJRZZvS7Y2QnEdiYEo5qEUhESDQmoHIgHQ/exec',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bodyWithType),  // send the extended data
       }
     );
 
