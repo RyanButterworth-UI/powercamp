@@ -371,9 +371,6 @@ export class ConsentComponent implements OnInit {
     return fields.every((field) => this.consent.get(field)?.valid);
   }
 
-  logForm() {
-    console.log(this.consent.value);
-  }
 
   onSubmit() {
     const data = this.consent.getRawValue();
