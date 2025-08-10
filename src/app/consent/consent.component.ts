@@ -308,7 +308,7 @@ import { HttpClient } from '@angular/common/http';
         @if (currentStep() === 7) {
           <app-summary
             (navigateBack)="previousStep()"
-            (triggerSubmission)="logForm()"
+            (triggerSubmission)="onSubmit()"
           ></app-summary>
         }
       </div>
