@@ -194,12 +194,6 @@ export class FormComponent {
   submissionStatus = signal<'success' | 'error'>('success');
   submittedCamperName = signal('Dear Camper');
 
-  nextStep() {
-    if (this.currentStep() < 13) this.currentStep.update((v) => v + 1);
-  }
-  prevStep() {
-    if (this.currentStep() > 1) this.currentStep.update((v) => v - 1);
-  }
 
   onSubmit() {
     const data = this.rootFormGroup.getRawValue();
@@ -207,7 +201,7 @@ export class FormComponent {
 
     this.isSubmitting.set(true); // start loader
 
-    const url = `${environment.baseApi}/submit`;
+    const url = `${environment.baseApi}/suxbmit`;
 
     this.http.post(url, data).subscribe({
       next: () => {

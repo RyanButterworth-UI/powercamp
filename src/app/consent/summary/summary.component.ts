@@ -61,6 +61,12 @@ import { NgClass } from '@angular/common';
 
       <div class="flex  gap-4 mt-6">
         <button
+          class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+          (click)="navigateBack.emit()"
+        >
+          back
+        </button>
+        <button
           type="button"
           (click)="triggerSubmission.emit()"
           class="bg-green-300 text-green-900 px-8 py-2 rounded disabled:bg-red-700 cursor-pointer disabled:text-white disabled:cursor-not-allowed"
@@ -75,6 +81,7 @@ import { NgClass } from '@angular/common';
 export class SummaryComponent {
   form!: FormGroup;
   triggerSubmission = output<void>();
+  navigateBack = output<void>();
   constructor(protected rootFormGroup: FormGroupDirective) {
     this.form = this.rootFormGroup.control;
   }

@@ -6,7 +6,6 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { JsonPipe } from '@angular/common';
 import { BaseComponent } from './base/base.component';
 import { ConsentType } from '../../consent';
 import { SummaryComponent } from './summary/summary.component';
@@ -18,7 +17,6 @@ import { SummaryComponent } from './summary/summary.component';
   imports: [
     FormsModule,
     ReactiveFormsModule,
-    JsonPipe,
     BaseComponent,
     SummaryComponent,
   ],
@@ -26,16 +24,19 @@ import { SummaryComponent } from './summary/summary.component';
     <div
       class="container mx-auto bg:white lg:bg-slate-100 my-0 min-h-dvh font-inter flex lg:justify-center lg:items-center"
     >
-      <div [formGroup]="consent" class=" w-full md:w-1/3 lg:w-1/2 mx-auto px-4 ">
-        <pre class="hidden md:block">
-          {{ consent.getRawValue() | json }}
-        </pre
-        >
+      <div [formGroup]="consent" class=" w-full lg:w-1/2 mx-auto px-4">
+
         @if (currentStep() === 1) {
-          <div class="flex flex-col justify-center items-center py-10">
-            <p>
+          <div class="flex flex-col  py-10">
+            <p class="text-left pb-2">
               Please note that this indemnity must be completed once for EVERY
               child that is attending Power Camp.
+            </p>
+            <p class="text-left pb-2">
+              Each consent must must be accepted for you to move to the next step.
+            </p>
+            <p class="text-left pb-2">
+              The last page will capture emergenecy contact details.
             </p>
             <button
               class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
@@ -102,13 +103,21 @@ import { SummaryComponent } from './summary/summary.component';
                 </div>
               }
             </div>
-            <button
-              [disabled]="!areFieldsValid(parentFields)"
-              class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
-              (click)="nextStep()"
-            >
-              Continue
-            </button>
+            <div class="flex justify-between mt-2">
+              <button
+                class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+                (click)="previousStep()"
+              >
+                back
+              </button>
+              <button
+                [disabled]="!areFieldsValid(parentFields)"
+                class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+                (click)="nextStep()"
+              >
+                Continue
+              </button>
+            </div>
           </div>
         }
         @if (currentStep() === 3) {
@@ -129,12 +138,21 @@ import { SummaryComponent } from './summary/summary.component';
             [consentText]="ConsentType.Risk"
             [formControlNameLabel]="'riskConsent'">
           </app-base>
-          <button
-            class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
-            (click)="nextStep()"
-          >
-            Continue
-          </button>
+          <div class="flex justify-between mt-2">
+            <button
+              class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+              (click)="previousStep()"
+            >
+              back
+            </button>
+            <button
+              [disabled]="!areFieldsValid(generalConsent)"
+              class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+              (click)="nextStep()"
+            >
+              Continue
+            </button>
+          </div>
         }
         @if (currentStep() === 4) {
           <div class="px-2 py-6">
@@ -150,12 +168,21 @@ import { SummaryComponent } from './summary/summary.component';
             [consentText]="ConsentType.Behavior"
             [formControlNameLabel]="'behaviourConsent'">
           </app-base>
-          <button
-            class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
-            (click)="nextStep()"
-          >
-            Continue
-          </button>
+          <div class="flex justify-between mt-2">
+            <button
+              class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+              (click)="previousStep()"
+            >
+              back
+            </button>
+            <button
+              [disabled]="!areFieldsValid(powerCamp)"
+              class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+              (click)="nextStep()"
+            >
+              Continue
+            </button>
+          </div>
         }
         @if (currentStep() === 5) {
           <div class="px-2 py-6">
@@ -165,15 +192,23 @@ import { SummaryComponent } from './summary/summary.component';
           </div>
           <app-base
             [consentText]="ConsentType.Photo"
-            [formControlNameLabel]="'powerCampConsent'">
+            [formControlNameLabel]="'photoConsent'">
           </app-base>
-
-          <button
-            class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
-            (click)="nextStep()"
-          >
-            Continue
-          </button>
+          <div class="flex justify-between mt-2">
+            <button
+              class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+              (click)="previousStep()"
+            >
+              back
+            </button>
+            <button
+              [disabled]="!areFieldsValid(photo)"
+              class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+              (click)="nextStep()"
+            >
+              Continue
+            </button>
+          </div>
         }
         @if (currentStep() === 6) {
           <div class="px-2 py-6">
@@ -181,12 +216,24 @@ import { SummaryComponent } from './summary/summary.component';
           </div>
           <div class="flex flex-col w-full">
             <label class="block text-sm/2 font-medium text-gray-900 mb-2">
+              Emergency Contact Person Name <span class="text-red-700">*</span>
+            </label>
+            <input
+              placeholder="The PERSON we call if there is a medical event"
+              type="text"
+              formControlName="emergencyName"
+              class="w-full border border-gray-500 rounded px-3 py-2 mb-4 placeholder:text-sm"
+            />
+          </div>
+          <div class="flex flex-col w-full">
+            <label class="block text-sm/2 font-medium text-gray-900 mb-2">
               Emergency Contact Number <span class="text-red-700">*</span>
             </label>
             <input
-              type="text"
+              placeholder="The NUMBER we call if there is a medical event"
+              type="number"
               formControlName="emergencyContact"
-              class="w-full border border-gray-500 rounded px-3 py-2 mb-4"
+              class="w-full border border-gray-500 rounded px-3 py-2 mb-4 placeholder:text-sm"
             />
           </div>
           <div class="flex flex-col w-full">
@@ -194,9 +241,10 @@ import { SummaryComponent } from './summary/summary.component';
               Medical Aid Name <span class="text-red-700">*</span>
             </label>
             <input
+              placeholder="please type NONE if you are not on medical aid."
               type="text"
               formControlName="medicalAidName"
-              class="w-full border border-gray-500 rounded px-3 py-2 mb-4"
+              class="w-full border border-gray-500 rounded px-3 py-2 mb-4 placeholder:text-sm"
             />
           </div>
           <div class="flex flex-col w-full">
@@ -204,9 +252,10 @@ import { SummaryComponent } from './summary/summary.component';
               Medical Aid membership number <span class="text-red-700">*</span>
             </label>
             <input
+              placeholder="please type NONE if you are not on medical aid."
               type="text"
               formControlName="medicalAidNumber"
-              class="w-full border border-gray-500 rounded px-3 py-2 mb-4"
+              class="w-full border border-gray-500 rounded px-3 py-2 mb-4 placeholder:text-sm"
             />
           </div>
           <div class="flex flex-col w-full">
@@ -216,30 +265,30 @@ import { SummaryComponent } from './summary/summary.component';
             <input
               type="date"
               formControlName="dateOfCompletion"
-              class="w-1/2 border border-gray-500 rounded px-3 py-2 mb-4"
+              class="border border-gray-500 rounded px-3 py-2 mb-4 placeholder:text-sm placeholder:text-gray-500"
             />
           </div>
-          <button
-            class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
-            (click)="nextStep()"
-          >
-            Continue
-          </button>
+          <div class="flex justify-between mt-2">
+            <button
+              class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+              (click)="previousStep()"
+            >
+              back
+            </button>
+            <button
+              [disabled]="!areFieldsValid(medical)"
+              class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+              (click)="nextStep()"
+            >
+              Continue
+            </button>
+          </div>
         }
         @if (currentStep() === 7) {
-          <app-base
-            [consentText]="ConsentType.Photo"
-            [formControlNameLabel]="'photoConsent'">
-          </app-base>
-          <button
-            class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
-            (click)="nextStep()"
-          >
-            Continue
-          </button>
-        }
-        @if (currentStep() === 8) {
-          <app-summary></app-summary>
+          <app-summary
+            (navigateBack)="previousStep()"
+            (triggerSubmission)="logForm()"
+          ></app-summary>
         }
       </div>
     </div>
@@ -251,7 +300,11 @@ export class ConsentComponent implements OnInit {
   consent: FormGroup = this.fb.group({});
   currentStep = signal<number>(1);
 
-  parentFields = ['parentName','camperName','camperAge','camperGrade']
+  parentFields = ['parentName','camperName','camperAge','camperGrade'];
+  generalConsent = ['generalConsent','locationConsent','riskConsent'];
+  powerCamp = ['powerCampConsent','behaviourConsent'];
+  photo = ['photoConsent'];
+  medical = ['medicalAidName','emergencyContact','medicalAidNumber','dateOfCompletion']
 
   ngOnInit() {
     this.consent = this.fb.group({
@@ -264,9 +317,10 @@ export class ConsentComponent implements OnInit {
       riskConsent: ['', Validators.required],
       powerCampConsent: ['', Validators.required],
       behaviourConsent: ['', Validators.required],
-      emergencyContact: ['', Validators.required],
       photoConsent:['', Validators.required],
       medicalAidName: ['', Validators.required],
+      emergencyName: ['', Validators.required],
+      emergencyContact: ['', Validators.required],
       medicalAidNumber: ['', Validators.required],
       dateOfCompletion: ['', Validators.required],
     });
@@ -278,9 +332,17 @@ export class ConsentComponent implements OnInit {
     this.currentStep.set(this.currentStep() + 1);
   }
 
+  previousStep() {
+    this.currentStep.set(this.currentStep() - 1);
+  }
+
 
   areFieldsValid(fields:string[]): boolean {
     return fields.every((field) => this.consent.get(field)?.valid);
+  }
+
+  logForm() {
+    console.log(this.consent.value);
   }
 
 
