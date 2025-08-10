@@ -195,13 +195,14 @@ export class FormComponent {
   submittedCamperName = signal('Dear Camper');
 
 
+
   onSubmit() {
     const data = this.rootFormGroup.getRawValue();
     this.submittedCamperName.set(data.firstName);
 
     this.isSubmitting.set(true); // start loader
 
-    const url = `${environment.baseApi}/suxbmit`;
+    const url = `${environment.baseApi}/submit`;
 
     this.http.post(url, data).subscribe({
       next: () => {

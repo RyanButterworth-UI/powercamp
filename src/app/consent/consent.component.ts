@@ -9,6 +9,9 @@ import {
 import { BaseComponent } from './base/base.component';
 import { ConsentType } from '../../consent';
 import { SummaryComponent } from './summary/summary.component';
+import { SuccessDialogComponent } from '../success-dialog/success-dialog.component';
+import { environment } from '../../environments/environment';
+import { HttpClient } from '@angular/common/http';
 
 
 
@@ -19,11 +22,29 @@ import { SummaryComponent } from './summary/summary.component';
     ReactiveFormsModule,
     BaseComponent,
     SummaryComponent,
+    SuccessDialogComponent,
   ],
   template: `
     <div
       class="container mx-auto bg:white lg:bg-slate-100 my-0 min-h-dvh font-inter flex lg:justify-center lg:items-center"
     >
+      @if (showDialog()) {
+        <app-success-dialog
+          [camperName]="submittedCamperName()"
+          [status]="submissionStatus()"
+          (refreshApp)="refreshApp()"
+        ></app-success-dialog>
+      } @else {
+        @if (isSubmitting()) {
+          <div
+            class="fixed inset-0 z-50 flex items-center justify-center bg-white/80"
+          >
+            <div
+              class="animate-spin rounded-full h-16 w-16 border-t-4 border-indigo-600 border-solid"
+            ></div>
+          </div>
+        }
+
       <div [formGroup]="consent" class=" w-full lg:w-1/2 mx-auto px-4">
 
         @if (currentStep() === 1) {
@@ -291,6 +312,7 @@ import { SummaryComponent } from './summary/summary.component';
           ></app-summary>
         }
       </div>
+      }
     </div>
   `,
   styles: ``,
@@ -298,13 +320,24 @@ import { SummaryComponent } from './summary/summary.component';
 export class ConsentComponent implements OnInit {
   fb = inject(FormBuilder);
   consent: FormGroup = this.fb.group({});
-  currentStep = signal<number>(1);
+  private readonly http = inject(HttpClient);
 
-  parentFields = ['parentName','camperName','camperAge','camperGrade'];
-  generalConsent = ['generalConsent','locationConsent','riskConsent'];
-  powerCamp = ['powerCampConsent','behaviourConsent'];
+  currentStep = signal<number>(1);
+  showDialog = signal(false);
+  submissionStatus = signal<'success' | 'error'>('success');
+  submittedCamperName = signal('Dear Camper');
+  isSubmitting  = signal(false);
+
+  parentFields = ['parentName', 'camperName', 'camperAge', 'camperGrade'];
+  generalConsent = ['generalConsent', 'locationConsent', 'riskConsent'];
+  powerCamp = ['powerCampConsent', 'behaviourConsent'];
   photo = ['photoConsent'];
-  medical = ['medicalAidName','emergencyContact','medicalAidNumber','dateOfCompletion']
+  medical = [
+    'medicalAidName',
+    'emergencyContact',
+    'medicalAidNumber',
+    'dateOfCompletion',
+  ];
 
   ngOnInit() {
     this.consent = this.fb.group({
@@ -317,16 +350,14 @@ export class ConsentComponent implements OnInit {
       riskConsent: ['', Validators.required],
       powerCampConsent: ['', Validators.required],
       behaviourConsent: ['', Validators.required],
-      photoConsent:['', Validators.required],
+      photoConsent: ['', Validators.required],
       medicalAidName: ['', Validators.required],
       emergencyName: ['', Validators.required],
       emergencyContact: ['', Validators.required],
       medicalAidNumber: ['', Validators.required],
       dateOfCompletion: ['', Validators.required],
     });
-
   }
-
 
   nextStep() {
     this.currentStep.set(this.currentStep() + 1);
@@ -336,8 +367,7 @@ export class ConsentComponent implements OnInit {
     this.currentStep.set(this.currentStep() - 1);
   }
 
-
-  areFieldsValid(fields:string[]): boolean {
+  areFieldsValid(fields: string[]): boolean {
     return fields.every((field) => this.consent.get(field)?.valid);
   }
 
@@ -345,7 +375,32 @@ export class ConsentComponent implements OnInit {
     console.log(this.consent.value);
   }
 
+  onSubmit() {
+    const data = this.consent.getRawValue();
+    this.submittedCamperName.set(data.firstName);
 
+    this.isSubmitting.set(true); // start loader
+
+    const url = `${environment.baseApi}/consent`;
+
+    this.http.post(url, data).subscribe({
+      next: () => {
+        this.submissionStatus.set('success');
+        this.showDialog.set(true);
+        this.isSubmitting.set(false); // stop loader
+      },
+      error: (err: any) => {
+        console.error('Error:', err);
+        this.submissionStatus.set('error');
+        this.showDialog.set(true);
+        this.isSubmitting.set(false); // stop loader
+      },
+    });
+  }
+  refreshApp() {
+    window.location.reload();
+    this.showDialog.set(false);
+  }
 
   protected readonly ConsentType = ConsentType;
 }
