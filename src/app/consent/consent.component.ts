@@ -377,7 +377,7 @@ export class ConsentComponent implements OnInit {
 
   onSubmit() {
     const data = this.consent.getRawValue();
-    this.submittedCamperName.set(data.firstName);
+    this.submittedCamperName.set(data.camperName);
 
     this.isSubmitting.set(true); // start loader
 
