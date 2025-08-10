@@ -32,6 +32,7 @@ import { HttpClient } from '@angular/common/http';
         <app-success-dialog
           [camperName]="submittedCamperName()"
           [status]="submissionStatus()"
+          [consent]="true"
           (refreshApp)="refreshApp()"
         ></app-success-dialog>
       } @else {

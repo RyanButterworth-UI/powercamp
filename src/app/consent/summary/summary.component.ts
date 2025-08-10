@@ -8,7 +8,7 @@ import { NgClass } from '@angular/common';
   template: `
     <div class="customer-wrapper">
       <h2 class="text-xl font-bold mb-4 text-gray-800">
-        Camper & Parent Summary
+        Consent Summary
       </h2>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -49,14 +49,15 @@ import { NgClass } from '@angular/common';
           </p>
         </div>
 
-        <div class="border rounded-lg p-4 shadow bg-white">
-          <h3 class="text-lg font-semibold mb-2 text-gray-700">
-            Consent Given
-          </h3>
-          <p [ngClass]="allConsentsAccepted() ? 'text-green-600' : 'text-red-600'">
-            {{ allConsentsAccepted() ? 'All consent Accepted' : 'Consent Missing' }}
-          </p>
-        </div>
+
+      </div>
+      <div class="border rounded-lg p-4 shadow bg-white my-2">
+        <h3 class="text-lg font-semibold mb-2 text-gray-700">
+          Consent Given
+        </h3>
+        <p [ngClass]="allConsentsAccepted() ? 'text-green-600' : 'text-red-600'">
+          {{ allConsentsAccepted() ? 'All consent Accepted' : 'Consent Missing' }}
+        </p>
       </div>
 
       <div class="flex  gap-4 mt-6">
