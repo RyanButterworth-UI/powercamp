@@ -59,30 +59,32 @@ import { Component,input, Input, output } from '@angular/core';
               </div>
               <div class="mt-3 text-center sm:mt-5">
                 <h3 class="text-base font-semibold text-gray-900">
-                  @if(!consent()){
-                  {{
-                    status === 'success'
-                      ? 'Registration Successful'
-                      : 'Registration Failed'
-                  }}
+                  @if (!consent()) {
+                    {{
+                      status === 'success'
+                        ? 'Registration Successful'
+                        : 'Registration Failed'
+                    }}
                   } @else {
-                    status === 'success'
-                      ? 'Consent Capture Successful'
-                      : 'Consent Capture Failed'
+                    {{
+                      status === 'success'
+                        ? 'Consent Capture Successful'
+                        : 'Consent Capture Failed'
+                    }}
                   }
                 </h3>
                 <div class="mt-2">
-                  @if(!consent()){
-                  <p class="text-sm text-gray-500">
-                    {{
-                      status === 'success'
-                        ? camperName +
+                  @if (!consent()) {
+                    <p class="text-sm text-gray-500">
+                      {{
+                        status === 'success'
+                          ? camperName +
                           ', your registration for Power Camp Winter 2025 has been recorded successfully. Get ready for a season of faith, fellowship, and unforgettable winter adventure!'
-                        : camperName +
+                          : camperName +
                           ', there was a problem submitting your registration for Power Camp Winter 2025. Please try again or contact us if the issue continues.'
-                    }}
-                  </p>
-                  }@else {
+                      }}
+                    </p>
+                  } @else {
                     <p class="text-sm text-gray-700">
                       {{
                         status === 'success'
