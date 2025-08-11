@@ -100,10 +100,13 @@ import { HttpClient } from '@angular/common/http';
                 />
               </div>
             </div>
+            <p class="mb-2">Please Select your child's grade</p>
             <div class="flex gap-2 w-full">
-              @for (size of ['8', '9', '10', '11', '12'];
+
+              @for (size of ['8', '9', '10', '11', '12','leader'];
                 track size) {
                 <div class="w-full">
+
                   <label
                     [attr.aria-label]="size"
                     class="group relative flex items-center justify-center rounded-md border border-gray-300 bg-white p-3 has-checked:border-green-300 has-checked:bg-green-300 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-green-600 has-disabled:border-gray-400 has-disabled:bg-gray-200 has-disabled:opacity-25 cursor-pointer"
