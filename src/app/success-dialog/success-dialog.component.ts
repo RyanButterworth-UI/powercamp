@@ -95,7 +95,7 @@ import { Component, EventEmitter, input, Input, output } from '@angular/core';
                 (click)="refreshApp.emit()"
               >
                 {{
-                  status === 'success' ? 'Return To Start' : 'Pleas try Again'
+                  status === 'success' ? 'Return To Start' : 'Please try Again'
                 }}
               </button>
             </div>
