@@ -66,86 +66,86 @@ import { environment } from '../../environments/environment';
                     (goToStep)="fadeToStep($event)"
                   ></app-intro>
                 }
-                @if (currentStep() === StepKey.Details && stepVisible()) {
-                  <app-details
-                    [stepVisible]="stepVisible()"
-                    (goToStep)="fadeToStep($event)"
-                  ></app-details>
-                }
-                @if (
-                  currentStep() === StepKey.LeaderApplication && stepVisible()
-                ) {
-                  <app-leader-application
-                    [stepVisible]="stepVisible()"
-                    (goToStep)="fadeToStep($event)"
-                  >
-                  </app-leader-application>
-                }
-                @if (currentStep() === StepKey.CamperInfo) {
-                  <app-camper-info
-                    [stepVisible]="stepVisible()"
-                    (goToStep)="fadeToStep($event)"
-                  ></app-camper-info>
-                }
-                @if (
-                  currentStep() === StepKey.CamperAdditionalInfo &&
-                  stepVisible()
-                ) {
-                  <app-camp-additional-info
-                    [stepVisible]="stepVisible()"
-                    (goToStep)="fadeToStep($event)"
-                  >
-                  </app-camp-additional-info>
-                }
-                @if (currentStep() === StepKey.Friends && stepVisible()) {
-                  <app-friends
-                    [stepVisible]="stepVisible()"
-                    (goToStep)="fadeToStep($event)"
-                  ></app-friends>
-                }
-                @if (currentStep() === StepKey.Medical && stepVisible()) {
-                  <app-medical
-                    [stepVisible]="stepVisible()"
-                    (goToStep)="fadeToStep($event)"
-                  ></app-medical>
-                }
-                @if (currentStep() === StepKey.ParentInfo && stepVisible()) {
-                  <app-parent
-                    [stepVisible]="stepVisible()"
-                    (goToStep)="fadeToStep($event)"
-                  ></app-parent>
-                }
-                @if (currentStep() === StepKey.Tshirt && stepVisible()) {
-                  <app-t-shirt
-                    [stepVisible]="stepVisible()"
-                    (goToStep)="fadeToStep($event)"
-                  >
-                  </app-t-shirt>
-                }
+<!--                @if (currentStep() === StepKey.Details && stepVisible()) {-->
+<!--                  <app-details-->
+<!--                    [stepVisible]="stepVisible()"-->
+<!--                    (goToStep)="fadeToStep($event)"-->
+<!--                  ></app-details>-->
+<!--                }-->
+<!--                @if (-->
+<!--                  currentStep() === StepKey.LeaderApplication && stepVisible()-->
+<!--                ) {-->
+<!--                  <app-leader-application-->
+<!--                    [stepVisible]="stepVisible()"-->
+<!--                    (goToStep)="fadeToStep($event)"-->
+<!--                  >-->
+<!--                  </app-leader-application>-->
+<!--                }-->
+<!--                @if (currentStep() === StepKey.CamperInfo) {-->
+<!--                  <app-camper-info-->
+<!--                    [stepVisible]="stepVisible()"-->
+<!--                    (goToStep)="fadeToStep($event)"-->
+<!--                  ></app-camper-info>-->
+<!--                }-->
+<!--                @if (-->
+<!--                  currentStep() === StepKey.CamperAdditionalInfo &&-->
+<!--                  stepVisible()-->
+<!--                ) {-->
+<!--                  <app-camp-additional-info-->
+<!--                    [stepVisible]="stepVisible()"-->
+<!--                    (goToStep)="fadeToStep($event)"-->
+<!--                  >-->
+<!--                  </app-camp-additional-info>-->
+<!--                }-->
+<!--                @if (currentStep() === StepKey.Friends && stepVisible()) {-->
+<!--                  <app-friends-->
+<!--                    [stepVisible]="stepVisible()"-->
+<!--                    (goToStep)="fadeToStep($event)"-->
+<!--                  ></app-friends>-->
+<!--                }-->
+<!--                @if (currentStep() === StepKey.Medical && stepVisible()) {-->
+<!--                  <app-medical-->
+<!--                    [stepVisible]="stepVisible()"-->
+<!--                    (goToStep)="fadeToStep($event)"-->
+<!--                  ></app-medical>-->
+<!--                }-->
+<!--                @if (currentStep() === StepKey.ParentInfo && stepVisible()) {-->
+<!--                  <app-parent-->
+<!--                    [stepVisible]="stepVisible()"-->
+<!--                    (goToStep)="fadeToStep($event)"-->
+<!--                  ></app-parent>-->
+<!--                }-->
+<!--                @if (currentStep() === StepKey.Tshirt && stepVisible()) {-->
+<!--                  <app-t-shirt-->
+<!--                    [stepVisible]="stepVisible()"-->
+<!--                    (goToStep)="fadeToStep($event)"-->
+<!--                  >-->
+<!--                  </app-t-shirt>-->
+<!--                }-->
 
-                @if (currentStep() === StepKey.OtherInfo && stepVisible()) {
-                  <app-other-info
-                    [stepVisible]="stepVisible()"
-                    (goToStep)="fadeToStep($event)"
-                  ></app-other-info>
-                }
-                @if (currentStep() === StepKey.CheckData && stepVisible()) {
-                  <app-summary
-                    [stepVisible]="stepVisible()"
-                    (goToStep)="fadeToStep($event)"
-                    (triggerSubmission)="onSubmit()"
-                  >
-                  </app-summary>
-                }
-                @if (
-                  currentStep() === StepKey.LeaderQuestion && stepVisible()
-                ) {
-                  <app-leader-info
-                    [stepVisible]="stepVisible()"
-                    (goToStep)="fadeToStep($event)"
-                  >
-                  </app-leader-info>
-                }
+<!--                @if (currentStep() === StepKey.OtherInfo && stepVisible()) {-->
+<!--                  <app-other-info-->
+<!--                    [stepVisible]="stepVisible()"-->
+<!--                    (goToStep)="fadeToStep($event)"-->
+<!--                  ></app-other-info>-->
+<!--                }-->
+<!--                @if (currentStep() === StepKey.CheckData && stepVisible()) {-->
+<!--                  <app-summary-->
+<!--                    [stepVisible]="stepVisible()"-->
+<!--                    (goToStep)="fadeToStep($event)"-->
+<!--                    (triggerSubmission)="onSubmit()"-->
+<!--                  >-->
+<!--                  </app-summary>-->
+<!--                }-->
+<!--                @if (-->
+<!--                  currentStep() === StepKey.LeaderQuestion && stepVisible()-->
+<!--                ) {-->
+<!--                  <app-leader-info-->
+<!--                    [stepVisible]="stepVisible()"-->
+<!--                    (goToStep)="fadeToStep($event)"-->
+<!--                  >-->
+<!--                  </app-leader-info>-->
+<!--                }-->
               </div>
             </form>
           }
