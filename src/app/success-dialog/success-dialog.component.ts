@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, input, Input, output } from '@angular/core';
+import { Component,input, Input, output } from '@angular/core';
 
 @Component({
   selector: 'app-success-dialog',
@@ -59,11 +59,17 @@ import { Component, EventEmitter, input, Input, output } from '@angular/core';
               </div>
               <div class="mt-3 text-center sm:mt-5">
                 <h3 class="text-base font-semibold text-gray-900">
+                  @if(!consent()){
                   {{
                     status === 'success'
                       ? 'Registration Successful'
                       : 'Registration Failed'
                   }}
+                  } @else {
+                    status === 'success'
+                      ? 'Consent Capture Successful'
+                      : 'Consent Capture Failed'
+                  }
                 </h3>
                 <div class="mt-2">
                   @if(!consent()){
@@ -80,7 +86,7 @@ import { Component, EventEmitter, input, Input, output } from '@angular/core';
                     <p class="text-sm text-gray-700">
                       {{
                         status === 'success'
-                          ? camperName + ', we have successfully received your consent for Power Camp Winter 2025. Thank you!'
+                          ? camperName + ', we have successfully received your consent for Power Camp 2025. Thank you!'
                           : camperName + ', there was a problem submitting your consent. Please try again or contact us if the issue continues.'
                       }}
                     </p>
