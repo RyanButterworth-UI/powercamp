@@ -337,9 +337,7 @@ export class ConsentComponent implements OnInit {
   powerCamp = ['powerCampConsent', 'behaviourConsent'];
   photo = ['photoConsent'];
   medical = [
-    'medicalAidName',
     'emergencyContact',
-    'medicalAidNumber',
     'dateOfCompletion',
   ];
 
