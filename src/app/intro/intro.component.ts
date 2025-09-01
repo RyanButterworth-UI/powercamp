@@ -17,12 +17,12 @@ import { Router } from '@angular/router';
         class="mb-6 rounded shadow max-h-64 w-auto object-cover"
       />
       <h1 class="text-3xl font-bold mb-4 text-gray-900">
-        Power Camp 2025 Registration
+        Power Camp 2025 Feedback
       </h1>
 <div class="w-full">
   <p class="mt-2 text-md text-gray-500">Powercamp 2025 was blast! Sadly its over. </p>
   <p class="text-md text-gray-500">If you need to contact the admin team you can drop us a mail: <a [href]="'mailto:' + 'powercamplife' + '@' + 'gmail.com'" class="text-blue-600 underline">{{ 'powercamplife' + '@' + 'gmail.com' }}</a></p>
-  <p class="mt-2 text-md text-gray-500">Pleaseteh feedback button to give your thoughts on PC '25</p>
+  <p class="mt-2 text-md text-gray-500">Please click the feedback button to give your thoughts on PC '25</p>
 </div>
 <!--      <p class="mt-2 text-md text-gray-500">-->
 <!--        This form is your ticket to all the details - the what, the when, the-->
