@@ -22,6 +22,7 @@ import { Router } from '@angular/router';
 <div class="w-full">
   <p class="mt-2 text-md text-gray-500">Powercamp 2025 was blast! Sadly its over. </p>
   <p class="text-md text-gray-500">If you need to contact the admin team you can drop us a mail: <a [href]="'mailto:' + 'powercamplife' + '@' + 'gmail.com'" class="text-blue-600 underline">{{ 'powercamplife' + '@' + 'gmail.com' }}</a></p>
+  <p class="mt-2 text-md text-gray-500">Pleaseteh feedback button to give your thoughts on PC '25</p>
 </div>
 <!--      <p class="mt-2 text-md text-gray-500">-->
 <!--        This form is your ticket to all the details - the what, the when, the-->
