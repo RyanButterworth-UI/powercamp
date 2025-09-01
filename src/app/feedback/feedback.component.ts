@@ -242,7 +242,7 @@ import { environment } from '../../environments/environment';
                     id="comment"
                     formControlName="userComment"
                     rows="4"
-                    class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:placeholder:text-gray-500 dark:focus:outline-indigo-500"
+                    class="block w-full rounded-md px-3 py-1.5 text-base text-gray-900 border border-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 sm:text-sm"
                   ></textarea>
                   </div>
                 </div>
@@ -254,7 +254,7 @@ import { environment } from '../../environments/environment';
                     placeholder="SuperIncredibleAmazingAwesomeness"
                     type="text"
                     formControlName="oneWord"
-                    class="w-full border border-gray-500 rounded px-3 py-2 mb-4 placeholder:text-sm"
+                    class="w-full border border-gray-300 rounded px-3 py-2 mb-4 text-sm text-gray-900 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600"
                   />
                 </div>
                 <p class="block text-sm/4 font-medium text-gray-900 mb-3">
@@ -297,7 +297,7 @@ import { environment } from '../../environments/environment';
                     id="comment"
                     formControlName="additionalInfo"
                     rows="4"
-                    class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:placeholder:text-gray-500 dark:focus:outline-indigo-500"
+                    class="block w-full rounded-md px-3 py-1.5 text-base text-gray-900 border border-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 sm:text-sm"
                   ></textarea>
                   </div>
                 </div>
