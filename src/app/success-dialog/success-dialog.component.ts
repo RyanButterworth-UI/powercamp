@@ -59,11 +59,17 @@ import { Component,input, Input, output } from '@angular/core';
               </div>
               <div class="mt-3 text-center sm:mt-5">
                 <h3 class="text-base font-semibold text-gray-900">
-                  @if (!consent()) {
+                  @if (!consent() && !feedback()) {
                     {{
                       status === 'success'
                         ? 'Registration Successful'
                         : 'Registration Failed'
+                    }}
+                  } @else if (feedback()) {
+                    {{
+                      status === 'success'
+                        ? 'Feedback Submitted'
+                        : 'Feedback Submission Failed'
                     }}
                   } @else {
                     {{
@@ -74,7 +80,7 @@ import { Component,input, Input, output } from '@angular/core';
                   }
                 </h3>
                 <div class="mt-2">
-                  @if (!consent()) {
+                  @if (!consent() && !feedback()) {
                     <p class="text-sm text-gray-500">
                       {{
                         status === 'success'
@@ -84,14 +90,20 @@ import { Component,input, Input, output } from '@angular/core';
                           ', there was a problem submitting your registration for Power Camp Winter 2025. Please try again or contact us if the issue continues.'
                       }}
                     </p>
-                  } @else {
+                  } @else if (feedback()) {
                     <p class="text-sm text-gray-700">
                       {{
                         status === 'success'
-                          ? camperName + ', we have successfully received your consent for Power Camp 2025. Thank you!'
-                          : camperName + ', there was a problem submitting your consent. Please try again or contact us if the issue continues.'
+                          ? camperName + ', thank you for your feedback on Power Camp 2025! We appreciate your input.'
+                          : camperName + ', there was a problem submitting your feedback. Please try again or contact us if the issue continues.'
                       }}
                     </p>
+                  } @else {
+                    {{
+                      status === 'success'
+                        ? camperName + ', we have successfully received your consent for Power Camp 2025. Thank you!'
+                        : camperName + ', there was a problem submitting your consent. Please try again or contact us if the issue continues.'
+                    }}
                   }
                 </div>
               </div>
@@ -117,6 +129,7 @@ import { Component,input, Input, output } from '@angular/core';
 export class SuccessDialogComponent {
   @Input() camperName = '';
   @Input() status: 'success' | 'error' = 'success';
-  consent = input<boolean>(false)
+  consent = input<boolean>(false);
+  feedback = input<boolean>(false);
   refreshApp = output();
 }
