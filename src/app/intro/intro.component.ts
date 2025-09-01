@@ -19,9 +19,9 @@ import { Router } from '@angular/router';
       <h1 class="text-3xl font-bold mb-4 text-gray-900">
         Power Camp 2025 Registration
       </h1>
-<div class="w-full ">
-  <p class="mt-2 text-md text-gray-500">Registration for 2025 has closed! </p>
-  <p class="text-md text-gray-500">You can drop the admin staff a mail on <a [href]="'mailto:' + 'powercamplife' + '@' + 'gmail.com'" class="text-blue-600 underline">{{ 'powercamplife' + '@' + 'gmail.com' }}</a></p>
+<div class="w-full">
+  <p class="mt-2 text-md text-gray-500">Powercamp 2025 was blast! Sadly its over. </p>
+  <p class="text-md text-gray-500">If you need to contact the admin team you can drop us a mail: <a [href]="'mailto:' + 'powercamplife' + '@' + 'gmail.com'" class="text-blue-600 underline">{{ 'powercamplife' + '@' + 'gmail.com' }}</a></p>
 </div>
 <!--      <p class="mt-2 text-md text-gray-500">-->
 <!--        This form is your ticket to all the details - the what, the when, the-->
@@ -41,8 +41,8 @@ import { Router } from '@angular/router';
 <!--        </button>-->
         <button
           class="rounded-full bg-white mt-4 px-4 py-2.5 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50"
-          (click)="navigateToConsent()"
-        >Consent form
+          (click)="navigateToFeedback()"
+        >Give us feedback
         </button>
       </div>
     </div>
@@ -57,5 +57,9 @@ export class IntroComponent {
 
   navigateToConsent():void {
     this.router.navigate(['consent']);
+  }
+
+  navigateToFeedback() {
+    this.router.navigate(['feedback']);
   }
 }
