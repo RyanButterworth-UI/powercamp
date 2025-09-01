@@ -47,7 +47,7 @@ import { environment } from '../../environments/environment';
                     some technical glitches this year and
                     this has already been noted.</p>
                   <p class="block text-sm/4 font-medium text-gray-900 mb-3">Dates for next year: Due to planning and
-                    scheduling, powerCamper will be end of July 2026 </p>
+                    scheduling, Power camp will be: 31 July - 2 August. </p>
                   <div class="flex justify-between mt-2">
                     <button
                       class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
@@ -206,7 +206,7 @@ import { environment } from '../../environments/environment';
                       <p class="text-xs text-yellow-600">
                         2 - Middle of the Road
                       </p>
-                      <p class="text-xs text-green-700">5 - Couln't be better</p>
+                      <p class="text-xs text-green-700">5 - Couldn't be better</p>
                     </div>
                   </div>
                   <div class="flex justify-between mt-2">
