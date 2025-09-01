@@ -311,7 +311,7 @@ import { environment } from '../../environments/environment';
                   </button>
                   <button
                     type="submit"
-                    [disabled]="!areFieldsValid(required)"
+                    [disabled]="!areFieldsValid(needsFeedback)"
                     class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
                   >
                     Submit
@@ -353,9 +353,15 @@ export class FeedbackComponent implements OnInit {
     'facilities',
   ];
 
+  needsFeedback = ['requiresFeedback'];
+
+
+
   areFieldsValid(fields: string[]): boolean {
     return fields.every((field) => this.feedback.get(field)?.valid);
   }
+
+
 
   ngOnInit() {
     this.feedback = this.fb.group({
