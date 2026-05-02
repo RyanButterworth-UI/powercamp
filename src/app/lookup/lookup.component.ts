@@ -43,7 +43,15 @@ import { environment } from '../../environments/environment';
         <div class="text-red-600 mb-4" data-testid="error">{{ error() }}</div>
       }
 
-      @if (results() !== null) {
+      @if (linkSentTo() !== null) {
+        <div class="rounded border border-green-200 bg-green-50 p-4" data-testid="link-sent">
+          <h2 class="font-semibold text-green-900 mb-1">Check your email</h2>
+          <p class="text-sm text-green-900">
+            We've sent a sign-in link to <span class="font-mono">{{ linkSentTo() }}</span>.
+            Click the link in that email (it expires in 30 minutes) to access your registration.
+          </p>
+        </div>
+      } @else if (results() !== null) {
         @if (results()!.length === 0) {
           <div class="text-gray-500 mb-4" data-testid="no-results">
             No matches. You can register as a new camper below.
@@ -60,10 +68,11 @@ import { environment } from '../../environments/environment';
                 </div>
                 <button
                   type="button"
-                  class="text-sm bg-indigo-100 text-indigo-700 px-3 py-1 rounded"
+                  class="text-sm bg-indigo-100 text-indigo-700 px-3 py-1 rounded disabled:bg-gray-200 disabled:text-gray-400"
+                  [disabled]="sendingLinkFor() === r.id"
                   (click)="select(r)"
                 >
-                  This is me
+                  {{ sendingLinkFor() === r.id ? 'Sending…' : 'This is me' }}
                 </button>
               </li>
             }
@@ -91,6 +100,8 @@ export class LookupComponent {
   results = signal<LookupResult[] | null>(null);
   loading = signal(false);
   error = signal<string | null>(null);
+  sendingLinkFor = signal<number | null>(null);
+  linkSentTo = signal<string | null>(null);
 
   private readonly http = inject(HttpClient);
 
@@ -118,6 +129,19 @@ export class LookupComponent {
 
   select(r: LookupResult) {
     this.selectedCamper.emit(r);
+    this.sendingLinkFor.set(r.id);
+    this.error.set(null);
+
+    this.http.post<{ ok: boolean }>(`${environment.baseApi}/request-link`, { camperId: r.id }).subscribe({
+      next: () => {
+        this.sendingLinkFor.set(null);
+        this.linkSentTo.set(r.parentEmailMasked);
+      },
+      error: () => {
+        this.sendingLinkFor.set(null);
+        this.error.set("Couldn't send the sign-in link. Please try again.");
+      },
+    });
   }
 
   registerNew() {
