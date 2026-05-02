@@ -34,10 +34,10 @@ export const campers = pgTable(
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
     deletedAt: timestamp('deleted_at'),
   },
-  (t) => ({
-    parentEmailIdx: index('campers_parent_email_idx').on(t.parentEmail),
-    emailYearIdx: index('campers_email_year_idx').on(t.email, t.year),
-  })
+  (t) => [
+    index('campers_parent_email_idx').on(t.parentEmail),
+    index('campers_email_year_idx').on(t.email, t.year),
+  ]
 );
 
 export const verificationCodes = pgTable(
@@ -51,9 +51,7 @@ export const verificationCodes = pgTable(
     attempts: integer('attempts').default(0).notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
-  (t) => ({
-    emailIdx: index('vcodes_email_idx').on(t.email),
-  })
+  (t) => [index('vcodes_email_idx').on(t.email)]
 );
 
 export type Camper = typeof campers.$inferSelect;
