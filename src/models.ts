@@ -18,19 +18,28 @@ export interface CampFormData {
 }
 
 export enum StepKey {
-  Intro = 0,
-  Details = 1,
-  CamperInfo = 2,
-  CamperAdditionalInfo = 3,
-  Friends = 4,
-  Medical = 5,
-  ParentInfo = 6,
-  Tshirt = 7,
-  Church = 8,
-  OtherInfo = 9,
-  CheckData = 10,
-  LeaderApplication = 11,
-  LeaderQuestion = 12,
+  Lookup = 0,
+  Intro = 1,
+  Details = 2,
+  CamperInfo = 3,
+  CamperAdditionalInfo = 4,
+  Friends = 5,
+  Medical = 6,
+  ParentInfo = 7,
+  Tshirt = 8,
+  Church = 9,
+  OtherInfo = 10,
+  CheckData = 11,
+  LeaderApplication = 12,
+  LeaderQuestion = 13,
+}
+
+export interface LookupResult {
+  id: number;
+  firstName: string;
+  lastName: string;
+  year: number;
+  parentEmailMasked: string;
 }
 export enum consentKey {
   Intro

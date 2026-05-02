@@ -5,6 +5,7 @@ import { env } from './env';
 import { submitRouter } from './routes/submit';
 import { consentRouter } from './routes/consent';
 import { feedbackRouter } from './routes/feedback';
+import { lookupRouter } from './routes/lookup';
 
 const app = express();
 
@@ -21,6 +22,7 @@ app.use(express.json());
 app.use(submitRouter);
 app.use(consentRouter);
 app.use(feedbackRouter);
+app.use(lookupRouter);
 
 const distDir = path.resolve(__dirname, '../dist/powercamp/browser');
 app.use(express.static(distDir));
