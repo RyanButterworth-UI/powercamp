@@ -2,13 +2,13 @@ import express from 'express';
 import request from 'supertest';
 
 jest.mock('../services/sheets', () => ({
-  postToAppsScript: jest.fn(),
+  appendToSheet: jest.fn(),
 }));
 
-import { postToAppsScript } from '../services/sheets';
+import { appendToSheet } from '../services/sheets';
 import { feedbackRouter } from '../routes/feedback';
 
-const mockPost = postToAppsScript as jest.MockedFunction<typeof postToAppsScript>;
+const mockAppend = appendToSheet as jest.MockedFunction<typeof appendToSheet>;
 
 function buildApp() {
   const app = express();
@@ -18,19 +18,20 @@ function buildApp() {
 }
 
 describe('POST /feedback', () => {
-  it('tags the payload as feedback and forwards to Apps Script', async () => {
-    mockPost.mockResolvedValueOnce({ ok: true });
-    const payload = { rating: 5 };
+  beforeEach(() => {
+    mockAppend.mockResolvedValue(undefined);
+  });
 
-    const res = await request(buildApp()).post('/feedback').send(payload);
+  it('appends the body values to the Feedback tab with a leading timestamp', async () => {
+    const res = await request(buildApp()).post('/feedback').send({ rating: 5, comment: 'great' });
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ ok: true });
-    expect(mockPost).toHaveBeenCalledWith(payload, 'feedback');
+    expect(mockAppend).toHaveBeenCalledWith('Feedback', expect.arrayContaining(['5', 'great']));
   });
 
-  it('returns 500 on forward failure', async () => {
-    mockPost.mockRejectedValueOnce(new Error('boom'));
+  it('returns 500 if appendToSheet fails', async () => {
+    mockAppend.mockRejectedValueOnce(new Error('boom'));
     const res = await request(buildApp()).post('/feedback').send({});
     expect(res.status).toBe(500);
   });

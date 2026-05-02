@@ -2,13 +2,13 @@ import express from 'express';
 import request from 'supertest';
 
 jest.mock('../services/sheets', () => ({
-  postToAppsScript: jest.fn(),
+  appendToSheet: jest.fn(),
 }));
 
-import { postToAppsScript } from '../services/sheets';
+import { appendToSheet } from '../services/sheets';
 import { consentRouter } from '../routes/consent';
 
-const mockPost = postToAppsScript as jest.MockedFunction<typeof postToAppsScript>;
+const mockAppend = appendToSheet as jest.MockedFunction<typeof appendToSheet>;
 
 function buildApp() {
   const app = express();
@@ -18,19 +18,22 @@ function buildApp() {
 }
 
 describe('POST /consent', () => {
-  it('tags the payload as consent and forwards to Apps Script', async () => {
-    mockPost.mockResolvedValueOnce({ ok: true });
-    const payload = { agree: true };
+  beforeEach(() => {
+    mockAppend.mockResolvedValue(undefined);
+  });
 
-    const res = await request(buildApp()).post('/consent').send(payload);
+  it('appends the body values to the Consent tab with a leading timestamp', async () => {
+    const res = await request(buildApp()).post('/consent').send({ name: 'Jane', agree: true });
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ ok: true });
-    expect(mockPost).toHaveBeenCalledWith(payload, 'consent');
+    expect(mockAppend).toHaveBeenCalledWith('Consent', expect.arrayContaining(['Jane', 'true']));
+    const row = mockAppend.mock.calls[0]![1] as string[];
+    expect(row[0]).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 
-  it('returns 500 on forward failure', async () => {
-    mockPost.mockRejectedValueOnce(new Error('boom'));
+  it('returns 500 if appendToSheet fails', async () => {
+    mockAppend.mockRejectedValueOnce(new Error('boom'));
     const res = await request(buildApp()).post('/consent').send({});
     expect(res.status).toBe(500);
   });

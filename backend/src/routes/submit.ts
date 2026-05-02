@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { db } from '../db/client';
 import { campers } from '../db/schema';
 import { env } from '../env';
-import { postToAppsScript } from '../services/sheets';
+import { appendToSheet } from '../services/sheets';
 
 const camperBody = z.object({
   firstName: z.string().min(1),
@@ -23,6 +23,32 @@ const camperBody = z.object({
   parentName: z.string().optional(),
   parentPhone: z.string().optional(),
 });
+
+type CamperInput = z.infer<typeof camperBody>;
+
+// Column order MUST match the existing sheet so the Mailchimp Apps Script
+// (processNewRows) keeps reading firstName from A, lastName from B,
+// email from E, parentName from J, parentEmail from L.
+function toSheetRow(d: CamperInput): (string | number | null)[] {
+  return [
+    d.firstName,                  // A
+    d.lastName,                   // B
+    d.camperCell ?? '',           // C
+    d.gender ?? '',               // D
+    d.email ?? '',                // E
+    d.age ?? '',                  // F
+    d.grade ?? '',                // G
+    (d.friends ?? []).join(', '), // H
+    d.medical ?? '',              // I
+    d.parentName ?? '',           // J
+    d.parentPhone ?? '',          // K
+    d.parentEmail,                // L
+    d.church ?? '',               // M
+    d.tshirt ?? '',               // N
+    d.generalInfo ?? '',          // O
+    d.dob ?? '',                  // P
+  ];
+}
 
 export const submitRouter = Router();
 
@@ -59,7 +85,7 @@ submitRouter.post('/submit', async (req, res) => {
       })
       .returning({ id: campers.id });
 
-    postToAppsScript(data, 'registration').catch((err) => {
+    appendToSheet('Registrations', toSheetRow(data)).catch((err) => {
       console.error('Sheet sync failed (DB write succeeded):', err);
     });
 
