@@ -1,56 +1,62 @@
 jest.mock('../env', () => ({
-  env: { APPS_SCRIPT_URL: 'https://example.test/exec' },
+  env: {
+    GOOGLE_SHEET_ID: 'sheet-id',
+    GOOGLE_SERVICE_ACCOUNT_EMAIL: 'sa@example.iam.gserviceaccount.com',
+    GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: 'fake-key',
+  },
 }));
 
-import { postToAppsScript } from '../services/sheets';
+const appendMock = jest.fn();
+jest.mock('googleapis', () => ({
+  google: {
+    auth: { JWT: jest.fn() },
+    sheets: () => ({
+      spreadsheets: { values: { append: appendMock } },
+    }),
+  },
+}));
 
-describe('postToAppsScript', () => {
-  const fetchMock = jest.fn();
-  const originalFetch = globalThis.fetch;
+import { appendToSheet, _resetSheetsClient } from '../services/sheets';
 
+describe('appendToSheet', () => {
   beforeEach(() => {
-    fetchMock.mockReset();
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    appendMock.mockReset().mockResolvedValue({ data: {} });
+    _resetSheetsClient();
   });
 
-  afterAll(() => {
-    globalThis.fetch = originalFetch;
+  it('appends a Registrations row to the configured sheet in column-major order', async () => {
+    await appendToSheet('Registrations', ['Jane', 'Doe', '', '', 'jane@x.com']);
+
+    expect(appendMock).toHaveBeenCalledWith({
+      spreadsheetId: 'sheet-id',
+      range: 'Registrations!A:Z',
+      valueInputOption: 'RAW',
+      insertDataOption: 'INSERT_ROWS',
+      requestBody: { values: [['Jane', 'Doe', '', '', 'jane@x.com']] },
+    });
   });
 
-  it('does NOT add formType for registration submissions (preserves existing sheet contract)', async () => {
-    fetchMock.mockResolvedValueOnce({ json: async () => ({ ok: true }) });
-    await postToAppsScript({ firstName: 'X' }, 'registration');
+  it('appends to the Consent tab when called with Consent', async () => {
+    await appendToSheet('Consent', ['2026-01-01T00:00:00Z', 'true']);
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://example.test/exec',
+    expect(appendMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        method: 'POST',
-        body: JSON.stringify({ firstName: 'X' }),
+        range: 'Consent!A:Z',
+        requestBody: { values: [['2026-01-01T00:00:00Z', 'true']] },
       })
     );
   });
 
-  it('adds formType=consent for consent submissions', async () => {
-    fetchMock.mockResolvedValueOnce({ json: async () => ({ ok: true }) });
-    await postToAppsScript({ agree: true }, 'consent');
+  it('appends to the Feedback tab when called with Feedback', async () => {
+    await appendToSheet('Feedback', ['t', '5']);
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://example.test/exec',
-      expect.objectContaining({
-        body: JSON.stringify({ agree: true, formType: 'consent' }),
-      })
+    expect(appendMock).toHaveBeenCalledWith(
+      expect.objectContaining({ range: 'Feedback!A:Z' })
     );
   });
 
-  it('adds formType=feedback for feedback submissions', async () => {
-    fetchMock.mockResolvedValueOnce({ json: async () => ({ ok: true }) });
-    await postToAppsScript({ rating: 5 }, 'feedback');
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://example.test/exec',
-      expect.objectContaining({
-        body: JSON.stringify({ rating: 5, formType: 'feedback' }),
-      })
-    );
+  it('propagates the underlying API error so callers can catch it', async () => {
+    appendMock.mockRejectedValueOnce(new Error('quota exceeded'));
+    await expect(appendToSheet('Registrations', ['x'])).rejects.toThrow('quota exceeded');
   });
 });
