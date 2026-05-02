@@ -4,6 +4,7 @@ import {
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
+import { provideRouter } from '@angular/router';
 import { LookupComponent } from './lookup.component';
 import { LookupResult, StepKey } from '../../models';
 import { environment } from '../../environments/environment';
@@ -16,7 +17,7 @@ describe('LookupComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [LookupComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
     }).compileComponents();
 
     fixture = TestBed.createComponent(LookupComponent);

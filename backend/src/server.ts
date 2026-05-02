@@ -8,6 +8,9 @@ import { feedbackRouter } from './routes/feedback';
 import { lookupRouter } from './routes/lookup';
 import { requestLinkRouter } from './routes/request-link';
 import { verifyLinkRouter } from './routes/verify-link';
+import { updateRouter } from './routes/update';
+import { adminRouter } from './routes/admin';
+import { leadersRouter } from './routes/leaders';
 
 const app = express();
 
@@ -15,7 +18,7 @@ app.use(
   cors({
     origin: env.ALLOWED_ORIGINS,
     methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
 
@@ -27,6 +30,9 @@ app.use(feedbackRouter);
 app.use(lookupRouter);
 app.use(requestLinkRouter);
 app.use(verifyLinkRouter);
+app.use(updateRouter);
+app.use(adminRouter);
+app.use(leadersRouter);
 
 const distDir = path.resolve(__dirname, '../dist/powercamp/browser');
 app.use(express.static(distDir));

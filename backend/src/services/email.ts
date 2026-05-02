@@ -71,7 +71,7 @@ function magicLinkHtml(firstName: string, url: string): string {
               <td style="padding:16px 32px 24px 32px; border-top:1px solid #e5e7eb;">
                 <p style="margin:0; color:#9ca3af; font-size:12px;">
                   If you didn't request this, you can safely ignore this email.<br/>
-                  — Power Camp
+                  — Power Camp Admin
                 </p>
               </td>
             </tr>
@@ -90,6 +90,67 @@ function escapeHtml(s: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+export async function sendRegistrationReceived(to: string, firstName: string): Promise<void> {
+  const fromName = env.FROM_NAME ?? 'Power Camp';
+  await transporter().sendMail({
+    from: `"${fromName}" <${env.GMAIL_USER}>`,
+    to,
+    subject: 'Power Camp 2026 — registration received',
+    text: [
+      `Hi ${firstName || 'there'},`,
+      '',
+      "We've received your Power Camp 2026 registration — thank you!",
+      '',
+      'Your spot is provisionally held. Your registration will be CONFIRMED once payment',
+      'is complete. We will follow up shortly with payment details.',
+      '',
+      'If anything looks wrong, request a sign-in link from the registration page',
+      'and update your details.',
+      '',
+      '— Power Camp',
+    ].join('\n'),
+    html: registrationReceivedHtml(firstName || 'there'),
+  });
+}
+
+function registrationReceivedHtml(firstName: string): string {
+  return `<!doctype html>
+<html lang="en">
+  <body style="margin:0; padding:0; background-color:#f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f3f4f6; padding:24px 0;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px; background-color:#ffffff; border-radius:12px; overflow:hidden;">
+            <tr>
+              <td style="padding:32px;">
+                <h1 style="margin:0 0 12px 0; font-size:22px; color:#111827;">Registration received</h1>
+                <p style="margin:0 0 12px 0; color:#374151; font-size:15px; line-height:22px;">
+                  Hi ${escapeHtml(firstName)}, thanks for registering for Power Camp 2026.
+                </p>
+                <p style="margin:0 0 12px 0; color:#374151; font-size:15px; line-height:22px;">
+                  Your spot is <strong>provisionally held</strong>. Your registration will be
+                  <strong>confirmed once payment is complete</strong>. We'll follow up shortly with
+                  payment details.
+                </p>
+                <p style="margin:0; color:#6b7280; font-size:13px; line-height:20px;">
+                  If anything looks wrong, request a sign-in link from the registration page
+                  and update your details.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 32px 24px 32px; border-top:1px solid #e5e7eb;">
+                <p style="margin:0; color:#9ca3af; font-size:12px;">— Power Camp</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
 }
 
 // Test seam.

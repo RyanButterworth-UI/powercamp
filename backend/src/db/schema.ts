@@ -30,6 +30,19 @@ export const campers = pgTable(
     parentPhone: text('parent_phone'),
     parentEmail: text('parent_email').notNull(),
     source: text('source').default('web'),
+    consentGeneral: text('consent_general'),
+    consentLocation: text('consent_location'),
+    consentRisk: text('consent_risk'),
+    consentPowerCamp: text('consent_power_camp'),
+    consentBehaviour: text('consent_behaviour'),
+    consentPhoto: text('consent_photo'),
+    consentEmergencyName: text('consent_emergency_name'),
+    consentEmergencyContact: text('consent_emergency_contact'),
+    consentMedicalAidName: text('consent_medical_aid_name'),
+    consentMedicalAidNumber: text('consent_medical_aid_number'),
+    consentDate: text('consent_date'),
+    consentAcceptedAt: timestamp('consent_accepted_at'),
+    paymentReceivedAt: timestamp('payment_received_at'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
     deletedAt: timestamp('deleted_at'),
@@ -56,3 +69,37 @@ export const verificationCodes = pgTable(
 
 export type Camper = typeof campers.$inferSelect;
 export type NewCamper = typeof campers.$inferInsert;
+
+export const leaders = pgTable(
+  'leaders',
+  {
+    id: serial('id').primaryKey(),
+    year: integer('year').notNull(),
+    firstName: text('first_name').notNull(),
+    lastName: text('last_name').notNull(),
+    email: text('email').notNull(),
+    cell: text('cell'),
+    gender: text('gender'),
+    age: text('age'),
+    grade: text('grade'),
+    church: text('church'),
+    tshirt: text('tshirt'),
+    parentName: text('parent_name'),
+    parentPhone: text('parent_phone'),
+    parentEmail: text('parent_email'),
+    applicationNotes: text('application_notes'),
+    status: text('status').default('pending').notNull(),
+    approvedByNeil: boolean('approved_by_neil').default(false).notNull(),
+    approvedAt: timestamp('approved_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    deletedAt: timestamp('deleted_at'),
+  },
+  (t) => [
+    index('leaders_year_idx').on(t.year),
+    index('leaders_email_idx').on(t.email),
+  ]
+);
+
+export type Leader = typeof leaders.$inferSelect;
+export type NewLeader = typeof leaders.$inferInsert;
