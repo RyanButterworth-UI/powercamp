@@ -10,7 +10,8 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "import:2025": "tsx scripts/import-2025.ts",
-    "seed:test": "tsx scripts/seed-test-user.ts"
+    "seed:test": "tsx scripts/seed-test-user.ts",
+    "hash:admin-password": "tsx scripts/hash-admin-password.ts"
   },
   "keywords": [],
   "author": "",
@@ -20,6 +21,7 @@
     "node": "20.x"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
@@ -32,6 +34,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/jest": "^29.5.14",

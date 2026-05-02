@@ -142,8 +142,8 @@ describe('POST /update', () => {
     expect(row[1]).toBe('Butterworth');
     expect(row[4]).toBe('camper@example.com');
     expect(row[11]).toBe('parent@example.com');
-    // Col Q is index 16: ISO timestamp.
-    expect(row[16]).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    // Col Q is index 16: 'TRUE' once consent is accepted.
+    expect(row[16]).toBe('TRUE');
   });
 
   it('sends the registration-received email to the parent_email (lowercased)', async () => {

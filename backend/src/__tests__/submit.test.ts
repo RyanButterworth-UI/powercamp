@@ -96,6 +96,7 @@ describe('POST /submit', () => {
       'M',                   // N tshirt
       '',                    // O generalInfo
       '2010-01-01',          // P dob
+      'FALSE',               // Q Consent Accepted — TRUE once /update fires
     ]);
   });
 

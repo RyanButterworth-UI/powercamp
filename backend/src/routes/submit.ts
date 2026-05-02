@@ -47,6 +47,7 @@ function toSheetRow(d: CamperInput): (string | number | null)[] {
     d.tshirt ?? '',               // N
     d.generalInfo ?? '',          // O
     d.dob ?? '',                  // P
+    'FALSE',                      // Q — Consent Accepted (TRUE once consent is given via /update; FALSE makes filtering trivial in Sheets)
   ];
 }
 

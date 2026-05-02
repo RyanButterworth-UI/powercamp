@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { adminGuard } from './admin/admin.guard';
 
 export const routes: Routes = [
   {
@@ -20,6 +21,17 @@ export const routes: Routes = [
     path: 'verify-link',
     loadComponent: () =>
       import('./verify-link/verify-link.component').then((m) => m.VerifyLinkComponent),
+  },
+  {
+    path: 'admin/login',
+    loadComponent: () =>
+      import('./admin/admin-login/admin-login.component').then((m) => m.AdminLoginComponent),
+  },
+  {
+    path: 'admin',
+    loadComponent: () =>
+      import('./admin/admin-dashboard/admin-dashboard.component').then((m) => m.AdminDashboardComponent),
+    canActivate: [adminGuard],
   },
   {
     path: '**',

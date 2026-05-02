@@ -146,7 +146,7 @@ updateRouter.post('/update', async (req, res) => {
     c.tshirt ?? '',
     c.generalInfo ?? '',
     c.dob ?? '',
-    acceptedAt.toISOString(),
+    'TRUE',
   ]).catch((err) => {
     console.error('Sheet sync failed (DB write succeeded):', err);
   });
