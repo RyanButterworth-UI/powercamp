@@ -14,6 +14,11 @@ const schema = z.object({
     .string()
     .min(1)
     .transform((s) => s.replace(/\\n/g, '\n')),
+  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
+  GMAIL_USER: z.string().email(),
+  GMAIL_APP_PASSWORD: z.string().min(1),
+  FROM_NAME: z.string().default('Power Camp'),
+  APP_BASE_URL: z.string().url().default('http://localhost:4200'),
   ALLOWED_ORIGINS: z
     .string()
     .default('http://localhost:4200,https://powercamp-registration.onrender.com')

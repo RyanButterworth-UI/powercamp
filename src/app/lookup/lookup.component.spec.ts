@@ -82,7 +82,7 @@ describe('LookupComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="error"]')).toBeTruthy();
   });
 
-  it('emits selectedCamper when "This is me" is clicked', () => {
+  it('emits selectedCamper, POSTs to /request-link, and shows "Check your email" on success', () => {
     const result: LookupResult = {
       id: 7, firstName: 'Emma', lastName: 'Cable', year: 2025, parentEmailMasked: 'ji***@me.com',
     };
@@ -91,6 +91,35 @@ describe('LookupComponent', () => {
 
     component.select(result);
     expect(emitted).toEqual(result);
+    expect(component.sendingLinkFor()).toBe(7);
+
+    const req = http.expectOne(`${environment.baseApi}/request-link`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ camperId: 7 });
+
+    req.flush({ ok: true });
+    fixture.detectChanges();
+
+    expect(component.sendingLinkFor()).toBeNull();
+    expect(component.linkSentTo()).toBe('ji***@me.com');
+    expect(fixture.nativeElement.querySelector('[data-testid="link-sent"]')).toBeTruthy();
+  });
+
+  it('shows an error message if /request-link fails', () => {
+    const result: LookupResult = {
+      id: 7, firstName: 'Emma', lastName: 'Cable', year: 2025, parentEmailMasked: 'ji***@me.com',
+    };
+    component.select(result);
+
+    http.expectOne(`${environment.baseApi}/request-link`).flush(
+      { error: 'down' },
+      { status: 500, statusText: 'Server Error' }
+    );
+    fixture.detectChanges();
+
+    expect(component.sendingLinkFor()).toBeNull();
+    expect(component.linkSentTo()).toBeNull();
+    expect(component.error()).toMatch(/Couldn't send/i);
   });
 
   it('emits goToStep(Intro) when "Register as a new camper" is clicked', () => {
