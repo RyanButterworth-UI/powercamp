@@ -12,7 +12,7 @@
     "build:prod": "ng build --configuration production",
     "run:network": "ng serve --host 0.0.0.0 --port 4200 --configuration development",
     "render-build": "npm run build:prod && cd backend && npm install",
-    "render-start": "cd backend && node server.js"
+    "render-start": "cd backend && npm start"
   },
   "private": true,
   "dependencies": {

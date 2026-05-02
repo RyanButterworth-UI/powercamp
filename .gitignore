@@ -41,3 +41,14 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Local environment
+.env
+.env.local
+backend/.env
+backend/.env.local
+
+# Sensitive data: last year's spreadsheet lives here, must NOT be committed
+/assets/
+*.xlsx
+*.xls
