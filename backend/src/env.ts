@@ -16,6 +16,7 @@ const schema = z.object({
     .transform((s) => s.replace(/\\n/g, '\n')),
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   ADMIN_PASSWORD_HASH: z.string().min(1),
+  LEADER_PASSWORD_HASH: z.string().min(1),
   GMAIL_USER: z.string().email(),
   GMAIL_APP_PASSWORD: z.string().min(1),
   FROM_NAME: z.string().default('Power Camp'),

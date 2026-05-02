@@ -62,4 +62,72 @@ export class AdminService {
       responseType: 'blob',
     });
   }
+
+  listLeaders(): Observable<{ total: number; leaders: AdminLeader[] }> {
+    return this.http.get<{ total: number; leaders: AdminLeader[] }>(
+      `${environment.baseApi}/admin/leaders`,
+      { headers: this.authHeaders() }
+    );
+  }
+
+  approveLeader(id: number, neilPassword: string): Observable<{ id: number; status: string }> {
+    return this.http.post<{ id: number; status: string }>(
+      `${environment.baseApi}/admin/leaders/${id}/approve`,
+      { neilPassword },
+      { headers: this.authHeaders() }
+    );
+  }
+
+  rejectLeader(id: number, neilPassword: string): Observable<{ id: number; status: string }> {
+    return this.http.post<{ id: number; status: string }>(
+      `${environment.baseApi}/admin/leaders/${id}/reject`,
+      { neilPassword },
+      { headers: this.authHeaders() }
+    );
+  }
+
+  directAddLeader(neilPassword: string, leader: NewAdminLeader): Observable<{ id: number; status: string }> {
+    return this.http.post<{ id: number; status: string }>(
+      `${environment.baseApi}/admin/leaders/direct-add`,
+      { neilPassword, ...leader },
+      { headers: this.authHeaders() }
+    );
+  }
+}
+
+export interface AdminLeader {
+  id: number;
+  year: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  cell: string | null;
+  gender: string | null;
+  age: string | null;
+  grade: string | null;
+  church: string | null;
+  tshirt: string | null;
+  parentName: string | null;
+  parentPhone: string | null;
+  parentEmail: string | null;
+  applicationNotes: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  approvedByNeil: boolean;
+  approvedAt: string | null;
+}
+
+export interface NewAdminLeader {
+  firstName: string;
+  lastName: string;
+  email: string;
+  cell?: string;
+  gender?: string;
+  age?: string;
+  grade?: string;
+  church?: string;
+  tshirt?: string;
+  parentName?: string;
+  parentPhone?: string;
+  parentEmail?: string;
+  applicationNotes?: string;
 }

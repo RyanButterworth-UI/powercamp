@@ -34,6 +34,17 @@ export const routes: Routes = [
     canActivate: [adminGuard],
   },
   {
+    path: 'admin/leaders',
+    loadComponent: () =>
+      import('./admin/admin-leaders/admin-leaders.component').then((m) => m.AdminLeadersComponent),
+    canActivate: [adminGuard],
+  },
+  {
+    path: 'leader-apply',
+    loadComponent: () =>
+      import('./leader-apply/leader-apply.component').then((m) => m.LeaderApplyComponent),
+  },
+  {
     path: '**',
     redirectTo: '', // fallback to main form if unknown URL
   },

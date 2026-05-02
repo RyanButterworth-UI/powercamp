@@ -1,13 +1,25 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
-import { desc, isNull, sql } from 'drizzle-orm';
+import { desc, eq, isNull } from 'drizzle-orm';
 import * as XLSX from 'xlsx';
 import { db } from '../db/client';
-import { campers } from '../db/schema';
+import { campers, leaders } from '../db/schema';
 import { signAdminToken } from '../services/auth';
 import { env } from '../env';
 import { requireAdmin } from '../middleware/require-admin';
+import { appendToSheet } from '../services/sheets';
+import { leaderRow } from './leaders';
+
+// Hardcoded by design (per spec) — Neil's approve / reject / direct-add password.
+const NEIL_PASSWORD = 'gravelROx';
+
+const neilGuard = z.object({ neilPassword: z.string() });
+
+function isNeilOk(input: unknown): boolean {
+  const parsed = neilGuard.safeParse(input);
+  return parsed.success && parsed.data.neilPassword === NEIL_PASSWORD;
+}
 
 const loginBody = z.object({
   password: z.string().min(1).max(200),
@@ -107,4 +119,135 @@ adminRouter.get('/admin/export', requireAdmin, async (_req, res) => {
 // Tiny endpoint so the FE guard can probe whether a token is still valid.
 adminRouter.get('/admin/me', requireAdmin, (_req, res) => {
   res.json({ ok: true });
+});
+
+adminRouter.get('/admin/leaders', requireAdmin, async (_req, res) => {
+  try {
+    const rows = await db
+      .select()
+      .from(leaders)
+      .where(isNull(leaders.deletedAt))
+      .orderBy(desc(leaders.year), leaders.lastName, leaders.firstName);
+    res.json({ total: rows.length, leaders: rows });
+  } catch (err) {
+    console.error('admin/leaders error:', err);
+    res.status(500).json({ error: 'Failed to load leaders' });
+  }
+});
+
+const leaderDecisionBody = z.object({
+  neilPassword: z.string(),
+});
+
+adminRouter.post('/admin/leaders/:id/approve', requireAdmin, async (req, res) => {
+  if (!isNeilOk(req.body)) {
+    return res.status(401).json({ error: 'Wrong Neil password' });
+  }
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'Invalid leader id' });
+  }
+  try {
+    const [row] = await db
+      .update(leaders)
+      .set({
+        status: 'approved',
+        approvedByNeil: true,
+        approvedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(leaders.id, id))
+      .returning({ id: leaders.id });
+    if (!row) return res.status(404).json({ error: 'Leader not found' });
+    res.json({ id: row.id, status: 'approved' });
+  } catch (err) {
+    console.error('approve error:', err);
+    res.status(500).json({ error: 'Failed to approve' });
+  }
+});
+
+adminRouter.post('/admin/leaders/:id/reject', requireAdmin, async (req, res) => {
+  if (!isNeilOk(req.body)) {
+    return res.status(401).json({ error: 'Wrong Neil password' });
+  }
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'Invalid leader id' });
+  }
+  try {
+    const [row] = await db
+      .update(leaders)
+      .set({ status: 'rejected', updatedAt: new Date() })
+      .where(eq(leaders.id, id))
+      .returning({ id: leaders.id });
+    if (!row) return res.status(404).json({ error: 'Leader not found' });
+    res.json({ id: row.id, status: 'rejected' });
+  } catch (err) {
+    console.error('reject error:', err);
+    res.status(500).json({ error: 'Failed to reject' });
+  }
+});
+
+const directAddBody = z.object({
+  neilPassword: z.string(),
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  email: z.string().email(),
+  cell: z.string().optional(),
+  gender: z.string().optional(),
+  age: z.string().optional(),
+  grade: z.string().optional(),
+  church: z.string().optional(),
+  tshirt: z.string().optional(),
+  parentName: z.string().optional(),
+  parentPhone: z.string().optional(),
+  parentEmail: z.string().optional(),
+  applicationNotes: z.string().optional(),
+});
+
+adminRouter.post('/admin/leaders/direct-add', requireAdmin, async (req, res) => {
+  const parsed = directAddBody.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid request' });
+  }
+  if (parsed.data.neilPassword !== NEIL_PASSWORD) {
+    return res.status(401).json({ error: 'Wrong Neil password' });
+  }
+  const d = parsed.data;
+  try {
+    const [row] = await db
+      .insert(leaders)
+      .values({
+        year: env.CAMP_YEAR,
+        firstName: d.firstName,
+        lastName: d.lastName,
+        email: d.email.toLowerCase(),
+        cell: d.cell,
+        gender: d.gender,
+        age: d.age,
+        grade: d.grade,
+        church: d.church,
+        tshirt: d.tshirt,
+        parentName: d.parentName,
+        parentPhone: d.parentPhone,
+        parentEmail: d.parentEmail?.toLowerCase(),
+        applicationNotes: d.applicationNotes,
+        status: 'approved',
+        approvedByNeil: true,
+        approvedAt: new Date(),
+      })
+      .returning({ id: leaders.id });
+
+    appendToSheet(
+      'Leaders',
+      leaderRow({ ...d, email: d.email.toLowerCase(), status: 'approved', approvedByNeil: true })
+    ).catch((err) => {
+      console.error('Leader sheet sync failed (DB write succeeded):', err);
+    });
+
+    res.json({ id: row.id, status: 'approved' });
+  } catch (err) {
+    console.error('direct-add error:', err);
+    res.status(500).json({ error: 'Failed to add leader' });
+  }
 });

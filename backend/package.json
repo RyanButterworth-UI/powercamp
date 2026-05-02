@@ -11,7 +11,8 @@
     "db:studio": "drizzle-kit studio",
     "import:2025": "tsx scripts/import-2025.ts",
     "seed:test": "tsx scripts/seed-test-user.ts",
-    "hash:admin-password": "tsx scripts/hash-admin-password.ts"
+    "hash:admin-password": "tsx scripts/hash-admin-password.ts",
+    "wipe:test-data": "tsx scripts/wipe-test-data.ts"
   },
   "keywords": [],
   "author": "",

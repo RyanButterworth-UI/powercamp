@@ -1,28 +1,33 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AdminService, AdminCamper } from '../admin.service';
 import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   template: `
     <div class="container mx-auto p-6 max-w-5xl">
       <div class="flex items-center justify-between mb-4">
-        <h1 class="text-2xl font-bold">Power Camp Admin</h1>
-        <button type="button" (click)="logout()" class="text-sm text-gray-600 underline">
+        <h1 class="text-2xl font-bold">Power Camp Admin — Campers</h1>
+        <button type="button" (click)="logout()" class="saga-btn-ghost text-sm underline cursor-pointer">
           Sign out
         </button>
       </div>
+
+      <nav class="flex gap-4 mb-4 text-sm" style="border-bottom: 1px solid var(--color-saga-border)">
+        <span class="saga-tab is-active">Campers</span>
+        <a routerLink="/admin/leaders" class="saga-tab no-underline">Leaders</a>
+      </nav>
 
       <div class="flex items-center gap-3 mb-6 flex-wrap">
         <button
           type="button"
           (click)="downloadXlsx()"
           [disabled]="downloading()"
-          class="bg-green-300 text-green-900 px-4 py-2 rounded disabled:bg-gray-200 disabled:text-gray-400"
+          class="saga-btn saga-btn-primary"
           data-testid="download-xlsx"
         >
           {{ downloading() ? 'Building XLSX…' : 'Download XLSX' }}
@@ -31,79 +36,79 @@ import { environment } from '../../../environments/environment';
           [href]="sheetUrl"
           target="_blank"
           rel="noopener noreferrer"
-          class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-50"
+          class="saga-btn saga-btn-secondary no-underline"
           data-testid="open-sheet"
         >
           Open in Google Sheets ↗
         </a>
-        <span class="text-sm text-gray-500">{{ total() }} campers in the database</span>
+        <span class="text-sm" style="color: var(--color-saga-text-muted)">
+          {{ total() }} campers in the database
+        </span>
       </div>
 
       @if (loading()) {
-        <div class="text-gray-500" data-testid="loading">Loading campers…</div>
+        <div data-testid="loading" style="color: var(--color-saga-text-muted)">Loading campers…</div>
       } @else if (error()) {
-        <div class="text-red-700" data-testid="dashboard-error">{{ error() }}</div>
+        <div data-testid="dashboard-error" style="color: var(--color-saga-danger)">{{ error() }}</div>
       } @else {
         @if (years().length > 0) {
-          <div class="border-b border-gray-200 mb-3" data-testid="year-tabs">
+          <div class="mb-3" data-testid="year-tabs" style="border-bottom: 1px solid var(--color-saga-border)">
             <nav class="flex gap-1">
               @for (y of years(); track y) {
                 <button
                   type="button"
                   (click)="selectedYear.set(y)"
-                  [class.border-green-500]="selectedYear() === y"
-                  [class.text-green-700]="selectedYear() === y"
-                  [class.font-semibold]="selectedYear() === y"
-                  [class.border-transparent]="selectedYear() !== y"
-                  [class.text-gray-500]="selectedYear() !== y"
-                  class="px-4 py-2 text-sm border-b-2 hover:text-gray-700"
+                  class="saga-tab"
+                  [class.is-active]="selectedYear() === y"
                   [attr.data-testid]="'year-tab-' + y"
                 >
                   {{ y }}
-                  <span class="ml-1 text-xs text-gray-400">({{ countByYear()[y] }})</span>
+                  <span class="ml-1 text-xs" style="color: var(--color-saga-text-muted)">
+                    ({{ countByYear()[y] }})
+                  </span>
                 </button>
               }
             </nav>
           </div>
         }
 
-        <div class="overflow-x-auto border rounded">
-          <table class="w-full text-sm">
-            <thead class="bg-gray-50 text-left">
+        <div class="overflow-x-auto">
+          <table class="saga-table text-sm">
+            <thead>
               <tr>
-                <th class="px-3 py-2">Name</th>
-                <th class="px-3 py-2">Parent email</th>
-                <th class="px-3 py-2">Grade</th>
-                <th class="px-3 py-2">Consent</th>
-                <th class="px-3 py-2">Payment</th>
-                <th class="px-3 py-2">Source</th>
+                <th>Name</th>
+                <th>Parent email</th>
+                <th>Grade</th>
+                <th>Consent</th>
+                <th>Payment</th>
+                <th>Source</th>
               </tr>
             </thead>
-            <tbody class="divide-y" data-testid="campers-rows">
+            <tbody data-testid="campers-rows">
               @for (c of visibleCampers(); track c.id) {
-                <tr class="hover:bg-gray-50">
-                  <td class="px-3 py-2">{{ c.firstName }} {{ c.lastName }}</td>
-                  <td class="px-3 py-2 font-mono text-xs">{{ c.parentEmail }}</td>
-                  <td class="px-3 py-2">{{ c.grade }}</td>
-                  <td class="px-3 py-2">
+                <tr>
+                  <td>{{ c.firstName }} {{ c.lastName }}</td>
+                  <td class="font-mono text-xs">{{ c.parentEmail }}</td>
+                  <td>{{ c.grade }}</td>
+                  <td>
                     @if (c.consentAcceptedAt) {
-                      <span class="text-green-700">✓</span>
+                      <span style="color: var(--color-saga-success)">✓</span>
                     } @else {
-                      <span class="text-gray-400">—</span>
+                      <span style="color: var(--color-saga-text-muted)">—</span>
                     }
                   </td>
-                  <td class="px-3 py-2">
+                  <td>
                     @if (c.paymentReceivedAt) {
-                      <span class="text-green-700">✓</span>
+                      <span style="color: var(--color-saga-success)">✓</span>
                     } @else {
-                      <span class="text-gray-400">—</span>
+                      <span style="color: var(--color-saga-text-muted)">—</span>
                     }
                   </td>
-                  <td class="px-3 py-2 text-xs text-gray-500">{{ c.source }}</td>
+                  <td class="text-xs" style="color: var(--color-saga-text-muted)">{{ c.source }}</td>
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="6" class="px-3 py-6 text-center text-gray-400">
+                  <td colspan="6" class="text-center py-6" style="color: var(--color-saga-text-muted)">
                     No campers in this year.
                   </td>
                 </tr>

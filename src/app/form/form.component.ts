@@ -40,7 +40,7 @@ import { environment } from '../../environments/environment';
   ],
   template: `
     <div
-      class="container mx-auto bg:white lg:bg-slate-100 my-0 min-h-dvh font-inter flex lg:justify-center lg:items-center"
+      class="container mx-auto my-0 min-h-dvh font-inter flex lg:justify-center lg:items-center"
     >
       <div class="w-full lg:w-1/2 h-full flex flex-col">
         <div class="w-full  mx-auto h-full flex flex-col">
@@ -53,7 +53,8 @@ import { environment } from '../../environments/environment';
           } @else {
             @if (isSubmitting()) {
               <div
-                class="fixed inset-0 z-50 flex items-center justify-center bg-white/80"
+                class="fixed inset-0 z-50 flex items-center justify-center"
+                style="background-color: rgba(17, 18, 23, 0.8)"
               >
                 <div
                   class="animate-spin rounded-full h-16 w-16 border-t-4 border-indigo-600 border-solid"

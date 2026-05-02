@@ -10,30 +10,36 @@ import { AdminService } from '../admin.service';
   imports: [CommonModule, ReactiveFormsModule],
   template: `
     <div class="container mx-auto p-6 max-w-md">
-      <h1 class="text-2xl font-bold mb-1">Admin sign in</h1>
-      <p class="text-sm text-gray-500 mb-4">Enter the admin password to manage registrations.</p>
+      <div class="saga-card p-6">
+        <h1 class="text-2xl font-bold mb-1">Admin sign in</h1>
+        <p class="text-sm mb-4" style="color: var(--color-saga-text-muted)">
+          Enter the admin password to manage registrations.
+        </p>
 
-      <input
-        type="password"
-        [formControl]="passwordControl"
-        (keyup.enter)="login()"
-        placeholder="Password"
-        autocomplete="current-password"
-        class="border rounded px-3 py-2 w-full mb-3"
-      />
+        <input
+          type="password"
+          [formControl]="passwordControl"
+          (keyup.enter)="login()"
+          placeholder="Password"
+          autocomplete="current-password"
+          class="rounded-lg px-3 py-2 w-full mb-3"
+        />
 
-      @if (error()) {
-        <div class="text-sm text-red-700 mb-3" data-testid="login-error">{{ error() }}</div>
-      }
+        @if (error()) {
+          <div class="text-sm mb-3" style="color: var(--color-saga-danger)" data-testid="login-error">
+            {{ error() }}
+          </div>
+        }
 
-      <button
-        type="button"
-        (click)="login()"
-        [disabled]="loading() || !passwordControl.value"
-        class="w-full bg-green-300 text-green-900 px-6 py-2 rounded disabled:bg-gray-200 disabled:text-gray-400"
-      >
-        {{ loading() ? 'Signing in…' : 'Sign in' }}
-      </button>
+        <button
+          type="button"
+          (click)="login()"
+          [disabled]="loading() || !passwordControl.value"
+          class="saga-btn saga-btn-primary w-full"
+        >
+          {{ loading() ? 'Signing in…' : 'Sign in' }}
+        </button>
+      </div>
     </div>
   `,
   styles: ``,

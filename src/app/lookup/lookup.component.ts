@@ -2,21 +2,22 @@ import { Component, inject, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { RouterLink } from '@angular/router';
 import { LookupResult, StepKey } from '../../models';
 import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'app-lookup',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink],
   template: `
     <div
       class="customer-wrapper p-6"
       [class.opacity-0]="!stepVisible()"
       [class.opacity-100]="stepVisible()"
     >
-      <h1 class="text-3xl font-bold mb-2 text-gray-900">Power Camp 2026</h1>
-      <p class="mb-6 text-md text-gray-500">
+      <h1 class="text-3xl font-bold mb-2">Power Camp 2026</h1>
+      <p class="mb-6 text-sm" style="color: var(--color-saga-text-muted)">
         Have you been to Power Camp before? Search for your name to pick up where you left off.
       </p>
 
@@ -26,14 +27,14 @@ import { environment } from '../../environments/environment';
           [formControl]="queryControl"
           (keyup.enter)="search()"
           placeholder="First or last name"
-          class="border rounded px-3 py-2 w-full"
+          class="rounded-lg px-3 py-2 w-full"
           autocomplete="off"
         />
         <button
           type="button"
           (click)="search()"
           [disabled]="loading() || !queryControl.value?.trim()"
-          class="bg-green-300 text-green-900 px-6 py-2 rounded disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
+          class="saga-btn saga-btn-primary"
         >
           {{ loading() ? 'Searching…' : 'Search' }}
         </button>
@@ -44,31 +45,41 @@ import { environment } from '../../environments/environment';
       }
 
       @if (linkSentTo() !== null) {
-        <div class="rounded border border-green-200 bg-green-50 p-4" data-testid="link-sent">
-          <h2 class="font-semibold text-green-900 mb-1">Check your email</h2>
-          <p class="text-sm text-green-900">
+        <div
+          class="saga-card p-4 mb-6"
+          data-testid="link-sent"
+          style="border-color: var(--color-saga-primary); background-color: var(--color-saga-primary-soft)"
+        >
+          <h2 class="font-semibold mb-1">Check your email</h2>
+          <p class="text-sm" style="color: var(--color-saga-text)">
             We've sent a sign-in link to <span class="font-mono">{{ linkSentTo() }}</span>.
             Click the link in that email (it expires in 30 minutes) to access your registration.
           </p>
         </div>
       } @else if (results() !== null) {
         @if (results()!.length === 0) {
-          <div class="text-gray-500 mb-4" data-testid="no-results">
-            No matches. You can register as a new camper below.
+          <div class="mb-4" style="color: var(--color-saga-text-muted)" data-testid="no-results">
+            No matches. Try a different name, or use one of the options below.
           </div>
         } @else {
-          <ul class="border rounded divide-y" data-testid="results">
+          <ul
+            class="saga-card divide-y mb-6"
+            data-testid="results"
+            style="border-color: var(--color-saga-border)"
+          >
             @for (r of results(); track r.id) {
-              <li class="p-3 flex items-center justify-between hover:bg-gray-50">
+              <li class="p-3 flex items-center justify-between" style="border-color: var(--color-saga-border)">
                 <div>
-                  <div class="font-medium text-gray-900">{{ r.firstName }} {{ r.lastName }}</div>
-                  <div class="text-sm text-gray-500">
+                  <div class="font-medium" style="color: var(--color-saga-text-strong)">
+                    {{ r.firstName }} {{ r.lastName }}
+                  </div>
+                  <div class="text-sm" style="color: var(--color-saga-text-muted)">
                     {{ r.year }} · {{ r.parentEmailMasked }}
                   </div>
                 </div>
                 <button
                   type="button"
-                  class="text-sm bg-indigo-100 text-indigo-700 px-3 py-1 rounded disabled:bg-gray-200 disabled:text-gray-400"
+                  class="saga-btn saga-btn-primary !py-1 !px-3 !text-xs"
                   [disabled]="sendingLinkFor() === r.id"
                   (click)="select(r)"
                 >
@@ -78,15 +89,33 @@ import { environment } from '../../environments/environment';
             }
           </ul>
         }
-
-        <button
-          type="button"
-          (click)="registerNew()"
-          class="mt-6 px-6 py-2 rounded border border-gray-300 text-gray-600"
-        >
-          Register as a new camper
-        </button>
       }
+
+      <!-- Always-visible fallback options. New campers and leader applicants don't
+           need to search first — they can jump straight in. -->
+      <div
+        class="mt-2 pt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+        style="border-top: 1px solid var(--color-saga-border)"
+      >
+        <div class="text-sm" style="color: var(--color-saga-text-muted)">
+          New to Power Camp?
+        </div>
+        <div class="flex flex-col sm:flex-row gap-3 sm:w-auto">
+          <button
+            type="button"
+            (click)="registerNew()"
+            class="saga-btn saga-btn-secondary w-full sm:w-auto"
+          >
+            Register as a new camper
+          </button>
+          <a
+            routerLink="/leader-apply"
+            class="saga-btn saga-btn-secondary no-underline w-full sm:w-auto"
+          >
+            Apply as a leader
+          </a>
+        </div>
+      </div>
     </div>
   `,
   styles: ``,

@@ -10,6 +10,7 @@ import { requestLinkRouter } from './routes/request-link';
 import { verifyLinkRouter } from './routes/verify-link';
 import { updateRouter } from './routes/update';
 import { adminRouter } from './routes/admin';
+import { leadersRouter } from './routes/leaders';
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use(requestLinkRouter);
 app.use(verifyLinkRouter);
 app.use(updateRouter);
 app.use(adminRouter);
+app.use(leadersRouter);
 
 const distDir = path.resolve(__dirname, '../dist/powercamp/browser');
 app.use(express.static(distDir));

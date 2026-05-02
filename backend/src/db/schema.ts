@@ -69,3 +69,37 @@ export const verificationCodes = pgTable(
 
 export type Camper = typeof campers.$inferSelect;
 export type NewCamper = typeof campers.$inferInsert;
+
+export const leaders = pgTable(
+  'leaders',
+  {
+    id: serial('id').primaryKey(),
+    year: integer('year').notNull(),
+    firstName: text('first_name').notNull(),
+    lastName: text('last_name').notNull(),
+    email: text('email').notNull(),
+    cell: text('cell'),
+    gender: text('gender'),
+    age: text('age'),
+    grade: text('grade'),
+    church: text('church'),
+    tshirt: text('tshirt'),
+    parentName: text('parent_name'),
+    parentPhone: text('parent_phone'),
+    parentEmail: text('parent_email'),
+    applicationNotes: text('application_notes'),
+    status: text('status').default('pending').notNull(),
+    approvedByNeil: boolean('approved_by_neil').default(false).notNull(),
+    approvedAt: timestamp('approved_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    deletedAt: timestamp('deleted_at'),
+  },
+  (t) => [
+    index('leaders_year_idx').on(t.year),
+    index('leaders_email_idx').on(t.email),
+  ]
+);
+
+export type Leader = typeof leaders.$inferSelect;
+export type NewLeader = typeof leaders.$inferInsert;
