@@ -13,10 +13,10 @@ import { StepKey } from '../../models';
       <h2 class="text-2xl font-bold mb-4 text-gray-900">Camp Details</h2>
       <div class="mb-4 text-md text-gray-700 space-y-2">
         <div>
-          <span class="font-semibold">Starts:</span> Friday 22nd August at 17:00
+          <span class="font-semibold">Starts:</span> Friday 31 July 2026 at 17:00
         </div>
         <div>
-          <span class="font-semibold">Ends:</span> Sunday 24th August at 14:00
+          <span class="font-semibold">Ends:</span> Sunday 2 August 2026 at 14:00
         </div>
         <div>
           <span class="font-semibold">Where:</span> YFC Magaliesburg (Boitumelo

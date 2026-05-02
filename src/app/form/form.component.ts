@@ -5,6 +5,7 @@ import { DetailsComponent } from '../details/details.component';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FriendsComponent } from '../friends/friends.component';
 import { IntroComponent } from '../intro/intro.component';
+import { LookupComponent } from '../lookup/lookup.component';
 import { LeaderApplicationComponent } from '../leader-application/leader-application.component';
 import { LeaderInfoComponent } from '../leader-info/leader-info.component';
 import { MedicalComponent } from '../medical/medical.component';
@@ -26,6 +27,7 @@ import { environment } from '../../environments/environment';
     FormsModule,
     FriendsComponent,
     IntroComponent,
+    LookupComponent,
     LeaderApplicationComponent,
     LeaderInfoComponent,
     MedicalComponent,
@@ -60,18 +62,25 @@ import { environment } from '../../environments/environment';
             }
             <form [formGroup]="rootFormGroup">
               <div class="">
+                @if (currentStep() === StepKey.Lookup && stepVisible()) {
+                  <app-lookup
+                    [stepVisible]="stepVisible()"
+                    (goToStep)="fadeToStep($event)"
+                    (selectedCamper)="onSelectedCamper($event)"
+                  ></app-lookup>
+                }
                 @if (currentStep() === StepKey.Intro && stepVisible()) {
                   <app-intro
                     [stepVisible]="stepVisible()"
                     (goToStep)="fadeToStep($event)"
                   ></app-intro>
                 }
-<!--                @if (currentStep() === StepKey.Details && stepVisible()) {-->
-<!--                  <app-details-->
-<!--                    [stepVisible]="stepVisible()"-->
-<!--                    (goToStep)="fadeToStep($event)"-->
-<!--                  ></app-details>-->
-<!--                }-->
+                @if (currentStep() === StepKey.Details && stepVisible()) {
+                  <app-details
+                    [stepVisible]="stepVisible()"
+                    (goToStep)="fadeToStep($event)"
+                  ></app-details>
+                }
 <!--                @if (-->
 <!--                  currentStep() === StepKey.LeaderApplication && stepVisible()-->
 <!--                ) {-->
@@ -157,7 +166,7 @@ import { environment } from '../../environments/environment';
 })
 export class FormComponent {
   protected readonly StepKey = StepKey;
-  currentStep = signal<number>(StepKey.Intro);
+  currentStep = signal<number>(StepKey.Lookup);
 
   stepVisible = signal(true);
   isSubmitting = signal(false);
@@ -217,6 +226,12 @@ export class FormComponent {
         this.isSubmitting.set(false); // stop loader
       },
     });
+  }
+
+  onSelectedCamper(camper: { id: number; firstName: string; lastName: string; year: number }) {
+    // PR 5 will replace this with sending a verification code to the parent_email
+    // on file and gating the edit flow behind it.
+    console.log('selected camper (PR 5 will wire this up):', camper);
   }
 
   fadeToStep(step: keyof typeof StepKey | number) {

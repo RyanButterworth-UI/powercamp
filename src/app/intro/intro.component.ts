@@ -1,6 +1,5 @@
-import { Component, inject, input, output } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { StepKey } from '../../models';
-import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-intro',
@@ -16,34 +15,23 @@ import { Router } from '@angular/router';
         alt="Power Camp group photo"
         class="mb-6 rounded shadow max-h-64 w-auto object-cover"
       />
-      <h1 class="text-3xl font-bold mb-4 text-gray-900">
-        Power Camp 2025 Feedback
-      </h1>
-<div class="w-full">
-  <p class="mt-2 text-md text-gray-500">Powercamp 2025 was blast! Sadly its over. </p>
-  <p class="text-md text-gray-500">If you need to contact the admin team you can drop us a mail: <a [href]="'mailto:' + 'powercamplife' + '@' + 'gmail.com'" class="text-blue-600 underline">{{ 'powercamplife' + '@' + 'gmail.com' }}</a></p>
-  <p class="mt-2 text-md text-gray-500">Please click the feedback button to give your thoughts on PC '25</p>
-</div>
-<!--      <p class="mt-2 text-md text-gray-500">-->
-<!--        This form is your ticket to all the details - the what, the when, the-->
-<!--        how, and all the other groovy info for Power Camp 2025.-->
-<!--      </p>-->
-<!--      <p class="mt-2 text-md text-gray-500">-->
-<!--        Here's the deal: Each camper, even if they're from the same family, must-->
-<!--        complete this form. It's your key to unlocking the adventure ahead!-->
-<!--      </p>-->
+      <h1 class="text-3xl font-bold mb-4 text-gray-900">Power Camp 2026</h1>
+      <div class="w-full">
+        <p class="mt-2 text-md text-gray-500">
+          Power Camp 2026 runs <span class="font-semibold">Friday 31 July – Sunday 2 August 2026</span>.
+        </p>
+        <p class="mt-2 text-md text-gray-500">
+          This form is your ticket to all the details and your spot at camp. Each
+          camper, even from the same family, must complete it themselves.
+        </p>
+      </div>
       <div class="flex w-full justify-between">
-<!--        <button-->
-<!--          type="button"-->
-<!--          (click)="goToStep.emit(StepKey.Details)"-->
-<!--          class="rounded-full bg-white mt-4 px-4 py-2.5 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50"-->
-<!--        >-->
-<!--          Start Registration-->
-<!--        </button>-->
         <button
+          type="button"
+          (click)="goToStep.emit(StepKey.Details)"
           class="rounded-full bg-white mt-4 px-4 py-2.5 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50"
-          (click)="navigateToFeedback()"
-        >Give us feedback
+        >
+          Start Registration
         </button>
       </div>
     </div>
@@ -51,16 +39,7 @@ import { Router } from '@angular/router';
   styles: ``,
 })
 export class IntroComponent {
-  router = inject(Router);
   stepVisible = input.required<boolean>();
   goToStep = output<StepKey>();
   StepKey = StepKey;
-
-  navigateToConsent():void {
-    this.router.navigate(['consent']);
-  }
-
-  navigateToFeedback() {
-    this.router.navigate(['feedback']);
-  }
 }
