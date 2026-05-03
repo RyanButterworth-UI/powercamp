@@ -157,7 +157,10 @@ import { UiService } from '../ui/ui.service';
               </div>
             </form>
 
-            @if (currentStep() !== StepKey.Lookup) {
+            <!-- Mounted on the same stepVisible() gate as every step component so
+                 it appears in the same change-detection tick as the new step's
+                 content — never a beat earlier. -->
+            @if (currentStep() !== StepKey.Lookup && stepVisible()) {
               <div
                 class="px-5 pb-6 pt-2 text-center text-xs"
                 style="color: var(--color-saga-text-muted)"
