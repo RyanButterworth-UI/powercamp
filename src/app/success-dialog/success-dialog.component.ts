@@ -81,7 +81,7 @@ import { Component,input, Input, output } from '@angular/core';
                 </h3>
                 <div class="mt-2">
                   @if (!consent() && !feedback()) {
-                    <p class="text-sm text-gray-500">
+                    <p class="text-sm">
                       {{
                         status === 'success'
                           ? camperName +

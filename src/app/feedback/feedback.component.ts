@@ -50,14 +50,14 @@ import { environment } from '../../environments/environment';
                     scheduling, Power camp will be: 31 July - 2 August. </p>
                   <div class="flex justify-between mt-2">
                     <button
-                      class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+                      class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded"
                       (click)="previousStep()"
                       type="button"
                     >
                       back
                     </button>
                     <button
-                      class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+                      class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded"
                       (click)="nextStep()"
                       type="button"
                     >
@@ -101,7 +101,7 @@ import { environment } from '../../environments/environment';
                               type="radio"
                               formControlName="campOrganization"
                               [value]="size"
-                              class="absolute inset-0 appearance-none focus:outline-none disabled:cursor-not-allowed text-white"
+                              class="absolute inset-0 appearance-none focus:outline-none text-white"
                             />
                             <span
                               class="text-sm font-medium uppercase group-has-checked:text-green-900 text-gray-900"
@@ -131,7 +131,7 @@ import { environment } from '../../environments/environment';
                               type="radio"
                               formControlName="spiritualInput"
                               [value]="spiritualInput"
-                              class="absolute inset-0 appearance-none focus:outline-none disabled:cursor-not-allowed text-white"
+                              class="absolute inset-0 appearance-none focus:outline-none text-white"
                             />
                             <span
                               class="text-sm font-medium uppercase group-has-checked:text-green-900 text-gray-900"
@@ -161,7 +161,7 @@ import { environment } from '../../environments/environment';
                               type="radio"
                               formControlName="activities"
                               [value]="activities"
-                              class="absolute inset-0 appearance-none focus:outline-none disabled:cursor-not-allowed text-white"
+                              class="absolute inset-0 appearance-none focus:outline-none text-white"
                             />
                             <span
                               class="text-sm font-medium uppercase group-has-checked:text-green-900 text-gray-900"
@@ -191,7 +191,7 @@ import { environment } from '../../environments/environment';
                               type="radio"
                               formControlName="facilities"
                               [value]="facilities"
-                              class="absolute inset-0 appearance-none focus:outline-none disabled:cursor-not-allowed text-white"
+                              class="absolute inset-0 appearance-none focus:outline-none text-white"
                             />
                             <span
                               class="text-sm font-medium uppercase group-has-checked:text-green-900 text-gray-900"
@@ -211,7 +211,7 @@ import { environment } from '../../environments/environment';
                   </div>
                   <div class="flex justify-between mt-2">
                     <button
-                      class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+                      class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded"
                       (click)="previousStep()"
                       type="button"
                     >
@@ -219,7 +219,7 @@ import { environment } from '../../environments/environment';
                     </button>
                     <button
                       [disabled]="!areFieldsValid(required)"
-                      class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+                      class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded"
                       (click)="nextStep()"
                       type="button"
                     >
@@ -276,7 +276,7 @@ import { environment } from '../../environments/environment';
                           type="radio"
                           formControlName="requiresFeedback"
                           [value]="requiresFeedback"
-                          class="absolute inset-0 appearance-none focus:outline-none disabled:cursor-not-allowed text-white"
+                          class="absolute inset-0 appearance-none focus:outline-none text-white"
                         />
                         <span
                           class="text-sm font-medium uppercase group-has-checked:text-green-900 text-gray-900"
@@ -303,7 +303,7 @@ import { environment } from '../../environments/environment';
                 </div>
                 <div class="flex justify-between mt-2">
                   <button
-                    class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+                    class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded"
                     (click)="previousStep()"
                     type="button"
                   >
@@ -312,7 +312,7 @@ import { environment } from '../../environments/environment';
                   <button
                     type="submit"
                     [disabled]="!areFieldsValid(required)"
-                    class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+                    class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded"
                   >
                     Submit
                   </button>

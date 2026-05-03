@@ -61,7 +61,7 @@ import { HttpClient } from '@angular/common/http';
               The last page will capture emergenecy contact details.
             </p>
             <button
-              class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+              class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded"
               (click)="nextStep()"
             >
               Continue
@@ -115,7 +115,7 @@ import { HttpClient } from '@angular/common/http';
                       type="radio"
                       formControlName="camperGrade"
                       [value]="size"
-                      class="absolute inset-0 appearance-none focus:outline-none disabled:cursor-not-allowed"
+                      class="absolute inset-0 appearance-none focus:outline-none"
                     />
                     <span
                       class="text-sm font-medium uppercase group-has-checked:text-green-900"
@@ -130,14 +130,14 @@ import { HttpClient } from '@angular/common/http';
             </div>
             <div class="flex justify-between mt-2">
               <button
-                class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+                class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded"
                 (click)="previousStep()"
               >
                 back
               </button>
               <button
                 [disabled]="!areFieldsValid(parentFields)"
-                class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+                class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded"
                 (click)="nextStep()"
               >
                 Continue
@@ -165,14 +165,14 @@ import { HttpClient } from '@angular/common/http';
           </app-base>
           <div class="flex justify-between mt-2">
             <button
-              class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+              class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded"
               (click)="previousStep()"
             >
               back
             </button>
             <button
               [disabled]="!areFieldsValid(generalConsent)"
-              class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+              class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded"
               (click)="nextStep()"
             >
               Continue
@@ -195,14 +195,14 @@ import { HttpClient } from '@angular/common/http';
           </app-base>
           <div class="flex justify-between mt-2">
             <button
-              class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+              class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded"
               (click)="previousStep()"
             >
               back
             </button>
             <button
               [disabled]="!areFieldsValid(powerCamp)"
-              class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+              class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded"
               (click)="nextStep()"
             >
               Continue
@@ -221,14 +221,14 @@ import { HttpClient } from '@angular/common/http';
           </app-base>
           <div class="flex justify-between mt-2">
             <button
-              class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+              class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded"
               (click)="previousStep()"
             >
               back
             </button>
             <button
               [disabled]="!areFieldsValid(photo)"
-              class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+              class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded"
               (click)="nextStep()"
             >
               Continue
@@ -295,14 +295,14 @@ import { HttpClient } from '@angular/common/http';
           </div>
           <div class="flex justify-between mt-2">
             <button
-              class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+              class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded"
               (click)="previousStep()"
             >
               back
             </button>
             <button
               [disabled]="!areFieldsValid(medical)"
-              class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+              class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded"
               (click)="nextStep()"
             >
               Continue

@@ -7,14 +7,14 @@ import { StepKey } from '../../models';
   imports: [],
   template: `
     <div class="customer-wrapper">
-      <h2 class="text-xl font-bold mb-4 text-gray-800">
+      <h2 class="text-xl font-bold mb-4 text-[color:var(--color-saga-text-strong)]">
         Camper & Parent Summary
       </h2>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
         <!-- Camper Details -->
         <div class="border rounded-lg p-4 shadow bg-white">
-          <h3 class="text-lg font-semibold mb-2 text-gray-700">
+          <h3 class="text-lg font-semibold mb-2 text-[color:var(--color-saga-text)]">
             Camper Details
           </h3>
           <p>
@@ -51,7 +51,7 @@ import { StepKey } from '../../models';
 
         <!-- Parent Details -->
         <div class="border rounded-lg p-4 shadow bg-white">
-          <h3 class="text-lg font-semibold mb-2 text-gray-700">
+          <h3 class="text-lg font-semibold mb-2 text-[color:var(--color-saga-text)]">
             Parent / Guardian Details
           </h3>
           <p><strong>Name:</strong> {{ form.get('parentName')?.value }}</p>
@@ -64,14 +64,14 @@ import { StepKey } from '../../models';
         <button
           type="button"
           (click)="goToStep.emit(StepKey.Tshirt)"
-          class="px-8 py-2 rounded border border-gray-300 text-gray-600 cursor-pointer"
+          class="saga-btn saga-btn-secondary"
         >
           Back
         </button>
         <button
           type="button"
           (click)="triggerSubmission.emit()"
-          class="bg-green-300 text-green-900 px-8 py-2 rounded disabled:bg-red-700 cursor-pointer disabled:text-white disabled:cursor-not-allowed"
+          class="saga-btn saga-btn-primary"
         >
           Confirm & Submit
         </button>

@@ -62,7 +62,7 @@ import { NgClass } from '@angular/common';
 
       <div class="flex  gap-4 mt-6">
         <button
-          class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+          class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded"
           (click)="navigateBack.emit()"
         >
           back
@@ -70,7 +70,7 @@ import { NgClass } from '@angular/common';
         <button
           type="button"
           (click)="triggerSubmission.emit()"
-          class="bg-green-300 text-green-900 px-8 py-2 rounded disabled:bg-red-700 cursor-pointer disabled:text-white disabled:cursor-not-allowed"class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+          class="bg-green-300 text-green-900 px-8 py-2 rounded"class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded"
         >
           Confirm & Submit
         </button>

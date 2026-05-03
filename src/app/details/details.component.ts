@@ -10,7 +10,7 @@ import { StepKey } from '../../models';
       [class.opacity-0]="!stepVisible()"
       [class.opacity-100]="stepVisible()"
     >
-      <h2 class="text-2xl font-bold mb-4 text-gray-900">Camp Details</h2>
+      <h2 class="text-xl font-bold mb-3">Camp Details</h2>
       <div class="mb-4 text-md text-gray-700 space-y-2">
         <div>
           <span class="font-semibold">Starts:</span> Friday 31 July 2026 at 17:00
@@ -30,7 +30,7 @@ import { StepKey } from '../../models';
           <span class="font-semibold">Cost:</span> R1300 (accommodation, meals,
           all activities, and the POWER camp T-shirt)
         </div>
-        <div class="text-xs text-gray-500">
+        <div class="text-xs">
           Excludes transport to and from camp and tuck money.
         </div>
       </div>

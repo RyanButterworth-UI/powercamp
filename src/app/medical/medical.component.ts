@@ -37,7 +37,7 @@ import { StepKey } from '../../models';
           <button
             type="button"
             (click)="goToStep.emit(StepKey.Friends)"
-            class="px-8 py-2 rounded border"
+            class="saga-btn saga-btn-secondary"
           >
             Back
           </button>
@@ -45,7 +45,7 @@ import { StepKey } from '../../models';
             [disabled]="!areCamperFieldsValid()"
             type="button"
             (click)="goToStep.emit(StepKey.ParentInfo)"
-            class="bg-green-300 text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed"
+            class="saga-btn saga-btn-primary"
           >
             Next
           </button>

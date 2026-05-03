@@ -17,7 +17,7 @@ import {
     >
       <form [formGroup]="form">
         <div>
-          <p class="my-2 text-md text-gray-500">
+          <p class="my-2 text-sm">
             The details below are for the camper attending Power Camp. Please
             fill out each field carefully!
           </p>
@@ -131,7 +131,7 @@ import {
           >
             Camper Email
           </label>
-          <p class="mt-2 mb-2 text-md text-gray-500 text-xs">
+          <p class="mt-2 mb-2 text-sm text-xs">
             Not required but definitely helpful!
           </p>
           <div class="relative mt-2">
@@ -172,7 +172,7 @@ import {
           <button
             type="button"
             (click)="goToStep.emit(StepKey.LeaderApplication)"
-            class="px-8 py-2 rounded border border-gray-300  text-gray-600 cursor-pointer"
+            class="saga-btn saga-btn-secondary"
           >
             Back
           </button>
@@ -180,7 +180,7 @@ import {
             [disabled]="!areCamperFieldsValid()"
             type="button"
             (click)="goToStep.emit(StepKey.CamperAdditionalInfo)"
-            class="bg-green-300 text-green-900 px-8 py-2 rounded disabled:bg-red-700 cursor-pointer disabled:text-white disabled:cursor-not-allowed"
+            class="saga-btn saga-btn-primary"
           >
             Next
           </button>

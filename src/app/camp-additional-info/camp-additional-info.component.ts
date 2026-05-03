@@ -17,7 +17,7 @@ import { StepKey } from '../../models';
         [class.opacity-100]="stepVisible()"
       >
         <div>
-          <p class="my-2 text-md text-gray-500">
+          <p class="my-2 text-sm">
             So glad to have you here {{ firstName() }}, please give us a few
             more details
           </p>
@@ -65,7 +65,7 @@ import { StepKey } from '../../models';
             <label class="block text-sm/2 font-medium text-gray-900">
               Age <span class="text-red-700">*</span>
             </label>
-            <div class="mt-2 grid grid-cols-3 gap-3 sm:grid-cols-5 mb-4">
+            <div class="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6 mb-4">
               @for (age of ageOptions(); track age) {
                 <label
                   [attr.aria-label]="age"
@@ -92,13 +92,13 @@ import { StepKey } from '../../models';
           <input
             type="date"
             formControlName="dob"
-            class="w-full border border-gray-500 rounded px-3 py-2 mb-4"
+            class="w-full rounded-lg mb-4"
           />
           <fieldset aria-label="Camper Grade">
             <label class="block text-sm/2 font-medium text-gray-900">
               Grade <span class="text-red-700">*</span>
             </label>
-            <div class="mt-2 grid grid-cols-3 gap-3 sm:grid-cols-5 mb-4">
+            <div class="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6 mb-4">
               @for (grade of grades(); track grade) {
                 <label
                   [attr.aria-label]="grade"
@@ -123,7 +123,7 @@ import { StepKey } from '../../models';
           <button
             type="button"
             (click)="goToStep.emit(StepKey.Details)"
-            class="px-8 py-2 rounded border border-gray-300  text-gray-600 cursor-pointer"
+            class="saga-btn saga-btn-secondary"
           >
             Back
           </button>
@@ -131,7 +131,7 @@ import { StepKey } from '../../models';
             [disabled]="!areCamperFieldsValid()"
             type="button"
             (click)="goToStep.emit(StepKey.Friends)"
-            class="bg-green-300 text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+            class="saga-btn saga-btn-primary"
           >
             Next
           </button>

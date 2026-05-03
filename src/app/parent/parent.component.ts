@@ -17,7 +17,7 @@ import { StepKey } from '../../models';
         [class.opacity-100]="stepVisible()"
       >
         <div>
-          <p class="my-2 text-md text-gray-500">
+          <p class="my-2 text-sm">
             The details below are for the PARENT of
             {{ firstName() }}. Please fill out each field carefully!
           </p>
@@ -135,7 +135,7 @@ import { StepKey } from '../../models';
           <button
             type="button"
             (click)="goToStep.emit(StepKey.Medical)"
-            class="px-8 py-2 rounded border border-gray-300  text-gray-600 cursor-pointer"
+            class="saga-btn saga-btn-secondary"
           >
             Back
           </button>
@@ -143,7 +143,7 @@ import { StepKey } from '../../models';
             [disabled]="!areCamperFieldsValid()"
             type="button"
             (click)="goToStep.emit(StepKey.Tshirt)"
-            class="bg-green-300 text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed"
+            class="saga-btn saga-btn-primary"
           >
             Next
           </button>

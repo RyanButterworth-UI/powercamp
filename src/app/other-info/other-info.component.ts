@@ -17,7 +17,7 @@ import { StepKey } from '../../models';
         [class.opacity-100]="stepVisible()"
       >
         <div>
-          <label class="my-2 text-sm text-gray-500">
+          <label class="my-2 text-sm">
             Before you cross the finish line, is there anything else we should
             know? We want to make sure you have everything you need for an
             amazing camp experience this winter! (You can skip this too!)
@@ -34,7 +34,7 @@ import { StepKey } from '../../models';
           <button
             type="button"
             (click)="goToStep.emit(StepKey.Friends)"
-            class="px-8 py-2 rounded border"
+            class="saga-btn saga-btn-secondary"
           >
             Back
           </button>
@@ -42,7 +42,7 @@ import { StepKey } from '../../models';
             [disabled]="!areCamperFieldsValid()"
             type="button"
             (click)="goToStep.emit(StepKey.CheckData)"
-            class="bg-green-300 text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed"
+            class="saga-btn saga-btn-primary"
           >
             Next
           </button>
