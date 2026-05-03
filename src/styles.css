@@ -148,6 +148,99 @@ select:focus {
   color: var(--color-saga-text-muted) !important;
 }
 
+/* color-scheme: dark hints to the browser to render the native date picker
+   and select option list with a dark colour scheme. Without this, Chrome's
+   calendar opens with a light background that clashes with our dark inputs. */
+html, body, input[type='date'], input[type='time'], input[type='datetime-local'], select, textarea {
+  color-scheme: dark;
+}
+
+/* SELECT — kill the default platform chrome, then paint a clean Saga dropdown.
+   Custom chevron via inline SVG so we don't ship a separate asset. */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: var(--color-saga-surface);
+  color: var(--color-saga-text);
+  border: 1px solid var(--color-saga-border);
+  border-radius: 8px;
+  padding: 0.5rem 2.25rem 0.5rem 0.75rem; /* room for the chevron */
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-family: var(--font-saga);
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none' stroke='%23CCCCDC' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M1 1.5l5 5 5-5'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--color-saga-primary);
+  box-shadow: 0 0 0 3px var(--color-saga-focus);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none' stroke='%235A86DE' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M1 1.5l5 5 5-5'/></svg>");
+}
+
+select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+select option {
+  background-color: var(--color-saga-surface-2);
+  color: var(--color-saga-text);
+  padding: 8px;
+}
+
+/* DATE INPUT — recolour the default calendar icon and align it with the
+   Saga look. WebKit's calendar icon respects `filter: invert()` since we
+   want it light on dark. */
+input[type='date'],
+input[type='time'],
+input[type='datetime-local'] {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--color-saga-surface);
+  color: var(--color-saga-text);
+  border: 1px solid var(--color-saga-border);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-family: var(--font-saga);
+  cursor: pointer;
+}
+
+input[type='date']::-webkit-calendar-picker-indicator,
+input[type='time']::-webkit-calendar-picker-indicator,
+input[type='datetime-local']::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
+  opacity: 0.7;
+  cursor: pointer;
+  transition: opacity 120ms ease;
+}
+
+input[type='date']::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+input[type='date']::-webkit-datetime-edit,
+input[type='time']::-webkit-datetime-edit {
+  color: var(--color-saga-text);
+}
+
+input[type='date']::-webkit-datetime-edit-fields-wrapper {
+  color: var(--color-saga-text);
+}
+
+/* When a date input has its placeholder showing (Chrome only — when the
+   value is empty), the placeholder text is in datetime-edit-* pseudos. */
+input[type='date']:not(:focus):invalid::-webkit-datetime-edit {
+  color: var(--color-saga-text-muted);
+  opacity: 0.7;
+}
+
 /* ----------------------------------------------------------------
    Compatibility shims for components still using light-theme Tailwind.
    These translate the old palette into Saga tokens without touching the

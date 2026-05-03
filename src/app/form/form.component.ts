@@ -216,8 +216,32 @@ export class FormComponent {
     });
 
     this.restoreDraft();
+    // If we just restored a draft, jump straight to the furthest step the
+    // parent had filled in — no point making them re-walk Lookup → Intro
+    // → Details when their first / last name is already on file.
+    const resumeAt = this.furthestStep();
+    if (resumeAt !== StepKey.Lookup) {
+      this.currentStep.set(resumeAt);
+    }
     // Persist on every change so a reload after a network blip keeps the data.
     this.rootFormGroup.valueChanges.subscribe(() => this.saveDraft());
+  }
+
+  // Walks the form's required fields in order and returns the step where the
+  // parent should land — i.e. the first step still missing required data.
+  // Returns StepKey.Lookup when nothing useful has been filled in yet.
+  private furthestStep(): StepKey {
+    const v = (k: string) => this.rootFormGroup.get(k)?.valid;
+    if (!v('firstName') && !v('lastName')) return StepKey.Lookup;
+    if (!v('firstName') || !v('lastName')) return StepKey.CamperInfo;
+    if (!v('gender') || !v('age') || !v('dob') || !v('grade')) {
+      return StepKey.CamperAdditionalInfo;
+    }
+    if (!v('parentName') || !v('parentPhone') || !v('parentEmail')) {
+      return StepKey.ParentInfo;
+    }
+    if (!v('tshirt') || !v('church')) return StepKey.Tshirt;
+    return StepKey.CheckData;
   }
 
   private restoreDraft(): void {
