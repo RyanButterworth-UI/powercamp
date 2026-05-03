@@ -131,7 +131,12 @@ import { StepKey } from '../../models';
             }
           </fieldset>
         </div>
-        <div class="flex gap-6 mt-6">
+        @if (missingLabels().length > 0) {
+          <p class="text-xs mt-3" style="color: var(--color-saga-warning)">
+            Still need: {{ missingLabels().join(', ') }}
+          </p>
+        }
+        <div class="flex gap-6 mt-4">
           <button
             type="button"
             (click)="goToStep.emit(StepKey.Medical)"
@@ -160,6 +165,18 @@ export class ParentComponent {
   StepKey = StepKey;
 
   camperFields = ['parentPhone', 'parentEmail', 'parentName'];
+
+  private readonly LABELS: Record<string, string> = {
+    parentName: 'Parent Name',
+    parentPhone: 'Parent Phone',
+    parentEmail: 'Parent Email',
+  };
+
+  missingLabels(): string[] {
+    return this.camperFields
+      .filter((f) => !this.form.get(f)?.valid)
+      .map((f) => this.LABELS[f] ?? f);
+  }
 
   constructor(private rootFormGroup: FormGroupDirective) {
     this.form = this.rootFormGroup.control;

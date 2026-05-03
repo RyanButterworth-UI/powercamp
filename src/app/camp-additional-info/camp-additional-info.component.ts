@@ -124,7 +124,12 @@ import { StepKey } from '../../models';
             </div>
           </fieldset>
         </div>
-        <div class="flex gap-6 mt-6">
+        @if (missingLabels().length > 0) {
+          <p class="text-xs mt-3" style="color: var(--color-saga-warning)">
+            Still need: {{ missingLabels().join(', ') }}
+          </p>
+        }
+        <div class="flex gap-6 mt-4">
           <button
             type="button"
             (click)="goToStep.emit(StepKey.Details)"
@@ -162,8 +167,21 @@ export class CampAdditionalInfoComponent {
   firstName = computed(() => this.form.get('firstName')?.value || '');
   todayIso = new Date().toISOString().split('T')[0];
 
+  private readonly LABELS: Record<string, string> = {
+    gender: 'Gender',
+    age: 'Age',
+    dob: 'Date of Birth',
+    grade: 'Grade',
+  };
+
   areCamperFieldsValid(): boolean {
     return this.camperFields.every((field) => this.form.get(field)?.valid);
+  }
+
+  missingLabels(): string[] {
+    return this.camperFields
+      .filter((f) => !this.form.get(f)?.valid)
+      .map((f) => this.LABELS[f] ?? f);
   }
 
   // Some browsers (Safari, especially mobile) don't pop the native date

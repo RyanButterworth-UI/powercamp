@@ -34,11 +34,15 @@ import { Router, RouterLink, RouterLinkActive } from '@angular/router';
             class="saga-tab no-underline"
           >Register</a>
           <a
-            href="https://powercamp.co.za"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="assets/kit-list.pdf"
+            download
             class="saga-tab no-underline"
-          >Info ↗</a>
+          >Kit list</a>
+          <a
+            routerLink="/info"
+            routerLinkActive="is-active"
+            class="saga-tab no-underline"
+          >Info</a>
           <a
             routerLink="/admin"
             routerLinkActive="is-active"
@@ -84,11 +88,15 @@ import { Router, RouterLink, RouterLinkActive } from '@angular/router';
             class="saga-tab no-underline"
           >Register / Update</a>
           <a
-            href="https://powercamp.co.za"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="assets/kit-list.pdf"
+            download
             class="saga-tab no-underline"
-          >Info ↗</a>
+          >Kit list</a>
+          <a
+            routerLink="/info"
+            routerLinkActive="is-active"
+            class="saga-tab no-underline"
+          >Info</a>
           <a
             routerLink="/admin"
             routerLinkActive="is-active"

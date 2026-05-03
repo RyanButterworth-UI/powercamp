@@ -74,24 +74,27 @@ import { CHURCHES, CHURCH_OTHER } from '../data/churches';
             }
           </div>
         </div>
-        <div class="flex gap-6 mt-6">
-          <div class="flex gap-6 mt-6">
-            <button
-              type="button"
-              (click)="goToStep.emit(StepKey.ParentInfo)"
-              class="saga-btn saga-btn-secondary"
-            >
-              Back
-            </button>
-            <button
-              [disabled]="!areCamperFieldsValid()"
-              type="button"
-              (click)="goToStep.emit(StepKey.OtherInfo)"
-              class="saga-btn saga-btn-primary"
-            >
-              Next
-            </button>
-          </div>
+        @if (missingLabels().length > 0) {
+          <p class="text-xs mt-3" style="color: var(--color-saga-warning)">
+            Still need: {{ missingLabels().join(', ') }}
+          </p>
+        }
+        <div class="flex gap-6 mt-4">
+          <button
+            type="button"
+            (click)="goToStep.emit(StepKey.ParentInfo)"
+            class="saga-btn saga-btn-secondary"
+          >
+            Back
+          </button>
+          <button
+            [disabled]="!areCamperFieldsValid()"
+            type="button"
+            (click)="goToStep.emit(StepKey.OtherInfo)"
+            class="saga-btn saga-btn-primary"
+          >
+            Next
+          </button>
         </div>
       </div>
     </form>
@@ -104,6 +107,17 @@ export class TShirtComponent {
   goToStep = output<StepKey>();
   StepKey = StepKey;
   camperFields = ['tshirt', 'church'];
+
+  private readonly LABELS: Record<string, string> = {
+    tshirt: 'T-shirt size',
+    church: 'Church',
+  };
+
+  missingLabels(): string[] {
+    return this.camperFields
+      .filter((f) => !this.form.get(f)?.valid)
+      .map((f) => this.LABELS[f] ?? f);
+  }
 
   readonly churches = CHURCHES;
   readonly OTHER = CHURCH_OTHER;

@@ -168,7 +168,12 @@ import {
             </div>
           }
         </div>
-        <div class="flex gap-6 mt-10">
+        @if (missingLabels().length > 0) {
+          <p class="text-xs mt-3" style="color: var(--color-saga-warning)">
+            Still need: {{ missingLabels().join(', ') }}
+          </p>
+        }
+        <div class="flex gap-6 mt-4">
           <button
             type="button"
             (click)="goToStep.emit(StepKey.LeaderApplication)"
@@ -202,7 +207,18 @@ export class CamperInfoComponent {
 
   camperFields = ['firstName', 'lastName'];
 
+  private readonly LABELS: Record<string, string> = {
+    firstName: 'First Name',
+    lastName: 'Last Name',
+  };
+
   areCamperFieldsValid(): boolean {
     return this.camperFields.every((field) => this.form.get(field)?.valid);
+  }
+
+  missingLabels(): string[] {
+    return this.camperFields
+      .filter((f) => !this.form.get(f)?.valid)
+      .map((f) => this.LABELS[f] ?? f);
   }
 }

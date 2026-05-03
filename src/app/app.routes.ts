@@ -23,6 +23,11 @@ export const routes: Routes = [
       import('./verify-link/verify-link.component').then((m) => m.VerifyLinkComponent),
   },
   {
+    path: 'info',
+    loadComponent: () =>
+      import('./info/info.component').then((m) => m.InfoComponent),
+  },
+  {
     path: 'admin/login',
     loadComponent: () =>
       import('./admin/admin-login/admin-login.component').then((m) => m.AdminLoginComponent),
