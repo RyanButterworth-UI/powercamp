@@ -32,7 +32,11 @@ type Filter = 'all' | 'paid' | 'unpaid' | 'consent' | 'no-consent';
           <h2 class="text-lg font-semibold mb-3">Recipients</h2>
 
           <label class="block text-xs mb-1" style="color: var(--color-saga-text-muted)">Year</label>
-          <select [(ngModel)]="selectedYear" class="rounded-lg w-full px-3 py-2 mb-3">
+          <select
+            [ngModel]="selectedYear()"
+            (ngModelChange)="selectedYear.set($event)"
+            class="rounded-lg w-full px-3 py-2 mb-3"
+          >
             <option [ngValue]="null">All years</option>
             @for (y of years(); track y) {
               <option [ngValue]="y">{{ y }}</option>
@@ -40,7 +44,11 @@ type Filter = 'all' | 'paid' | 'unpaid' | 'consent' | 'no-consent';
           </select>
 
           <label class="block text-xs mb-1" style="color: var(--color-saga-text-muted)">Filter</label>
-          <select [(ngModel)]="filter" class="rounded-lg w-full px-3 py-2 mb-3">
+          <select
+            [ngModel]="filter()"
+            (ngModelChange)="filter.set($event)"
+            class="rounded-lg w-full px-3 py-2 mb-3"
+          >
             <option value="all">All campers</option>
             <option value="paid">Paid only</option>
             <option value="unpaid">Unpaid only</option>
@@ -61,7 +69,7 @@ type Filter = 'all' | 'paid' | 'unpaid' | 'consent' | 'no-consent';
 
           <div class="text-xs mb-2" style="color: var(--color-saga-text-muted)">
             {{ selected().size }} of {{ filtered().length }} selected
-            @if (searchQuery() || filter !== 'all' || selectedYear !== null) {
+            @if (searchQuery() || filter() !== 'all' || selectedYear() !== null) {
               <span> · filtered from {{ campers().length }}</span>
             }
           </div>
@@ -238,11 +246,13 @@ type Filter = 'all' | 'paid' | 'unpaid' | 'consent' | 'no-consent';
   styles: ``,
 })
 export class BulkEmailComponent {
-  // Recipient state
+  // Recipient state. Filters are signals so the `filtered` computed actually
+  // re-runs when they change. Plain class properties don't trigger computed
+  // recompute — that's what was breaking Year + Filter dropdowns earlier.
   campers = signal<AdminCamper[]>([]);
   loading = signal(true);
-  selectedYear: number | null = null;
-  filter: Filter = 'all';
+  selectedYear = signal<number | null>(null);
+  filter = signal<Filter>('all');
   searchQuery = signal('');
   selected = signal<Set<number>>(new Set());
 
@@ -253,10 +263,11 @@ export class BulkEmailComponent {
 
   filtered = computed(() => {
     let rows = this.campers();
-    if (this.selectedYear !== null) {
-      rows = rows.filter((c) => c.year === this.selectedYear);
+    const year = this.selectedYear();
+    if (year !== null) {
+      rows = rows.filter((c) => c.year === year);
     }
-    switch (this.filter) {
+    switch (this.filter()) {
       case 'paid':
         rows = rows.filter((c) => c.paymentReceivedAt);
         break;
