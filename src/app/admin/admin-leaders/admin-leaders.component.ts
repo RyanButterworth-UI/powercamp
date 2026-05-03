@@ -287,11 +287,13 @@ export class AdminLeadersComponent {
     });
   }
 
-  approve(l: AdminLeader): void {
-    // Use a native prompt for the password since UiService doesn't have a
-    // password-input modal yet — TODO replace with a custom modal that masks
-    // the input. The action confirmation is via toast.
-    const pw = window.prompt(`Enter Neil's password to approve ${l.firstName} ${l.lastName}:`);
+  async approve(l: AdminLeader): Promise<void> {
+    const pw = await this.ui.prompt({
+      text: `Enter Neil's password to approve ${l.firstName} ${l.lastName}:`,
+      inputType: 'password',
+      placeholder: "Neil's password",
+      confirmLabel: 'Approve',
+    });
     if (!pw) return;
     this.admin.approveLeader(l.id, pw).subscribe({
       next: () => {
@@ -304,8 +306,13 @@ export class AdminLeadersComponent {
     });
   }
 
-  reject(l: AdminLeader): void {
-    const pw = window.prompt(`Enter Neil's password to reject ${l.firstName} ${l.lastName}:`);
+  async reject(l: AdminLeader): Promise<void> {
+    const pw = await this.ui.prompt({
+      text: `Enter Neil's password to reject ${l.firstName} ${l.lastName}:`,
+      inputType: 'password',
+      placeholder: "Neil's password",
+      confirmLabel: 'Reject',
+    });
     if (!pw) return;
     this.admin.rejectLeader(l.id, pw).subscribe({
       next: () => {
