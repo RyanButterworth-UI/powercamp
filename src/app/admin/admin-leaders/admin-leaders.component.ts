@@ -124,44 +124,46 @@ import { AdminLeader, AdminService } from '../admin.service';
           </div>
         }
 
-        <div class="overflow-x-auto border rounded">
-          <table class="w-full text-sm">
-            <thead class="bg-gray-50 text-left">
+        <div class="overflow-x-auto">
+          <table class="saga-table text-sm">
+            <thead>
               <tr>
-                <th class="px-3 py-2">Name</th>
-                <th class="px-3 py-2">Email</th>
-                <th class="px-3 py-2">Status</th>
-                <th class="px-3 py-2">By Neil</th>
-                <th class="px-3 py-2 w-48">Actions</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Status</th>
+                <th>By Neil</th>
+                <th class="w-48">Actions</th>
               </tr>
             </thead>
-            <tbody class="divide-y" data-testid="leaders-rows">
+            <tbody data-testid="leaders-rows">
               @for (l of visibleLeaders(); track l.id) {
-                <tr class="hover:bg-gray-50">
-                  <td class="px-3 py-2">{{ l.firstName }} {{ l.lastName }}</td>
-                  <td class="px-3 py-2 font-mono text-xs">{{ l.email }}</td>
-                  <td class="px-3 py-2">
+                <tr>
+                  <td>{{ l.firstName }} {{ l.lastName }}</td>
+                  <td class="font-mono text-xs">{{ l.email }}</td>
+                  <td>
                     <span
-                      [class.text-green-700]="l.status === 'approved'"
-                      [class.text-red-700]="l.status === 'rejected'"
-                      [class.text-yellow-700]="l.status === 'pending'"
+                      [style.color]="
+                        l.status === 'approved' ? 'var(--color-saga-success)'
+                        : l.status === 'rejected' ? 'var(--color-saga-danger)'
+                        : 'var(--color-saga-warning)'
+                      "
                     >
                       {{ l.status }}
                     </span>
                   </td>
-                  <td class="px-3 py-2">
+                  <td>
                     @if (l.approvedByNeil) {
-                      <span class="text-green-700">✓</span>
+                      <span style="color: var(--color-saga-success)">✓</span>
                     } @else {
-                      <span class="text-gray-400">—</span>
+                      <span style="color: var(--color-saga-text-muted)">—</span>
                     }
                   </td>
-                  <td class="px-3 py-2">
+                  <td>
                     @if (l.status !== 'approved') {
                       <button
                         type="button"
                         (click)="approve(l)"
-                        class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded mr-1"
+                        class="saga-btn saga-btn-secondary !py-1 !px-2 !text-xs mr-1"
                       >
                         Approve
                       </button>
@@ -170,7 +172,7 @@ import { AdminLeader, AdminService } from '../admin.service';
                       <button
                         type="button"
                         (click)="reject(l)"
-                        class="text-xs bg-red-100 text-red-800 px-2 py-1 rounded"
+                        class="saga-btn saga-btn-secondary !py-1 !px-2 !text-xs"
                       >
                         Reject
                       </button>
@@ -179,7 +181,7 @@ import { AdminLeader, AdminService } from '../admin.service';
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="5" class="px-3 py-6 text-center text-gray-400">
+                  <td colspan="5" class="text-center py-6" style="color: var(--color-saga-text-muted)">
                     No leaders in this year.
                   </td>
                 </tr>

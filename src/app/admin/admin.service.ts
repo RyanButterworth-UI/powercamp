@@ -50,6 +50,13 @@ export class AdminService {
     );
   }
 
+  me(): Observable<{ ok: boolean; campYear: number }> {
+    return this.http.get<{ ok: boolean; campYear: number }>(
+      `${environment.baseApi}/admin/me`,
+      { headers: this.authHeaders() }
+    );
+  }
+
   exportXlsxUrl(): string {
     // The /admin/export endpoint requires Authorization, so we can't just window.location it.
     // The component will fetch as a blob and trigger a download.

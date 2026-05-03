@@ -92,7 +92,12 @@ import { StepKey } from '../../models';
           <input
             type="date"
             formControlName="dob"
-            class="w-full rounded-lg mb-4"
+            (click)="openDatePicker($event)"
+            (focus)="openDatePicker($event)"
+            class="w-full rounded-lg mb-4 px-3 py-2"
+            style="cursor: pointer;"
+            min="2002-01-01"
+            [max]="todayIso"
           />
           <fieldset aria-label="Camper Grade">
             <label class="block text-sm/2 font-medium text-gray-900">
@@ -155,8 +160,23 @@ export class CampAdditionalInfoComponent {
   }
 
   firstName = computed(() => this.form.get('firstName')?.value || '');
+  todayIso = new Date().toISOString().split('T')[0];
 
   areCamperFieldsValid(): boolean {
     return this.camperFields.every((field) => this.form.get(field)?.valid);
+  }
+
+  // Some browsers (Safari, especially mobile) don't pop the native date
+  // picker until the icon is clicked. showPicker() forces the calendar
+  // open as soon as the field receives focus or a click.
+  openDatePicker(e: Event): void {
+    const el = e.target as HTMLInputElement & { showPicker?: () => void };
+    if (typeof el.showPicker === 'function') {
+      try {
+        el.showPicker();
+      } catch {
+        // Some browsers throw when the input is disabled — silent ignore.
+      }
+    }
   }
 }

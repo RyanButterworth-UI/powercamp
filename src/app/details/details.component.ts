@@ -34,13 +34,22 @@ import { StepKey } from '../../models';
           Excludes transport to and from camp and tuck money.
         </div>
       </div>
-      <button
-        type="button"
-        (click)="goToStep.emit(StepKey.LeaderApplication)"
-        class="rounded-full bg-white mt-4 px-4 py-2.5 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50"
-      >
-        Let me Register already!
-      </button>
+      <div class="flex flex-col sm:flex-row gap-3 mt-4">
+        <button
+          type="button"
+          (click)="goToStep.emit(StepKey.LeaderApplication)"
+          class="saga-btn saga-btn-primary"
+        >
+          Let me Register already!
+        </button>
+        <a
+          href="assets/kit-list.pdf"
+          download
+          class="saga-btn saga-btn-secondary no-underline"
+        >
+          📋 Download kit list
+        </a>
+      </div>
     </div>
   `,
   styles: ``,

@@ -117,9 +117,11 @@ adminRouter.get('/admin/export', requireAdmin, async (_req, res) => {
   }
 });
 
-// Tiny endpoint so the FE guard can probe whether a token is still valid.
+// Tiny endpoint so the FE guard can probe whether a token is still valid
+// and pick up the active CAMP_YEAR (so the year tabs render even with no
+// rows for the current year yet).
 adminRouter.get('/admin/me', requireAdmin, (_req, res) => {
-  res.json({ ok: true });
+  res.json({ ok: true, campYear: env.CAMP_YEAR });
 });
 
 adminRouter.post('/admin/campers/:id/mark-paid', requireAdmin, async (req, res) => {

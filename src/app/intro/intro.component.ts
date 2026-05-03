@@ -30,14 +30,21 @@ import { StepKey } from '../../models';
           so if life happens you can come back and finish.
         </p>
       </div>
-      <div class="flex w-full justify-between">
+      <div class="flex flex-col sm:flex-row w-full gap-3 mt-4">
         <button
           type="button"
           (click)="goToStep.emit(StepKey.Details)"
-          class="rounded-full bg-white mt-4 px-4 py-2.5 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50"
+          class="saga-btn saga-btn-primary"
         >
           Start Registration
         </button>
+        <a
+          href="assets/kit-list.pdf"
+          download
+          class="saga-btn saga-btn-secondary no-underline"
+        >
+          📋 Download kit list
+        </a>
       </div>
     </div>
   `,

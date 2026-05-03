@@ -22,7 +22,7 @@ import { environment } from '../../../environments/environment';
         <a routerLink="/admin/leaders" class="saga-tab no-underline">Leaders</a>
       </nav>
 
-      <div class="flex items-center gap-3 mb-6 flex-wrap">
+      <div class="flex items-center gap-3 mb-4 flex-wrap">
         <button
           type="button"
           (click)="downloadXlsx()"
@@ -42,9 +42,18 @@ import { environment } from '../../../environments/environment';
           Open in Google Sheets ↗
         </a>
         <span class="text-sm" style="color: var(--color-saga-text-muted)">
-          {{ total() }} campers in the database
+          {{ total() }} total · {{ visibleCampers().length }} shown
         </span>
       </div>
+
+      <input
+        type="text"
+        [value]="searchQuery()"
+        (input)="searchQuery.set($any($event.target).value)"
+        placeholder="Search by name or parent email…"
+        class="rounded-lg w-full px-3 py-2 mb-4"
+        data-testid="campers-search"
+      />
 
       @if (loading()) {
         <div data-testid="loading" style="color: var(--color-saga-text-muted)">Loading campers…</div>
@@ -137,10 +146,15 @@ export class AdminDashboardComponent {
   selectedYear = signal<number | null>(null);
   sheetUrl = environment.sheetUrl;
   markingPaidFor = signal<number | null>(null);
+  searchQuery = signal('');
+  campYear = signal<number | null>(null);
 
-  // Years with campers, sorted desc — so 2026 sits first if present.
+  // Years with campers, plus CAMP_YEAR even if it has no rows yet, sorted
+  // desc — so the active 2026 tab is always present even before submissions.
   years = computed(() => {
     const set = new Set(this.campers().map((c) => c.year));
+    const cy = this.campYear();
+    if (cy !== null) set.add(cy);
     return Array.from(set).sort((a, b) => b - a);
   });
 
@@ -154,14 +168,29 @@ export class AdminDashboardComponent {
 
   visibleCampers = computed(() => {
     const y = this.selectedYear();
-    if (y === null) return this.campers();
-    return this.campers().filter((c) => c.year === y);
+    const q = this.searchQuery().trim().toLowerCase();
+    let rows = y === null ? this.campers() : this.campers().filter((c) => c.year === y);
+    if (q) {
+      rows = rows.filter((c) => {
+        const hay = `${c.firstName} ${c.lastName} ${c.parentEmail} ${c.email ?? ''}`.toLowerCase();
+        return hay.includes(q);
+      });
+    }
+    return rows;
   });
 
   private readonly admin = inject(AdminService);
   private readonly router = inject(Router);
 
   constructor() {
+    // Pull CAMP_YEAR first so it's part of the year tabs even when no rows
+    // exist yet for that year. Failure is non-fatal — fall back to the
+    // years derived from rows.
+    this.admin.me().subscribe({
+      next: (res) => this.campYear.set(res.campYear),
+      error: () => {},
+    });
+
     this.admin.list().subscribe({
       next: (res) => {
         this.campers.set(res.campers);
