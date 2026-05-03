@@ -101,6 +101,21 @@ import { environment } from '../../environments/environment';
             </div>
           </div>
 
+          @if (missingFields().length > 0) {
+            <div
+              class="saga-card p-3 text-sm"
+              data-testid="missing-fields"
+              style="border-color: var(--color-saga-danger); background-color: var(--color-saga-danger-soft); color: var(--color-saga-danger)"
+            >
+              <div class="font-semibold mb-1">Please fill in:</div>
+              <ul class="list-disc list-inside">
+                @for (m of missingFields(); track m) {
+                  <li>{{ m }}</li>
+                }
+              </ul>
+            </div>
+          }
+
           @if (submitError()) {
             <div
               class="saga-card p-3 text-sm"
@@ -117,7 +132,7 @@ import { environment } from '../../environments/environment';
             </button>
             <button
               type="submit"
-              [disabled]="form.invalid || submitting()"
+              [disabled]="submitting()"
               class="saga-btn saga-btn-primary w-full sm:w-auto"
             >
               {{ submitting() ? 'Submitting…' : 'Submit application' }}
@@ -139,6 +154,16 @@ export class LeaderApplyComponent {
   submitting = signal(false);
   submitError = signal<string | null>(null);
   submittedAt = signal<string | null>(null);
+  missingFields = signal<string[]>([]);
+
+  // Friendly labels for the form's required controls — used to render
+  // "Please fill in: First Name, Last Name…" when submit is attempted with
+  // an invalid form.
+  private readonly fieldLabels: Record<string, string> = {
+    firstName: 'First Name',
+    lastName: 'Last Name',
+    email: 'Email',
+  };
 
   private readonly http = inject(HttpClient);
   private readonly fb = inject(FormBuilder);
@@ -165,7 +190,18 @@ export class LeaderApplyComponent {
   }
 
   submit(): void {
-    if (!this.form || this.form.invalid) return;
+    if (!this.form) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      const missing: string[] = [];
+      for (const [key, label] of Object.entries(this.fieldLabels)) {
+        const ctrl = this.form.get(key);
+        if (ctrl && ctrl.invalid) missing.push(label);
+      }
+      this.missingFields.set(missing.length > 0 ? missing : ['Please review the form and try again.']);
+      return;
+    }
+    this.missingFields.set([]);
     this.submitting.set(true);
     this.submitError.set(null);
 
