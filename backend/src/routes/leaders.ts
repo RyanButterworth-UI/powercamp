@@ -5,6 +5,7 @@ import { db } from '../db/client';
 import { leaders } from '../db/schema';
 import { env } from '../env';
 import { appendToSheet } from '../services/sheets';
+import { ensureSubscription } from '../services/subscriptions';
 
 // Leaders sheet tab column order:
 // A firstName, B lastName, C cell, D gender, E email, F age, G grade,
@@ -118,6 +119,10 @@ leadersRouter.post('/leaders/apply', async (req, res) => {
     ).catch((err) => {
       console.error('Leader sheet sync failed (DB write succeeded):', err);
     });
+
+    ensureSubscription(data.email.toLowerCase(), 'leader-application').catch((err) =>
+      console.error('Subscription upsert failed (leader):', err)
+    );
 
     res.json({ id: row.id });
   } catch (err) {

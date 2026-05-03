@@ -17,6 +17,12 @@ import {
   EmailBlock,
 } from '../services/email';
 import { leaderRow } from './leaders';
+import {
+  filterToSubscribed,
+  listSubscriptions,
+  setSubscribed,
+} from '../services/subscriptions';
+import { signUnsubscribeToken } from '../services/auth';
 
 // Hardcoded by design (per spec) — Neil's approve / reject / direct-add password.
 const NEIL_PASSWORD = 'gravelROx';
@@ -306,14 +312,28 @@ adminRouter.post('/admin/bulk-email', requireAdmin, async (req, res) => {
       .json({ error: 'Invalid bulk email request', details: parsed.error.flatten() });
   }
   const { subject, blocks, recipients } = parsed.data;
-  // Dedup + normalise recipients to avoid double-sending.
+  // Dedup + normalise recipients, then drop anyone who has unsubscribed.
   const uniq = Array.from(new Set(recipients.map((r) => r.trim().toLowerCase())));
 
   try {
-    const html = renderBlocksToHtml(subject, blocks as EmailBlock[]);
+    const { allowed, skipped } = await filterToSubscribed(uniq);
     const text = blocksToPlainText(blocks as EmailBlock[]);
-    const result = await sendBulkEmail(subject, html, uniq, text);
-    res.json({ ...result, totalRecipients: uniq.length });
+
+    const result = await sendBulkEmail(subject, allowed, (email) => {
+      const url = `${env.APP_BASE_URL}/unsubscribe?token=${encodeURIComponent(
+        signUnsubscribeToken(email)
+      )}`;
+      return {
+        html: renderBlocksToHtml(subject, blocks as EmailBlock[], url),
+        text: text + `\n\nDon't want these? Unsubscribe: ${url}`,
+      };
+    });
+
+    res.json({
+      ...result,
+      totalRecipients: uniq.length,
+      unsubscribedSkipped: skipped.length,
+    });
   } catch (err) {
     console.error('bulk-email error:', err);
     res.status(500).json({ error: 'Failed to send bulk email' });
@@ -329,8 +349,41 @@ adminRouter.post('/admin/bulk-email/preview', requireAdmin, (req, res) => {
   if (!parsed.success) {
     return res.status(400).json({ error: 'Invalid preview request' });
   }
-  const html = renderBlocksToHtml(parsed.data.subject, parsed.data.blocks as EmailBlock[]);
+  const html = renderBlocksToHtml(
+    parsed.data.subject,
+    parsed.data.blocks as EmailBlock[],
+    `${env.APP_BASE_URL}/unsubscribe?token=preview`
+  );
   res.json({ html });
+});
+
+// Subscriptions management.
+adminRouter.get('/admin/subscriptions', requireAdmin, async (_req, res) => {
+  try {
+    const rows = await listSubscriptions();
+    res.json({
+      total: rows.length,
+      subscribed: rows.filter((r) => r.subscribed).length,
+      subscriptions: rows,
+    });
+  } catch (err) {
+    console.error('list subscriptions error:', err);
+    res.status(500).json({ error: 'Failed to load subscriptions' });
+  }
+});
+
+const toggleBody = z.object({ email: z.string().email(), subscribed: z.boolean() });
+
+adminRouter.post('/admin/subscriptions/toggle', requireAdmin, async (req, res) => {
+  const parsed = toggleBody.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: 'Invalid request' });
+  try {
+    await setSubscribed(parsed.data.email, parsed.data.subscribed);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('toggle subscription error:', err);
+    res.status(500).json({ error: 'Failed to toggle' });
+  }
 });
 
 adminRouter.post('/admin/leaders/direct-add', requireAdmin, async (req, res) => {

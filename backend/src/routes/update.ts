@@ -7,6 +7,7 @@ import { env } from '../env';
 import { verifyMagicToken } from '../services/auth';
 import { appendToSheet } from '../services/sheets';
 import { sendRegistrationReceived } from '../services/email';
+import { ensureSubscription } from '../services/subscriptions';
 
 const optionalString = z.string().optional().nullable().transform((v) => v ?? undefined);
 

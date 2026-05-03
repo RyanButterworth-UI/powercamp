@@ -234,7 +234,11 @@ export type EmailBlock =
   | { kind: 'button'; text: string; url: string }
   | { kind: 'divider' };
 
-export function renderBlocksToHtml(subject: string, blocks: EmailBlock[]): string {
+export function renderBlocksToHtml(
+  subject: string,
+  blocks: EmailBlock[],
+  unsubscribeUrl?: string
+): string {
   const body = blocks
     .map((b) => {
       switch (b.kind) {
@@ -272,6 +276,7 @@ export function renderBlocksToHtml(subject: string, blocks: EmailBlock[]): strin
             <tr>
               <td style="padding:16px 32px 24px 32px; border-top:1px solid #e5e7eb;">
                 <p style="margin:0; color:#9ca3af; font-size:12px;">— Power Camp · ${escapeHtml(subject)}</p>
+                ${unsubscribeUrl ? `<p style="margin:8px 0 0 0; color:#9ca3af; font-size:11px;">Don't want these? <a href="${escapeAttr(unsubscribeUrl)}" style="color:#9ca3af; text-decoration:underline;">Unsubscribe</a>.</p>` : ''}
               </td>
             </tr>
           </table>
@@ -288,9 +293,8 @@ function escapeAttr(s: string): string {
 
 export async function sendBulkEmail(
   subject: string,
-  html: string,
   recipients: string[],
-  text: string
+  renderFor: (email: string) => { html: string; text: string }
 ): Promise<{ sent: number; failed: { to: string; error: string }[] }> {
   const fromName = env.FROM_NAME ?? 'Power Camp';
   let sent = 0;
@@ -298,6 +302,7 @@ export async function sendBulkEmail(
 
   for (const to of recipients) {
     try {
+      const { html, text } = renderFor(to);
       await transporter().sendMail({
         from: `"${fromName}" <${env.GMAIL_USER}>`,
         to,

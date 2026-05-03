@@ -42,3 +42,22 @@ export function verifyAdminToken(token: string): AdminClaims | null {
     return null;
   }
 }
+
+// Long-lived (1y) — unsubscribe links don't expire from a UX perspective.
+// The token itself just identifies the email; flipping subscribed=false is
+// idempotent so replay attacks are harmless.
+export function signUnsubscribeToken(email: string): string {
+  return jwt.sign({ email: email.trim().toLowerCase(), kind: 'unsubscribe' }, env.JWT_SECRET, {
+    expiresIn: '365d',
+  });
+}
+
+export function verifyUnsubscribeToken(token: string): { email: string } | null {
+  try {
+    const decoded = jwt.verify(token, env.JWT_SECRET) as { email?: string; kind?: string };
+    if (decoded?.kind !== 'unsubscribe' || typeof decoded.email !== 'string') return null;
+    return { email: decoded.email };
+  } catch {
+    return null;
+  }
+}

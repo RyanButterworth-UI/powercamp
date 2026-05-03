@@ -23,6 +23,11 @@ export const routes: Routes = [
       import('./verify-link/verify-link.component').then((m) => m.VerifyLinkComponent),
   },
   {
+    path: 'unsubscribe',
+    loadComponent: () =>
+      import('./unsubscribe/unsubscribe.component').then((m) => m.UnsubscribeComponent),
+  },
+  {
     path: 'info',
     loadComponent: () =>
       import('./info/info.component').then((m) => m.InfoComponent),

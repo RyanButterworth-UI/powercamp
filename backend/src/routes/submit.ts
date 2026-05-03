@@ -5,6 +5,7 @@ import { campers } from '../db/schema';
 import { env } from '../env';
 import { appendToSheet } from '../services/sheets';
 import { sendRegistrationReceived } from '../services/email';
+import { ensureSubscription } from '../services/subscriptions';
 
 const optionalString = z.string().optional().nullable().transform((v) => v ?? undefined);
 
@@ -141,6 +142,16 @@ submitRouter.post('/submit', async (req, res) => {
     sendRegistrationReceived(parentEmail, c.firstName, camperEmail).catch((err) => {
       console.error('Registration-received email failed:', err);
     });
+
+    // Auto-subscribe parent + camper emails to bulk announcements (idempotent).
+    ensureSubscription(parentEmail, 'registration').catch((err) =>
+      console.error('Subscription upsert failed (parent):', err)
+    );
+    if (camperEmail) {
+      ensureSubscription(camperEmail, 'registration').catch((err) =>
+        console.error('Subscription upsert failed (camper):', err)
+      );
+    }
 
     res.json({ id: row.id });
   } catch (err) {

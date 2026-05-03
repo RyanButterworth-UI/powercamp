@@ -22,6 +22,7 @@ import { environment } from '../../environments/environment';
       </p>
       <p class="mb-6 text-sm" style="color: var(--color-saga-text-muted)">
         Been to Power Camp before? Search for your name and we'll pick up where you left off.
+        Registering also adds you to our mailing list (one-click unsubscribe on every email).
       </p>
 
       <div class="flex gap-2 mb-4">

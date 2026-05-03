@@ -129,8 +129,8 @@ export class AdminService {
     subject: string,
     blocks: EmailBlock[],
     recipients: string[]
-  ): Observable<{ sent: number; totalRecipients: number; failed: { to: string; error: string }[] }> {
-    return this.http.post<{ sent: number; totalRecipients: number; failed: { to: string; error: string }[] }>(
+  ): Observable<{ sent: number; totalRecipients: number; unsubscribedSkipped: number; failed: { to: string; error: string }[] }> {
+    return this.http.post<{ sent: number; totalRecipients: number; unsubscribedSkipped: number; failed: { to: string; error: string }[] }>(
       `${environment.baseApi}/admin/bulk-email`,
       { subject, blocks, recipients },
       { headers: this.authHeaders() }

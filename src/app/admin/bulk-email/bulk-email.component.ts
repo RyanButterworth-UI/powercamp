@@ -184,7 +184,14 @@ type Filter = 'all' | 'paid' | 'unpaid' | 'consent' | 'no-consent';
             @if (lastResult(); as r) {
               <p class="text-xs" style="color: var(--color-saga-success)">
                 ✓ Sent to {{ r.sent }} of {{ r.totalRecipients }}.
-                @if (r.failed.length > 0) { <span style="color: var(--color-saga-danger)">{{ r.failed.length }} failed.</span> }
+                @if (r.unsubscribedSkipped > 0) {
+                  <span style="color: var(--color-saga-text-muted)">
+                    {{ r.unsubscribedSkipped }} unsubscribed (skipped).
+                  </span>
+                }
+                @if (r.failed.length > 0) {
+                  <span style="color: var(--color-saga-danger)">{{ r.failed.length }} failed.</span>
+                }
               </p>
             }
           </div>
@@ -260,7 +267,7 @@ export class BulkEmailComponent {
   previewHtml = signal<string | null>(null);
   previewIframe = viewChild<ElementRef<HTMLIFrameElement>>('previewIframe');
   sending = signal(false);
-  lastResult = signal<{ sent: number; totalRecipients: number; failed: { to: string; error: string }[] } | null>(null);
+  lastResult = signal<{ sent: number; totalRecipients: number; unsubscribedSkipped: number; failed: { to: string; error: string }[] } | null>(null);
   private debounceTimer?: number;
 
   private readonly admin = inject(AdminService);
