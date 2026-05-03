@@ -1,8 +1,7 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, ElementRef, inject, signal, viewChild, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { AdminService, AdminCamper, EmailBlock } from '../admin.service';
 import { UiService } from '../../ui/ui.service';
 
@@ -95,13 +94,24 @@ type Filter = 'all' | 'paid' | 'unpaid' | 'consent' | 'no-consent';
         <section class="saga-card p-4 lg:col-span-1">
           <h2 class="text-lg font-semibold mb-3">Compose</h2>
 
-          <label class="block text-xs mb-1" style="color: var(--color-saga-text-muted)">Subject</label>
+          <label class="block text-xs mb-1" style="color: var(--color-saga-text-muted)">
+            Subject <span style="color: var(--color-saga-warning)">*</span>
+          </label>
           <input
             [(ngModel)]="subject"
             (ngModelChange)="onSubjectChange()"
-            placeholder="Power Camp 2026 — quick update"
-            class="rounded-lg w-full px-3 py-2 mb-4"
+            placeholder="e.g. Packing reminder for Power Camp 2026"
+            class="rounded-lg w-full px-3 py-2 mb-1"
+            [class.ng-invalid]="!subject.trim()"
+            [class.ng-touched]="true"
           />
+          @if (!subject.trim()) {
+            <p class="text-xs mb-3" style="color: var(--color-saga-warning)">
+              Required — what subscribers see in their inbox.
+            </p>
+          } @else {
+            <div class="mb-3"></div>
+          }
 
           <div class="flex flex-wrap gap-2 mb-3">
             <button type="button" (click)="addBlock('heading')" class="saga-btn saga-btn-secondary !py-1 !px-2 !text-xs">+ Heading</button>
@@ -183,19 +193,19 @@ type Filter = 'all' | 'paid' | 'unpaid' | 'consent' | 'no-consent';
         <!-- RIGHT: Preview -->
         <section class="saga-card p-4 lg:col-span-1">
           <h2 class="text-lg font-semibold mb-3">Preview</h2>
-          @if (previewHtml()) {
-            <div
-              class="overflow-hidden rounded-lg"
-              style="height: 600px; background: white;"
-            >
-              <iframe
-                [srcdoc]="previewHtml()"
-                title="Email preview"
-                class="w-full h-full"
-                style="border: 0;"
-              ></iframe>
-            </div>
-          } @else {
+          <div
+            class="overflow-hidden rounded-lg"
+            style="height: 600px; background: white;"
+            [hidden]="!previewHtml()"
+          >
+            <iframe
+              #previewIframe
+              title="Email preview"
+              class="w-full h-full"
+              style="border: 0;"
+            ></iframe>
+          </div>
+          @if (!previewHtml()) {
             <p class="text-sm" style="color: var(--color-saga-text-muted)">
               Add a subject and at least one block to see a preview.
             </p>
@@ -248,6 +258,7 @@ export class BulkEmailComponent {
 
   // Preview / send state
   previewHtml = signal<string | null>(null);
+  previewIframe = viewChild<ElementRef<HTMLIFrameElement>>('previewIframe');
   sending = signal(false);
   lastResult = signal<{ sent: number; totalRecipients: number; failed: { to: string; error: string }[] } | null>(null);
   private debounceTimer?: number;
@@ -257,6 +268,25 @@ export class BulkEmailComponent {
   private readonly ui = inject(UiService);
 
   constructor() {
+    // Imperatively write the preview HTML into the iframe — [srcdoc] gets
+    // sanitised/cleared by Angular's binding for some browser/version
+    // combos, so we use document.write to bypass that path entirely.
+    effect(() => {
+      const html = this.previewHtml();
+      const ifr = this.previewIframe()?.nativeElement;
+      if (!ifr) return;
+      const doc = ifr.contentDocument;
+      if (!doc) return;
+      if (!html) {
+        doc.open();
+        doc.close();
+        return;
+      }
+      doc.open();
+      doc.write(html);
+      doc.close();
+    });
+
     this.admin.list().subscribe({
       next: (res) => {
         this.campers.set(res.campers);
