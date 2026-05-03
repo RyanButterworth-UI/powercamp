@@ -1,4 +1,4 @@
-import { Component, computed, input, output } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormGroup,
@@ -130,18 +130,22 @@ export class ConsentStepComponent {
     { key: 'consent_photo', label: 'Photo consent — photos taken at camp may be used in camp media.' },
   ];
 
-  camperName = computed(() => {
+  // Plain methods rather than computed() — the form's get().value calls
+  // aren't signals, so a computed() would only run once at init and never
+  // pick up the user's input. Angular's change detection re-evaluates these
+  // on every CD cycle, which fires on each form input.
+  camperName(): string {
     const f = this.form.get('firstName')?.value ?? '';
     const l = this.form.get('lastName')?.value ?? '';
     return `${f} ${l}`.trim() || 'this camper';
-  });
+  }
 
-  consentValid = computed(() => {
+  consentValid(): boolean {
     if (!this.form) return false;
     const bools = CONSENT_BOOL_KEYS.every((k) => this.form.get(k)?.value === true);
     const extras = CONSENT_EXTRA_KEYS.every((k) => !!this.form.get(k)?.value?.toString().trim());
     return bools && extras;
-  });
+  }
 
   constructor(private rootFormGroup: FormGroupDirective) {
     this.form = this.rootFormGroup.control;

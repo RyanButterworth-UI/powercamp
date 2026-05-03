@@ -1,4 +1,4 @@
-import { Component, computed, input, output, signal } from '@angular/core';
+import { Component, input, output, signal } from '@angular/core';
 import {
   FormGroup,
   FormGroupDirective,
@@ -182,7 +182,9 @@ export class ParentComponent {
     this.form = this.rootFormGroup.control;
   }
 
-  firstName = computed(() => this.form.get('firstName')?.value || '');
+  // Plain method, not computed() — form.get().value isn't a signal, so a
+  // computed would only run once at init and never reflect typed input.
+  firstName(): string { return this.form.get('firstName')?.value || ''; }
 
   areCamperFieldsValid(): boolean {
     return this.camperFields.every((field) => this.form.get(field)?.valid);
