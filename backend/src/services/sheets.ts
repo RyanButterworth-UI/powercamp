@@ -14,7 +14,7 @@ function getSheetsClient(): sheets_v4.Sheets {
   return cachedClient;
 }
 
-export type SheetTab = 'Registrations' | 'Consent' | 'Feedback';
+export type SheetTab = 'Registrations' | 'Consent' | 'Feedback' | 'Leaders' | 'Payments';
 
 export async function appendToSheet(tab: SheetTab, row: (string | number | null)[]): Promise<void> {
   const sheets = getSheetsClient();

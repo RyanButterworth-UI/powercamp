@@ -15,14 +15,19 @@ import { StepKey } from '../../models';
         alt="Power Camp group photo"
         class="mb-6 rounded shadow max-h-64 w-auto object-cover"
       />
-      <h1 class="text-3xl font-bold mb-4 text-gray-900">Power Camp 2026</h1>
+      <h1 class="text-3xl font-bold mb-1">Power Camp 2026</h1>
+      <p class="mb-4 text-sm uppercase tracking-wide" style="color: var(--color-saga-primary-hover)">
+        Purity · Obedience · Worship · Endurance · Righteousness
+      </p>
       <div class="w-full">
         <p class="mt-2 text-md text-gray-500">
           Power Camp 2026 runs <span class="font-semibold">Friday 31 July – Sunday 2 August 2026</span>.
+          Three days of faith, fellowship, and slightly questionable camp food.
         </p>
         <p class="mt-2 text-md text-gray-500">
-          This form is your ticket to all the details and your spot at camp. Each
-          camper, even from the same family, must complete it themselves.
+          This form is your ticket. Each camper — yes, even siblings —
+          gets their own registration. We'll save your progress as you go,
+          so if life happens you can come back and finish.
         </p>
       </div>
       <div class="flex w-full justify-between">

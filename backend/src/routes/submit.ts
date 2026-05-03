@@ -129,7 +129,7 @@ submitRouter.post('/submit', async (req, res) => {
       console.error('Sheet sync failed (DB write succeeded):', err);
     });
 
-    sendRegistrationReceived(parentEmail, c.firstName).catch((err) => {
+    sendRegistrationReceived(parentEmail, c.firstName, camperEmail).catch((err) => {
       console.error('Registration-received email failed:', err);
     });
 

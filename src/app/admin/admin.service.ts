@@ -93,6 +93,14 @@ export class AdminService {
       { headers: this.authHeaders() }
     );
   }
+
+  markPaid(camperId: number): Observable<{ id: number; paymentReceivedAt: string }> {
+    return this.http.post<{ id: number; paymentReceivedAt: string }>(
+      `${environment.baseApi}/admin/campers/${camperId}/mark-paid`,
+      {},
+      { headers: this.authHeaders() }
+    );
+  }
 }
 
 export interface AdminLeader {

@@ -173,6 +173,11 @@ export class FormComponent {
 
   private readonly http = inject(HttpClient);
 
+  // localStorage key for persisting form state across reloads. Wiped after
+   // a successful submit so the next session starts fresh; campers can also
+   // hit "Clear & start over" on the Lookup screen.
+  private readonly STORAGE_KEY = 'powercamp.form.draft';
+
   constructor(private readonly fb: FormBuilder) {
     this.rootFormGroup = this.fb.group({
       firstName: ['', Validators.required],
@@ -209,6 +214,59 @@ export class FormComponent {
       consent_medicalAidNumber: ['', Validators.required],
       consent_date: [new Date().toISOString().split('T')[0], Validators.required],
     });
+
+    this.restoreDraft();
+    // Persist on every change so a reload after a network blip keeps the data.
+    this.rootFormGroup.valueChanges.subscribe(() => this.saveDraft());
+  }
+
+  private restoreDraft(): void {
+    if (typeof localStorage === 'undefined') return;
+    const raw = localStorage.getItem(this.STORAGE_KEY);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      // Resize the friends FormArray to match the saved data before patching.
+      const friendsArr = this.rootFormGroup.get('friends');
+      if (friendsArr instanceof FormArray && Array.isArray(parsed.friends)) {
+        while (friendsArr.length > parsed.friends.length) friendsArr.removeAt(friendsArr.length - 1);
+        while (friendsArr.length < parsed.friends.length) friendsArr.push(this.fb.control(''));
+      }
+      this.rootFormGroup.patchValue(parsed, { emitEvent: false });
+    } catch {
+      // Bad JSON in storage — ignore and continue with a fresh form.
+    }
+  }
+
+  private saveDraft(): void {
+    if (typeof localStorage === 'undefined') return;
+    try {
+      // Don't persist the consent bools — they should always require a fresh
+      // tick per submission. Strip them out before saving.
+      const raw = this.rootFormGroup.getRawValue() as Record<string, unknown>;
+      const cleaned: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(raw)) {
+        if (k === 'consent_general' || k === 'consent_location' || k === 'consent_risk' ||
+            k === 'consent_powerCamp' || k === 'consent_behaviour' || k === 'consent_photo') {
+          continue;
+        }
+        cleaned[k] = v;
+      }
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(cleaned));
+    } catch {
+      // localStorage quota / private mode — silently ignore.
+    }
+  }
+
+  private clearDraft(): void {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.removeItem(this.STORAGE_KEY);
+  }
+
+  /** Clear all form state and reset to the lookup screen. */
+  startOver(): void {
+    this.clearDraft();
+    window.location.reload();
   }
 
   showDialog = signal(false);
@@ -250,13 +308,16 @@ export class FormComponent {
       next: () => {
         this.submissionStatus.set('success');
         this.showDialog.set(true);
-        this.isSubmitting.set(false); // stop loader
+        this.isSubmitting.set(false);
+        // Clear the draft on success so the next session starts fresh — but
+        // not on failure, otherwise the parent loses everything they typed.
+        this.clearDraft();
       },
       error: (err: any) => {
         console.error('Error:', err);
         this.submissionStatus.set('error');
         this.showDialog.set(true);
-        this.isSubmitting.set(false); // stop loader
+        this.isSubmitting.set(false);
       },
     });
   }

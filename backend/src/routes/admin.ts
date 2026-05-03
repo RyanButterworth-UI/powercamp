@@ -9,6 +9,7 @@ import { signAdminToken } from '../services/auth';
 import { env } from '../env';
 import { requireAdmin } from '../middleware/require-admin';
 import { appendToSheet } from '../services/sheets';
+import { sendPaymentConfirmed } from '../services/email';
 import { leaderRow } from './leaders';
 
 // Hardcoded by design (per spec) — Neil's approve / reject / direct-add password.
@@ -119,6 +120,44 @@ adminRouter.get('/admin/export', requireAdmin, async (_req, res) => {
 // Tiny endpoint so the FE guard can probe whether a token is still valid.
 adminRouter.get('/admin/me', requireAdmin, (_req, res) => {
   res.json({ ok: true });
+});
+
+adminRouter.post('/admin/campers/:id/mark-paid', requireAdmin, async (req, res) => {
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'Invalid camper id' });
+  }
+  try {
+    const [updated] = await db
+      .update(campers)
+      .set({ paymentReceivedAt: new Date(), updatedAt: new Date() })
+      .where(eq(campers.id, id))
+      .returning();
+    if (!updated) return res.status(404).json({ error: 'Camper not found' });
+
+    // Best-effort: append to the Payments sheet tab so organisers see a
+    // running log alongside the live registration sheet.
+    appendToSheet('Payments', [
+      new Date().toISOString(),
+      String(updated.id),
+      `${updated.firstName} ${updated.lastName}`,
+      updated.parentEmail,
+      updated.email ?? '',
+      String(updated.year),
+    ]).catch((err) => {
+      console.error('Payments sheet sync failed (DB write succeeded):', err);
+    });
+
+    // Best-effort confirmation email to parent + camper (CCed when present).
+    sendPaymentConfirmed(updated.parentEmail, updated.firstName, updated.email).catch((err) => {
+      console.error('Payment-confirmed email failed:', err);
+    });
+
+    res.json({ id: updated.id, paymentReceivedAt: updated.paymentReceivedAt });
+  } catch (err) {
+    console.error('mark-paid error:', err);
+    res.status(500).json({ error: 'Failed to mark as paid' });
+  }
 });
 
 adminRouter.get('/admin/leaders', requireAdmin, async (_req, res) => {

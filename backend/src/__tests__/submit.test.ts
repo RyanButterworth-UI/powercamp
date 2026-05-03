@@ -125,11 +125,11 @@ describe('POST /submit', () => {
     ]);
   });
 
-  it('sends the registration-received email to the lowercased parent email', async () => {
+  it('sends the registration-received email to the parent and CCs the camper email when present', async () => {
     await request(buildApp()).post('/submit').send(validBody);
     await new Promise((resolve) => setImmediate(resolve));
 
-    expect(mockEmail).toHaveBeenCalledWith('parent@example.com', 'Jane');
+    expect(mockEmail).toHaveBeenCalledWith('parent@example.com', 'Jane', 'jane@example.com');
   });
 
   it('rejects bodies missing the consent block with 400', async () => {

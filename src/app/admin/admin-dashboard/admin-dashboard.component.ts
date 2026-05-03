@@ -99,9 +99,16 @@ import { environment } from '../../../environments/environment';
                   </td>
                   <td>
                     @if (c.paymentReceivedAt) {
-                      <span style="color: var(--color-saga-success)">✓</span>
+                      <span style="color: var(--color-saga-success)">✓ paid</span>
                     } @else {
-                      <span style="color: var(--color-saga-text-muted)">—</span>
+                      <button
+                        type="button"
+                        (click)="markPaid(c)"
+                        [disabled]="markingPaidFor() === c.id"
+                        class="text-xs px-2 py-1 rounded saga-btn saga-btn-secondary"
+                      >
+                        {{ markingPaidFor() === c.id ? 'Saving…' : 'Mark paid' }}
+                      </button>
                     }
                   </td>
                   <td class="text-xs" style="color: var(--color-saga-text-muted)">{{ c.source }}</td>
@@ -129,6 +136,7 @@ export class AdminDashboardComponent {
   downloading = signal(false);
   selectedYear = signal<number | null>(null);
   sheetUrl = environment.sheetUrl;
+  markingPaidFor = signal<number | null>(null);
 
   // Years with campers, sorted desc — so 2026 sits first if present.
   years = computed(() => {
@@ -197,5 +205,27 @@ export class AdminDashboardComponent {
   logout(): void {
     this.admin.clearToken();
     this.router.navigate(['/admin/login']);
+  }
+
+  markPaid(c: AdminCamper): void {
+    if (!confirm(`Mark ${c.firstName} ${c.lastName} as paid? This sends a confirmation email to ${c.parentEmail}.`)) {
+      return;
+    }
+    this.markingPaidFor.set(c.id);
+    this.admin.markPaid(c.id).subscribe({
+      next: (res) => {
+        this.markingPaidFor.set(null);
+        // Optimistically patch the row in our local list so the UI updates
+        // without a full refetch.
+        const updated = this.campers().map((row) =>
+          row.id === c.id ? { ...row, paymentReceivedAt: res.paymentReceivedAt } : row
+        );
+        this.campers.set(updated);
+      },
+      error: (err) => {
+        this.markingPaidFor.set(null);
+        alert(err?.status === 401 ? 'Session expired — sign in again.' : 'Failed to mark paid.');
+      },
+    });
   }
 }
