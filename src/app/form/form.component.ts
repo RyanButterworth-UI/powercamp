@@ -18,6 +18,7 @@ import { TShirtComponent } from '../t-shirt/t-shirt.component';
 import { StepKey } from '../../models';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
+import { UiService } from '../ui/ui.service';
 
 @Component({
   selector: 'app-form',
@@ -188,6 +189,7 @@ export class FormComponent {
   rootFormGroup: FormGroup;
 
   private readonly http = inject(HttpClient);
+  private readonly ui = inject(UiService);
 
   // localStorage key for persisting form state across reloads. Wiped after
    // a successful submit so the next session starts fresh; campers can also
@@ -312,14 +314,13 @@ export class FormComponent {
   /** "Reset registration and start over" footer button — confirms before
    * blowing away the saved draft. Visible on every step except Lookup
    * (Lookup already exposes its own Clear button when a draft exists). */
-  confirmReset(): void {
-    if (
-      window.confirm(
-        'This will clear everything you have typed so far and take you back to the start. Continue?'
-      )
-    ) {
-      this.startOver();
-    }
+  async confirmReset(): Promise<void> {
+    const ok = await this.ui.confirm(
+      'This will clear everything you have typed so far and take you back to the start. Continue?',
+      'Yes, reset',
+      'Keep editing'
+    );
+    if (ok) this.startOver();
   }
 
   showDialog = signal(false);

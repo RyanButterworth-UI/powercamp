@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { AdminService, AdminCamper } from '../admin.service';
 import { environment } from '../../../environments/environment';
+import { UiService } from '../../ui/ui.service';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -202,6 +203,7 @@ export class AdminDashboardComponent {
 
   private readonly admin = inject(AdminService);
   private readonly router = inject(Router);
+  private readonly ui = inject(UiService);
 
   constructor() {
     // Pull CAMP_YEAR first so it's part of the year tabs even when no rows
@@ -259,10 +261,10 @@ export class AdminDashboardComponent {
 
   copyEmail(email: string): void {
     if (!email) return;
-    // navigator.clipboard is async + only available in secure contexts
-    // (https or localhost). Fall back to a hidden textarea otherwise.
+    const ui = this.ui;
     const done = () => {
       this.copiedEmail.set(email);
+      ui.toast(`📋 ${email} copied to clipboard`, 'success', 1800);
       setTimeout(() => this.copiedEmail.set(null), 1600);
     };
     if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
@@ -282,10 +284,14 @@ export class AdminDashboardComponent {
     }
   }
 
-  markPaid(c: AdminCamper): void {
-    if (!confirm(`Mark ${c.firstName} ${c.lastName} as paid? This sends a confirmation email to ${c.parentEmail}.`)) {
-      return;
-    }
+  async markPaid(c: AdminCamper): Promise<void> {
+    const ok = await this.ui.confirm(
+      `Mark ${c.firstName} ${c.lastName} as paid? This sends a confirmation email to ${c.parentEmail}.`,
+      'Mark paid',
+      'Cancel'
+    );
+    if (!ok) return;
+
     this.markingPaidFor.set(c.id);
     this.admin.markPaid(c.id).subscribe({
       next: (res) => {
@@ -296,10 +302,15 @@ export class AdminDashboardComponent {
           row.id === c.id ? { ...row, paymentReceivedAt: res.paymentReceivedAt } : row
         );
         this.campers.set(updated);
+        this.ui.toast(`✓ ${c.firstName} ${c.lastName} marked paid — confirmation emailed.`, 'success');
       },
       error: (err) => {
         this.markingPaidFor.set(null);
-        alert(err?.status === 401 ? 'Session expired — sign in again.' : 'Failed to mark paid.');
+        if (err?.status === 401) {
+          this.ui.toast('Session expired — sign in again.', 'error');
+        } else {
+          this.ui.toast('Failed to mark paid.', 'error');
+        }
       },
     });
   }

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AdminLeader, AdminService } from '../admin.service';
+import { UiService } from '../../ui/ui.service';
 
 @Component({
   selector: 'app-admin-leaders',
@@ -247,6 +248,7 @@ export class AdminLeadersComponent {
   private readonly admin = inject(AdminService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
+  private readonly ui = inject(UiService);
 
   constructor() {
     this.addForm = this.fb.group({
@@ -287,12 +289,18 @@ export class AdminLeadersComponent {
   }
 
   approve(l: AdminLeader): void {
+    // Use a native prompt for the password since UiService doesn't have a
+    // password-input modal yet — TODO replace with a custom modal that masks
+    // the input. The action confirmation is via toast.
     const pw = window.prompt(`Enter Neil's password to approve ${l.firstName} ${l.lastName}:`);
     if (!pw) return;
     this.admin.approveLeader(l.id, pw).subscribe({
-      next: () => this.refresh(),
+      next: () => {
+        this.refresh();
+        this.ui.toast(`✓ ${l.firstName} approved.`, 'success');
+      },
       error: (err) => {
-        window.alert(err?.status === 401 ? 'Wrong Neil password.' : 'Failed to approve.');
+        this.ui.toast(err?.status === 401 ? 'Wrong Neil password.' : 'Failed to approve.', 'error');
       },
     });
   }
@@ -301,9 +309,12 @@ export class AdminLeadersComponent {
     const pw = window.prompt(`Enter Neil's password to reject ${l.firstName} ${l.lastName}:`);
     if (!pw) return;
     this.admin.rejectLeader(l.id, pw).subscribe({
-      next: () => this.refresh(),
+      next: () => {
+        this.refresh();
+        this.ui.toast(`${l.firstName} rejected.`, 'info');
+      },
       error: (err) => {
-        window.alert(err?.status === 401 ? 'Wrong Neil password.' : 'Failed to reject.');
+        this.ui.toast(err?.status === 401 ? 'Wrong Neil password.' : 'Failed to reject.', 'error');
       },
     });
   }
@@ -334,8 +345,10 @@ export class AdminLeadersComponent {
 
   copyEmail(email: string): void {
     if (!email) return;
+    const ui = this.ui;
     const done = () => {
       this.copiedEmail.set(email);
+      ui.toast(`📋 ${email} copied to clipboard`, 'success', 1800);
       setTimeout(() => this.copiedEmail.set(null), 1600);
     };
     if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
