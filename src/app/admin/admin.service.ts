@@ -116,7 +116,33 @@ export class AdminService {
       { headers: this.authHeaders() }
     );
   }
+
+  bulkEmailPreview(subject: string, blocks: EmailBlock[]): Observable<{ html: string }> {
+    return this.http.post<{ html: string }>(
+      `${environment.baseApi}/admin/bulk-email/preview`,
+      { subject, blocks },
+      { headers: this.authHeaders() }
+    );
+  }
+
+  bulkEmailSend(
+    subject: string,
+    blocks: EmailBlock[],
+    recipients: string[]
+  ): Observable<{ sent: number; totalRecipients: number; failed: { to: string; error: string }[] }> {
+    return this.http.post<{ sent: number; totalRecipients: number; failed: { to: string; error: string }[] }>(
+      `${environment.baseApi}/admin/bulk-email`,
+      { subject, blocks, recipients },
+      { headers: this.authHeaders() }
+    );
+  }
 }
+
+export type EmailBlock =
+  | { kind: 'heading'; text: string }
+  | { kind: 'paragraph'; text: string }
+  | { kind: 'button'; text: string; url: string }
+  | { kind: 'divider' };
 
 export interface AdminLeader {
   id: number;

@@ -9,7 +9,13 @@ import { signAdminToken } from '../services/auth';
 import { env } from '../env';
 import { requireAdmin } from '../middleware/require-admin';
 import { appendToSheet } from '../services/sheets';
-import { sendPaymentConfirmed } from '../services/email';
+import {
+  sendPaymentConfirmed,
+  renderBlocksToHtml,
+  blocksToPlainText,
+  sendBulkEmail,
+  EmailBlock,
+} from '../services/email';
 import { leaderRow } from './leaders';
 
 // Hardcoded by design (per spec) — Neil's approve / reject / direct-add password.
@@ -271,6 +277,60 @@ const directAddBody = z.object({
   parentPhone: z.string().optional(),
   parentEmail: z.string().optional(),
   applicationNotes: z.string().optional(),
+});
+
+// ---------- Bulk email ----------
+
+const blockSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('heading'), text: z.string().min(1).max(200) }),
+  z.object({ kind: z.literal('paragraph'), text: z.string().min(1).max(4000) }),
+  z.object({
+    kind: z.literal('button'),
+    text: z.string().min(1).max(80),
+    url: z.string().url(),
+  }),
+  z.object({ kind: z.literal('divider') }),
+]);
+
+const bulkEmailBody = z.object({
+  subject: z.string().min(1).max(200),
+  blocks: z.array(blockSchema).min(1).max(50),
+  recipients: z.array(z.string().email()).min(1).max(500),
+});
+
+adminRouter.post('/admin/bulk-email', requireAdmin, async (req, res) => {
+  const parsed = bulkEmailBody.safeParse(req.body);
+  if (!parsed.success) {
+    return res
+      .status(400)
+      .json({ error: 'Invalid bulk email request', details: parsed.error.flatten() });
+  }
+  const { subject, blocks, recipients } = parsed.data;
+  // Dedup + normalise recipients to avoid double-sending.
+  const uniq = Array.from(new Set(recipients.map((r) => r.trim().toLowerCase())));
+
+  try {
+    const html = renderBlocksToHtml(subject, blocks as EmailBlock[]);
+    const text = blocksToPlainText(blocks as EmailBlock[]);
+    const result = await sendBulkEmail(subject, html, uniq, text);
+    res.json({ ...result, totalRecipients: uniq.length });
+  } catch (err) {
+    console.error('bulk-email error:', err);
+    res.status(500).json({ error: 'Failed to send bulk email' });
+  }
+});
+
+// Render-only endpoint so the FE preview can mirror the server's exact HTML
+// without re-implementing the renderer.
+adminRouter.post('/admin/bulk-email/preview', requireAdmin, (req, res) => {
+  const parsed = z
+    .object({ subject: z.string().min(1).max(200), blocks: z.array(blockSchema) })
+    .safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid preview request' });
+  }
+  const html = renderBlocksToHtml(parsed.data.subject, parsed.data.blocks as EmailBlock[]);
+  res.json({ html });
 });
 
 adminRouter.post('/admin/leaders/direct-add', requireAdmin, async (req, res) => {

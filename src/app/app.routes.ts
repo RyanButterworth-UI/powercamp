@@ -50,6 +50,12 @@ export const routes: Routes = [
     canActivate: [adminGuard],
   },
   {
+    path: 'admin/bulk-email',
+    loadComponent: () =>
+      import('./admin/bulk-email/bulk-email.component').then((m) => m.BulkEmailComponent),
+    canActivate: [adminGuard],
+  },
+  {
     path: 'leader-apply',
     loadComponent: () =>
       import('./leader-apply/leader-apply.component').then((m) => m.LeaderApplyComponent),

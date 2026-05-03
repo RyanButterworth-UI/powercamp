@@ -18,11 +18,10 @@ import { UiService } from '../../ui/ui.service';
         </button>
       </div>
 
-      <nav class="flex gap-4 border-b border-gray-200 mb-4 text-sm">
-        <a routerLink="/admin" class="px-1 py-2 text-gray-500 hover:text-gray-700">Campers</a>
-        <span class="px-1 py-2 border-b-2 border-green-500 text-green-700 font-semibold">
-          Leaders
-        </span>
+      <nav class="flex gap-4 mb-4 text-sm" style="border-bottom: 1px solid var(--color-saga-border)">
+        <a routerLink="/admin" class="saga-tab no-underline">Campers</a>
+        <span class="saga-tab is-active">Leaders</span>
+        <a routerLink="/admin/bulk-email" class="saga-tab no-underline">Bulk email</a>
       </nav>
 
       <div class="flex items-center gap-3 mb-6 flex-wrap">

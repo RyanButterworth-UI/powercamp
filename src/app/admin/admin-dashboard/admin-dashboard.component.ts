@@ -21,6 +21,7 @@ import { UiService } from '../../ui/ui.service';
       <nav class="flex gap-4 mb-4 text-sm" style="border-bottom: 1px solid var(--color-saga-border)">
         <span class="saga-tab is-active">Campers</span>
         <a routerLink="/admin/leaders" class="saga-tab no-underline">Leaders</a>
+        <a routerLink="/admin/bulk-email" class="saga-tab no-underline">Bulk email</a>
       </nav>
 
       <div class="flex items-center gap-3 mb-4 flex-wrap">
