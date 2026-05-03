@@ -39,7 +39,6 @@ import { StepKey } from '../../models';
             Back
           </button>
           <button
-            [disabled]="!areCamperFieldsValid()"
             type="button"
             (click)="goToStep.emit(StepKey.CheckData)"
             class="saga-btn saga-btn-primary"
