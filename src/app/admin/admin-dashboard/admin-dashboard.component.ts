@@ -97,7 +97,27 @@ import { environment } from '../../../environments/environment';
               @for (c of visibleCampers(); track c.id) {
                 <tr>
                   <td>{{ c.firstName }} {{ c.lastName }}</td>
-                  <td class="font-mono text-xs">{{ c.parentEmail }}</td>
+                  <td class="font-mono text-xs">
+                    <span class="inline-flex items-center gap-1.5">
+                      <span>{{ c.parentEmail }}</span>
+                      <button
+                        type="button"
+                        (click)="copyEmail(c.parentEmail)"
+                        [title]="copiedEmail() === c.parentEmail ? 'Copied!' : 'Copy email'"
+                        class="cursor-pointer p-1 rounded hover:bg-white/5"
+                        style="background: none; border: none;"
+                      >
+                        @if (copiedEmail() === c.parentEmail) {
+                          <span style="color: var(--color-saga-success); font-size: 11px;">✓</span>
+                        } @else {
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-saga-text-muted)">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                          </svg>
+                        }
+                      </button>
+                    </span>
+                  </td>
                   <td>{{ c.grade }}</td>
                   <td>
                     @if (c.consentAcceptedAt) {
@@ -148,6 +168,7 @@ export class AdminDashboardComponent {
   markingPaidFor = signal<number | null>(null);
   searchQuery = signal('');
   campYear = signal<number | null>(null);
+  copiedEmail = signal<string | null>(null);
 
   // Years with campers, plus CAMP_YEAR even if it has no rows yet, sorted
   // desc — so the active 2026 tab is always present even before submissions.
@@ -234,6 +255,31 @@ export class AdminDashboardComponent {
   logout(): void {
     this.admin.clearToken();
     this.router.navigate(['/admin/login']);
+  }
+
+  copyEmail(email: string): void {
+    if (!email) return;
+    // navigator.clipboard is async + only available in secure contexts
+    // (https or localhost). Fall back to a hidden textarea otherwise.
+    const done = () => {
+      this.copiedEmail.set(email);
+      setTimeout(() => this.copiedEmail.set(null), 1600);
+    };
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(email).then(done, () => fallback());
+    } else {
+      fallback();
+    }
+    function fallback() {
+      const ta = document.createElement('textarea');
+      ta.value = email;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); done(); } catch {}
+      document.body.removeChild(ta);
+    }
   }
 
   markPaid(c: AdminCamper): void {

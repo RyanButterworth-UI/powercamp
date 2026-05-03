@@ -139,7 +139,27 @@ import { AdminLeader, AdminService } from '../admin.service';
               @for (l of visibleLeaders(); track l.id) {
                 <tr>
                   <td>{{ l.firstName }} {{ l.lastName }}</td>
-                  <td class="font-mono text-xs">{{ l.email }}</td>
+                  <td class="font-mono text-xs">
+                    <span class="inline-flex items-center gap-1.5">
+                      <span>{{ l.email }}</span>
+                      <button
+                        type="button"
+                        (click)="copyEmail(l.email)"
+                        [title]="copiedEmail() === l.email ? 'Copied!' : 'Copy email'"
+                        class="cursor-pointer p-1 rounded hover:bg-white/5"
+                        style="background: none; border: none;"
+                      >
+                        @if (copiedEmail() === l.email) {
+                          <span style="color: var(--color-saga-success); font-size: 11px;">✓</span>
+                        } @else {
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-saga-text-muted)">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                          </svg>
+                        }
+                      </button>
+                    </span>
+                  </td>
                   <td>
                     <span
                       [style.color]="
@@ -205,6 +225,7 @@ export class AdminLeadersComponent {
   addForm: FormGroup;
   addBusy = signal(false);
   addError = signal<string | null>(null);
+  copiedEmail = signal<string | null>(null);
 
   years = computed(() => {
     const set = new Set(this.leaders().map((l) => l.year));
@@ -309,5 +330,28 @@ export class AdminLeadersComponent {
   logout(): void {
     this.admin.clearToken();
     this.router.navigate(['/admin/login']);
+  }
+
+  copyEmail(email: string): void {
+    if (!email) return;
+    const done = () => {
+      this.copiedEmail.set(email);
+      setTimeout(() => this.copiedEmail.set(null), 1600);
+    };
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(email).then(done, () => fallback());
+    } else {
+      fallback();
+    }
+    function fallback() {
+      const ta = document.createElement('textarea');
+      ta.value = email;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); done(); } catch {}
+      document.body.removeChild(ta);
+    }
   }
 }
