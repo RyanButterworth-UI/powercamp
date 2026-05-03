@@ -155,6 +155,22 @@ import { environment } from '../../environments/environment';
                 }
               </div>
             </form>
+
+            @if (currentStep() !== StepKey.Lookup) {
+              <div
+                class="px-5 pb-6 pt-2 text-center text-xs"
+                style="color: var(--color-saga-text-muted)"
+              >
+                <button
+                  type="button"
+                  (click)="confirmReset()"
+                  class="underline cursor-pointer"
+                  style="background: none; border: none; color: inherit; padding: 0;"
+                >
+                  Reset registration and start over
+                </button>
+              </div>
+            }
           }
         </div>
       </div>
@@ -291,6 +307,19 @@ export class FormComponent {
   startOver(): void {
     this.clearDraft();
     window.location.reload();
+  }
+
+  /** "Reset registration and start over" footer button — confirms before
+   * blowing away the saved draft. Visible on every step except Lookup
+   * (Lookup already exposes its own Clear button when a draft exists). */
+  confirmReset(): void {
+    if (
+      window.confirm(
+        'This will clear everything you have typed so far and take you back to the start. Continue?'
+      )
+    ) {
+      this.startOver();
+    }
   }
 
   showDialog = signal(false);

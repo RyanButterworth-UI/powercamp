@@ -71,7 +71,6 @@ import { CommonModule } from '@angular/common';
           <button
             type="button"
             (click)="goToStep.emit(StepKey.Medical)"
-            [disabled]="!areCamperFieldsValid"
             class="saga-btn saga-btn-primary"
           >
             Next
