@@ -432,6 +432,33 @@ label.bg-white:has(input:checked) span {
   font-weight: 600;
 }
 
+/* Filter pills — for segmented filter rows where the active selection should
+   be obviously different from the rest (unlike .saga-tab, which is a subtle
+   underline). Used in the admin Campers list filters. */
+.filter-pill {
+  padding: 0.1875rem 0.625rem;
+  font-size: 0.75rem;
+  line-height: 1.1rem;
+  border-radius: 9999px;
+  border: 1px solid var(--color-saga-border);
+  background-color: var(--color-saga-surface);
+  color: var(--color-saga-text-muted);
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.filter-pill:hover:not(.is-active) {
+  border-color: var(--color-saga-border-strong);
+  color: var(--color-saga-text);
+}
+
+.filter-pill.is-active {
+  background-color: var(--color-saga-primary);
+  border-color: var(--color-saga-primary);
+  color: var(--color-saga-text-strong);
+  font-weight: 600;
+}
+
 /* Tables on dark surfaces. */
 .saga-table {
   width: 100%;

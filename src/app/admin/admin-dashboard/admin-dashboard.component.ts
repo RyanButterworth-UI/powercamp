@@ -57,39 +57,39 @@ import { UiService } from '../../ui/ui.service';
         data-testid="campers-search"
       />
 
-      <div class="flex flex-wrap items-center gap-x-4 gap-y-2 mb-4 text-xs">
-        <div class="flex items-center gap-1.5" data-testid="payment-filter">
-          <span style="color: var(--color-saga-text-muted)">Payment:</span>
+      <div class="flex flex-col gap-3 mb-4">
+        <div class="flex items-center gap-2 flex-wrap" data-testid="payment-filter">
+          <span class="text-xs font-semibold w-20" style="color: var(--color-saga-text-muted)">PAYMENT</span>
           @for (opt of paymentOptions; track opt.value) {
             <button
               type="button"
               (click)="paymentFilter.set(opt.value)"
-              class="saga-tab"
+              class="filter-pill"
               [class.is-active]="paymentFilter() === opt.value"
               [attr.data-testid]="'payment-' + opt.value"
             >{{ opt.label }}</button>
           }
         </div>
-        <div class="flex items-center gap-1.5" data-testid="consent-filter">
-          <span style="color: var(--color-saga-text-muted)">Consent:</span>
+        <div class="flex items-center gap-2 flex-wrap" data-testid="consent-filter">
+          <span class="text-xs font-semibold w-20" style="color: var(--color-saga-text-muted)">CONSENT</span>
           @for (opt of consentOptions; track opt.value) {
             <button
               type="button"
               (click)="consentFilter.set(opt.value)"
-              class="saga-tab"
+              class="filter-pill"
               [class.is-active]="consentFilter() === opt.value"
               [attr.data-testid]="'consent-' + opt.value"
             >{{ opt.label }}</button>
           }
+          @if (paymentFilter() !== 'all' || consentFilter() !== 'all') {
+            <button
+              type="button"
+              (click)="clearFilters()"
+              class="text-xs underline cursor-pointer ml-2"
+              style="background: none; border: none; color: var(--color-saga-text-muted); padding: 0;"
+            >Clear filters</button>
+          }
         </div>
-        @if (paymentFilter() !== 'all' || consentFilter() !== 'all') {
-          <button
-            type="button"
-            (click)="clearFilters()"
-            class="underline cursor-pointer"
-            style="background: none; border: none; color: var(--color-saga-text-muted); padding: 0;"
-          >Clear</button>
-        }
       </div>
 
       @if (loading()) {
