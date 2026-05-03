@@ -32,6 +32,7 @@ export enum StepKey {
   CheckData = 11,
   LeaderApplication = 12,
   LeaderQuestion = 13,
+  CamperConsent = 14,
 }
 
 export interface LookupResult {

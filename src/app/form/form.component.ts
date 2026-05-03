@@ -6,6 +6,7 @@ import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } 
 import { FriendsComponent } from '../friends/friends.component';
 import { IntroComponent } from '../intro/intro.component';
 import { LookupComponent } from '../lookup/lookup.component';
+import { ConsentStepComponent } from '../consent-step/consent-step.component';
 import { LeaderApplicationComponent } from '../leader-application/leader-application.component';
 import { LeaderInfoComponent } from '../leader-info/leader-info.component';
 import { MedicalComponent } from '../medical/medical.component';
@@ -28,6 +29,7 @@ import { environment } from '../../environments/environment';
     FriendsComponent,
     IntroComponent,
     LookupComponent,
+    ConsentStepComponent,
     LeaderApplicationComponent,
     LeaderInfoComponent,
     MedicalComponent,
@@ -134,8 +136,15 @@ import { environment } from '../../environments/environment';
                   <app-summary
                     [stepVisible]="stepVisible()"
                     (goToStep)="fadeToStep($event)"
-                    (triggerSubmission)="onSubmit()"
+                    (triggerSubmission)="fadeToStep(StepKey.CamperConsent)"
                   ></app-summary>
+                }
+                @if (currentStep() === StepKey.CamperConsent && stepVisible()) {
+                  <app-consent-step
+                    [stepVisible]="stepVisible()"
+                    (goToStep)="fadeToStep($event)"
+                    (triggerSubmission)="onSubmit()"
+                  ></app-consent-step>
                 }
                 @if (currentStep() === StepKey.LeaderQuestion && stepVisible()) {
                   <app-leader-info
@@ -184,6 +193,20 @@ export class FormComponent {
       tshirt: ['', Validators.required],
       generalInfo: [''],
       dob: ['', Validators.required],
+      // Per-child consent block — required before final submit. The
+      // ConsentStepComponent gates submit until all six bools are true and
+      // the medical/emergency strings are filled.
+      consent_general: [false, Validators.requiredTrue],
+      consent_location: [false, Validators.requiredTrue],
+      consent_risk: [false, Validators.requiredTrue],
+      consent_powerCamp: [false, Validators.requiredTrue],
+      consent_behaviour: [false, Validators.requiredTrue],
+      consent_photo: [false, Validators.requiredTrue],
+      consent_emergencyName: ['', Validators.required],
+      consent_emergencyContact: ['', Validators.required],
+      consent_medicalAidName: ['', Validators.required],
+      consent_medicalAidNumber: ['', Validators.required],
+      consent_date: [new Date().toISOString().split('T')[0], Validators.required],
     });
   }
 
@@ -194,14 +217,35 @@ export class FormComponent {
 
 
   onSubmit() {
-    const data = this.rootFormGroup.getRawValue();
-    this.submittedCamperName.set(data.firstName);
+    const raw = this.rootFormGroup.getRawValue();
+    this.submittedCamperName.set(raw.firstName);
 
     this.isSubmitting.set(true); // start loader
 
-    const url = `${environment.baseApi}/submit`;
+    // Split the form into camper data + consent block so the backend can
+    // persist the boolean checkboxes as 'accept' strings (matching the
+    // existing /update contract).
+    const consent = {
+      general: raw.consent_general ? 'accept' : '',
+      location: raw.consent_location ? 'accept' : '',
+      risk: raw.consent_risk ? 'accept' : '',
+      powerCamp: raw.consent_powerCamp ? 'accept' : '',
+      behaviour: raw.consent_behaviour ? 'accept' : '',
+      photo: raw.consent_photo ? 'accept' : '',
+      emergencyName: raw.consent_emergencyName,
+      emergencyContact: raw.consent_emergencyContact,
+      medicalAidName: raw.consent_medicalAidName,
+      medicalAidNumber: raw.consent_medicalAidNumber,
+      date: raw.consent_date,
+    };
 
-    this.http.post(url, data).subscribe({
+    const camper: Record<string, unknown> = { ...raw };
+    for (const k of Object.keys(camper)) {
+      if (k.startsWith('consent_')) delete camper[k];
+    }
+
+    const url = `${environment.baseApi}/submit`;
+    this.http.post(url, { camper, consent }).subscribe({
       next: () => {
         this.submissionStatus.set('success');
         this.showDialog.set(true);

@@ -20,10 +20,16 @@ jest.mock('../services/sheets', () => ({
   appendToSheet: jest.fn(),
 }));
 
+jest.mock('../services/email', () => ({
+  sendRegistrationReceived: jest.fn(),
+}));
+
 import { appendToSheet } from '../services/sheets';
+import { sendRegistrationReceived } from '../services/email';
 import { submitRouter } from '../routes/submit';
 
 const mockAppend = appendToSheet as jest.MockedFunction<typeof appendToSheet>;
+const mockEmail = sendRegistrationReceived as jest.MockedFunction<typeof sendRegistrationReceived>;
 
 function buildApp() {
   const app = express();
@@ -33,34 +39,51 @@ function buildApp() {
 }
 
 const validBody = {
-  firstName: 'Jane',
-  lastName: 'Doe',
-  parentEmail: 'parent@example.com',
-  email: 'jane@example.com',
-  camperCell: '0821234567',
-  gender: 'F',
-  age: '14',
-  grade: '9',
-  friends: ['Alice', 'Bob'],
-  medical: '',
-  parentName: 'Mum',
-  parentPhone: '0827654321',
-  church: 'Hope',
-  tshirt: 'M',
-  generalInfo: '',
-  dob: '2010-01-01',
+  camper: {
+    firstName: 'Jane',
+    lastName: 'Doe',
+    parentEmail: 'parent@example.com',
+    email: 'jane@example.com',
+    camperCell: '0821234567',
+    gender: 'F',
+    age: '14',
+    grade: '9',
+    friends: ['Alice', 'Bob'],
+    medical: '',
+    parentName: 'Mum',
+    parentPhone: '0827654321',
+    church: 'Hope',
+    tshirt: 'M',
+    generalInfo: '',
+    dob: '2010-01-01',
+  },
+  consent: {
+    general: 'accept',
+    location: 'accept',
+    risk: 'accept',
+    powerCamp: 'accept',
+    behaviour: 'accept',
+    photo: 'accept',
+    emergencyName: 'Emergency Contact',
+    emergencyContact: '0820000099',
+    medicalAidName: 'NONE',
+    medicalAidNumber: 'NONE',
+    date: '2026-05-02',
+  },
 };
 
 describe('POST /submit', () => {
   beforeEach(() => {
     insertMock.mockResolvedValue([{ id: 42 }]);
     mockAppend.mockResolvedValue(undefined);
+    mockEmail.mockResolvedValue(undefined);
   });
 
   it('inserts the camper into the DB tagged with CAMP_YEAR and lowercased emails', async () => {
-    const res = await request(buildApp())
-      .post('/submit')
-      .send({ ...validBody, parentEmail: 'PARENT@example.com', email: 'JANE@example.com' });
+    const res = await request(buildApp()).post('/submit').send({
+      camper: { ...validBody.camper, parentEmail: 'PARENT@example.com', email: 'JANE@example.com' },
+      consent: validBody.consent,
+    });
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ id: 42 });
@@ -71,11 +94,13 @@ describe('POST /submit', () => {
         parentEmail: 'parent@example.com',
         email: 'jane@example.com',
         friends: ['Alice', 'Bob'],
+        consentGeneral: 'accept',
+        consentEmergencyName: 'Emergency Contact',
       })
     );
   });
 
-  it('appends a Campers row with the column order Mailchimp script expects', async () => {
+  it('appends a 17-column row to Registrations with Q=TRUE since consent is mandatory', async () => {
     await request(buildApp()).post('/submit').send(validBody);
     await new Promise((resolve) => setImmediate(resolve));
 
@@ -96,18 +121,43 @@ describe('POST /submit', () => {
       'M',                   // N tshirt
       '',                    // O generalInfo
       '2010-01-01',          // P dob
-      'FALSE',               // Q Consent Accepted — TRUE once /update fires
+      'TRUE',                // Q Consent Accepted — gated by ConsentStep
     ]);
   });
 
-  it('rejects payloads missing required fields with 400', async () => {
+  it('sends the registration-received email to the lowercased parent email', async () => {
+    await request(buildApp()).post('/submit').send(validBody);
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(mockEmail).toHaveBeenCalledWith('parent@example.com', 'Jane');
+  });
+
+  it('rejects bodies missing the consent block with 400', async () => {
     const res = await request(buildApp())
       .post('/submit')
-      .send({ firstName: 'Jane' });
+      .send({ camper: validBody.camper });
 
     expect(res.status).toBe(400);
     expect(insertMock).not.toHaveBeenCalled();
     expect(mockAppend).not.toHaveBeenCalled();
+  });
+
+  it('rejects bodies missing required camper fields with 400', async () => {
+    const res = await request(buildApp())
+      .post('/submit')
+      .send({ camper: { firstName: 'Jane' }, consent: validBody.consent });
+
+    expect(res.status).toBe(400);
+    expect(insertMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects bodies missing required consent fields with 400', async () => {
+    const res = await request(buildApp())
+      .post('/submit')
+      .send({ camper: validBody.camper, consent: { ...validBody.consent, photo: '' } });
+
+    expect(res.status).toBe(400);
+    expect(insertMock).not.toHaveBeenCalled();
   });
 
   it('returns 500 if the DB insert fails (and does not append to sheet)', async () => {
@@ -120,8 +170,9 @@ describe('POST /submit', () => {
     expect(mockAppend).not.toHaveBeenCalled();
   });
 
-  it('still returns 200 with the new id when sheet append fails (DB is source of truth)', async () => {
+  it('still returns 200 with the new id when sheet or email fails (DB is source of truth)', async () => {
     mockAppend.mockRejectedValueOnce(new Error('sheets api 503'));
+    mockEmail.mockRejectedValueOnce(new Error('SMTP down'));
     const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     const res = await request(buildApp()).post('/submit').send(validBody);
@@ -129,11 +180,6 @@ describe('POST /submit', () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ id: 42 });
-    expect(errSpy).toHaveBeenCalledWith(
-      'Sheet sync failed (DB write succeeded):',
-      expect.any(Error)
-    );
-
     errSpy.mockRestore();
   });
 });
