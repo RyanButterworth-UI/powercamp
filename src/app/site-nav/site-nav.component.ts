@@ -34,8 +34,8 @@ import { Router, RouterLink, RouterLinkActive } from '@angular/router';
             class="saga-tab no-underline"
           >Register</a>
           <a
-            href="assets/kit-list.pdf"
-            download
+            routerLink="/kit-list"
+            routerLinkActive="is-active"
             class="saga-tab no-underline"
           >Kit list</a>
           <a
@@ -88,8 +88,8 @@ import { Router, RouterLink, RouterLinkActive } from '@angular/router';
             class="saga-tab no-underline"
           >Register / Update</a>
           <a
-            href="assets/kit-list.pdf"
-            download
+            routerLink="/kit-list"
+            routerLinkActive="is-active"
             class="saga-tab no-underline"
           >Kit list</a>
           <a

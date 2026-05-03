@@ -157,7 +157,10 @@ export class CampAdditionalInfoComponent {
   goToStep = output<StepKey>();
   StepKey = StepKey;
   grades = signal(['8', '9', '10', '11', '12', 'Leader']);
-  ageOptions = signal<(number | string)[]>([14, 15, 16, 17, 18, 'Leader 18+']);
+  // String values so the form's age field stays a string — the backend zod
+  // schema rejects numbers and Excel-style numeric ages broke earlier
+  // submissions ("Expected string, received number").
+  ageOptions = signal<string[]>(['14', '15', '16', '17', '18', 'Leader 18+']);
   camperFields = ['gender', 'age', 'dob', 'grade'];
 
   constructor(private rootFormGroup: FormGroupDirective) {

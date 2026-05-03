@@ -28,6 +28,11 @@ export const routes: Routes = [
       import('./info/info.component').then((m) => m.InfoComponent),
   },
   {
+    path: 'kit-list',
+    loadComponent: () =>
+      import('./kit-list/kit-list.component').then((m) => m.KitListComponent),
+  },
+  {
     path: 'admin/login',
     loadComponent: () =>
       import('./admin/admin-login/admin-login.component').then((m) => m.AdminLoginComponent),

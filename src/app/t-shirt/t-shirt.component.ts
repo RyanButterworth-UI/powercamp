@@ -141,8 +141,9 @@ export class TShirtComponent {
   onChurchSelect(value: string): void {
     if (value === this.OTHER) {
       this.otherSelected.set(true);
-      // Clear so the user types fresh; they can't submit without picking.
-      this.form.get('church')?.setValue('');
+      // DON'T auto-clear: if the user already typed an "Other" value
+      // earlier, keep it. The text input below will show the existing
+      // value so they can edit rather than start from scratch.
     } else {
       this.otherSelected.set(false);
       this.form.get('church')?.setValue(value);
