@@ -117,6 +117,18 @@ import { UiService } from '../../ui/ui.service';
                           </svg>
                         }
                       </button>
+                      <button
+                        type="button"
+                        (click)="changeParentEmail(c)"
+                        title="Change parent email (e.g. parent's email changed since last year)"
+                        class="cursor-pointer p-1 rounded hover:bg-white/5"
+                        style="background: none; border: none;"
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-saga-text-muted)">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                      </button>
                     </span>
                   </td>
                   <td>{{ c.grade }}</td>
@@ -282,6 +294,34 @@ export class AdminDashboardComponent {
       try { document.execCommand('copy'); done(); } catch {}
       document.body.removeChild(ta);
     }
+  }
+
+  async changeParentEmail(c: AdminCamper): Promise<void> {
+    const next = await this.ui.prompt({
+      text: `Change parent email for ${c.firstName} ${c.lastName}? Currently: ${c.parentEmail}`,
+      defaultValue: c.parentEmail,
+      placeholder: 'new.email@example.com',
+      inputType: 'email',
+      confirmLabel: 'Update email',
+    });
+    if (!next) return;
+    const newEmail = next.trim().toLowerCase();
+    if (!newEmail || newEmail === c.parentEmail.toLowerCase()) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+      this.ui.toast('That doesn\'t look like a valid email.', 'error');
+      return;
+    }
+    this.admin.updateParentEmail(c.id, newEmail).subscribe({
+      next: (res) => {
+        this.campers.set(
+          this.campers().map((row) => (row.id === c.id ? { ...row, parentEmail: res.parentEmail } : row))
+        );
+        this.ui.toast(`✓ Parent email updated to ${res.parentEmail}`, 'success');
+      },
+      error: (err) => {
+        this.ui.toast(err?.status === 401 ? 'Session expired — sign in again.' : 'Failed to update email.', 'error');
+      },
+    });
   }
 
   async markPaid(c: AdminCamper): Promise<void> {

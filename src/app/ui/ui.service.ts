@@ -14,11 +14,23 @@ interface ConfirmRequest {
   resolve: (ok: boolean) => void;
 }
 
+interface PromptRequest {
+  id: number;
+  text: string;
+  defaultValue: string;
+  placeholder: string;
+  confirmLabel: string;
+  cancelLabel: string;
+  inputType: 'text' | 'email' | 'password';
+  resolve: (value: string | null) => void;
+}
+
 @Injectable({ providedIn: 'root' })
 export class UiService {
   private nextId = 1;
   toasts = signal<Toast[]>([]);
   confirmRequest = signal<ConfirmRequest | null>(null);
+  promptRequest = signal<PromptRequest | null>(null);
 
   toast(text: string, kind: Toast['kind'] = 'info', durationMs = 4000): void {
     const id = this.nextId++;
@@ -41,5 +53,34 @@ export class UiService {
     if (!req) return;
     this.confirmRequest.set(null);
     req.resolve(ok);
+  }
+
+  prompt(opts: {
+    text: string;
+    defaultValue?: string;
+    placeholder?: string;
+    confirmLabel?: string;
+    cancelLabel?: string;
+    inputType?: 'text' | 'email' | 'password';
+  }): Promise<string | null> {
+    return new Promise<string | null>((resolve) => {
+      this.promptRequest.set({
+        id: this.nextId++,
+        text: opts.text,
+        defaultValue: opts.defaultValue ?? '',
+        placeholder: opts.placeholder ?? '',
+        confirmLabel: opts.confirmLabel ?? 'OK',
+        cancelLabel: opts.cancelLabel ?? 'Cancel',
+        inputType: opts.inputType ?? 'text',
+        resolve,
+      });
+    });
+  }
+
+  resolvePrompt(value: string | null): void {
+    const req = this.promptRequest();
+    if (!req) return;
+    this.promptRequest.set(null);
+    req.resolve(value);
   }
 }

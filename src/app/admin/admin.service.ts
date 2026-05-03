@@ -108,6 +108,14 @@ export class AdminService {
       { headers: this.authHeaders() }
     );
   }
+
+  updateParentEmail(camperId: number, parentEmail: string): Observable<{ id: number; parentEmail: string }> {
+    return this.http.post<{ id: number; parentEmail: string }>(
+      `${environment.baseApi}/admin/campers/${camperId}/update-email`,
+      { parentEmail },
+      { headers: this.authHeaders() }
+    );
+  }
 }
 
 export interface AdminLeader {

@@ -124,6 +124,33 @@ adminRouter.get('/admin/me', requireAdmin, (_req, res) => {
   res.json({ ok: true, campYear: env.CAMP_YEAR });
 });
 
+const updateEmailBody = z.object({
+  parentEmail: z.string().email(),
+});
+
+adminRouter.post('/admin/campers/:id/update-email', requireAdmin, async (req, res) => {
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'Invalid camper id' });
+  }
+  const parsed = updateEmailBody.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid email' });
+  }
+  try {
+    const [updated] = await db
+      .update(campers)
+      .set({ parentEmail: parsed.data.parentEmail.toLowerCase(), updatedAt: new Date() })
+      .where(eq(campers.id, id))
+      .returning({ id: campers.id, parentEmail: campers.parentEmail });
+    if (!updated) return res.status(404).json({ error: 'Camper not found' });
+    res.json(updated);
+  } catch (err) {
+    console.error('update-email error:', err);
+    res.status(500).json({ error: 'Failed to update email' });
+  }
+});
+
 adminRouter.post('/admin/campers/:id/mark-paid', requireAdmin, async (req, res) => {
   const id = Number.parseInt(req.params.id, 10);
   if (!Number.isInteger(id) || id <= 0) {

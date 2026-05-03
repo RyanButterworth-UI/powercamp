@@ -66,6 +66,39 @@ import { UiService } from './ui.service';
         </div>
       </div>
     }
+
+    <!-- Prompt modal (text/email/password input) -->
+    @if (ui.promptRequest(); as req) {
+      <div
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style="background-color: rgba(17, 18, 23, 0.85);"
+      >
+        <div class="saga-card p-6 max-w-md w-full">
+          <p class="text-sm mb-3" style="color: var(--color-saga-text)">{{ req.text }}</p>
+          <input
+            #promptInput
+            [type]="req.inputType"
+            [value]="req.defaultValue"
+            [placeholder]="req.placeholder"
+            (keyup.enter)="ui.resolvePrompt(promptInput.value)"
+            (keyup.escape)="ui.resolvePrompt(null)"
+            class="rounded-lg w-full px-3 py-2 mb-4"
+          />
+          <div class="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+            <button
+              type="button"
+              (click)="ui.resolvePrompt(null)"
+              class="saga-btn saga-btn-secondary"
+            >{{ req.cancelLabel }}</button>
+            <button
+              type="button"
+              (click)="ui.resolvePrompt(promptInput.value)"
+              class="saga-btn saga-btn-primary"
+            >{{ req.confirmLabel }}</button>
+          </div>
+        </div>
+      </div>
+    }
   `,
   styles: ``,
 })
