@@ -10,95 +10,115 @@ import { environment } from '../../environments/environment';
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule],
   template: `
-    <div class="container mx-auto p-6 max-w-2xl">
-      <h1 class="text-2xl font-bold mb-1">Power Camp Leader Application</h1>
-      <p class="text-sm text-gray-500 mb-6">
+    <div class="container mx-auto p-4 sm:p-6 max-w-2xl">
+      <h1 class="text-2xl font-bold mb-1" style="color: var(--color-saga-text-strong)">
+        Power Camp Leader Application
+      </h1>
+      <p class="text-sm mb-6" style="color: var(--color-saga-text-muted)">
         Want to lead at Power Camp 2026? You'll need the leader portal password from your camp
         coordinator first.
       </p>
 
       @if (!unlocked()) {
-        <div class="border rounded p-4 mb-4 bg-gray-50" data-testid="gate">
-          <label class="block text-sm font-medium text-gray-700 mb-2">Leader portal password</label>
+        <div class="saga-card p-4 mb-4" data-testid="gate">
+          <label class="block text-sm font-medium mb-2" style="color: var(--color-saga-text)">
+            Leader portal password
+          </label>
           <input
             type="password"
             [(ngModel)]="passwordInput"
             (keyup.enter)="checkPassword()"
             [ngModelOptions]="{ standalone: true }"
-            class="border rounded px-3 py-2 w-full mb-3"
+            class="w-full px-3 py-2 mb-3"
           />
           @if (gateError()) {
-            <div class="text-sm text-red-700 mb-2" data-testid="gate-error">{{ gateError() }}</div>
+            <div class="text-sm mb-2" data-testid="gate-error" style="color: var(--color-saga-danger)">
+              {{ gateError() }}
+            </div>
           }
           <button
             type="button"
             (click)="checkPassword()"
             [disabled]="gateBusy() || !passwordInput.trim()"
-            class="bg-green-300 text-green-900 px-4 py-2 rounded disabled:bg-gray-200 disabled:text-gray-400"
+            class="saga-btn saga-btn-primary"
           >
             {{ gateBusy() ? 'Checking…' : 'Continue' }}
           </button>
         </div>
       } @else if (submittedAt()) {
-        <div class="rounded border border-green-200 bg-green-50 p-4" data-testid="submitted">
-          <h2 class="font-semibold text-green-900 mb-1">Application received</h2>
-          <p class="text-sm text-green-900 mb-3">
+        <div
+          class="saga-card p-4"
+          data-testid="submitted"
+          style="border-color: var(--color-saga-success); background-color: var(--color-saga-primary-soft)"
+        >
+          <h2 class="font-semibold mb-1" style="color: var(--color-saga-success)">
+            Application received
+          </h2>
+          <p class="text-sm mb-3" style="color: var(--color-saga-text)">
             Thanks! Your application has been recorded. Neil will review and approve leaders
             personally — you'll hear back from the camp coordinator.
           </p>
-          <button type="button" (click)="goHome()" class="px-4 py-2 rounded bg-green-300 text-green-900">
+          <button type="button" (click)="goHome()" class="saga-btn saga-btn-primary">
             Done
           </button>
         </div>
       } @else if (form) {
-        <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">
-          <div class="grid grid-cols-2 gap-3">
-            <label class="flex flex-col text-sm">First Name *
-              <input formControlName="firstName" class="border rounded px-2 py-1" />
-            </label>
-            <label class="flex flex-col text-sm">Last Name *
-              <input formControlName="lastName" class="border rounded px-2 py-1" />
-            </label>
-            <label class="flex flex-col text-sm col-span-2">Email *
-              <input type="email" formControlName="email" class="border rounded px-2 py-1" />
-            </label>
-            <label class="flex flex-col text-sm">Cell
-              <input formControlName="cell" class="border rounded px-2 py-1" />
-            </label>
-            <label class="flex flex-col text-sm">Gender
-              <input formControlName="gender" class="border rounded px-2 py-1" />
-            </label>
-            <label class="flex flex-col text-sm">Age
-              <input formControlName="age" class="border rounded px-2 py-1" />
-            </label>
-            <label class="flex flex-col text-sm">Church
-              <input formControlName="church" class="border rounded px-2 py-1" />
-            </label>
-            <label class="flex flex-col text-sm">T-shirt
-              <input formControlName="tshirt" class="border rounded px-2 py-1" />
-            </label>
-            <label class="flex flex-col text-sm col-span-2">
-              Why do you want to lead? Any relevant experience?
-              <textarea
-                formControlName="applicationNotes"
-                rows="4"
-                class="border rounded px-2 py-1"
-              ></textarea>
-            </label>
+        <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
+          <div class="saga-card p-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label class="flex flex-col gap-1.5 text-sm">First Name *
+                <input formControlName="firstName" class="w-full px-3 py-2" />
+              </label>
+              <label class="flex flex-col gap-1.5 text-sm">Last Name *
+                <input formControlName="lastName" class="w-full px-3 py-2" />
+              </label>
+              <label class="flex flex-col gap-1.5 text-sm sm:col-span-2">Email *
+                <input type="email" formControlName="email" class="w-full px-3 py-2" />
+              </label>
+              <label class="flex flex-col gap-1.5 text-sm">Cell
+                <input formControlName="cell" class="w-full px-3 py-2" />
+              </label>
+              <label class="flex flex-col gap-1.5 text-sm">Gender
+                <input formControlName="gender" class="w-full px-3 py-2" />
+              </label>
+              <label class="flex flex-col gap-1.5 text-sm">Age
+                <input formControlName="age" class="w-full px-3 py-2" />
+              </label>
+              <label class="flex flex-col gap-1.5 text-sm">Church
+                <input formControlName="church" class="w-full px-3 py-2" />
+              </label>
+              <label class="flex flex-col gap-1.5 text-sm sm:col-span-2">T-shirt
+                <input formControlName="tshirt" class="w-full px-3 py-2" />
+              </label>
+              <label class="flex flex-col gap-1.5 text-sm sm:col-span-2">
+                Why do you want to lead? Any relevant experience?
+                <textarea
+                  formControlName="applicationNotes"
+                  rows="4"
+                  class="w-full px-3 py-2"
+                ></textarea>
+              </label>
+            </div>
           </div>
 
           @if (submitError()) {
-            <div class="text-sm text-red-700" data-testid="submit-error">{{ submitError() }}</div>
+            <div
+              class="saga-card p-3 text-sm"
+              data-testid="submit-error"
+              style="border-color: var(--color-saga-danger); background-color: var(--color-saga-danger-soft); color: var(--color-saga-danger)"
+            >
+              {{ submitError() }}
+            </div>
           }
 
-          <div class="flex justify-end gap-2">
-            <button type="button" (click)="goHome()" class="px-4 py-2 rounded border border-gray-300 text-gray-600">
+          <div class="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
+            <button type="button" (click)="goHome()" class="saga-btn saga-btn-secondary w-full sm:w-auto">
               Cancel
             </button>
             <button
               type="submit"
               [disabled]="form.invalid || submitting()"
-              class="px-6 py-2 rounded bg-green-300 text-green-900 disabled:bg-gray-200 disabled:text-gray-400"
+              class="saga-btn saga-btn-primary w-full sm:w-auto"
             >
               {{ submitting() ? 'Submitting…' : 'Submit application' }}
             </button>
