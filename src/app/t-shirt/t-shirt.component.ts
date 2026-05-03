@@ -44,14 +44,12 @@ import { CHURCHES, CHURCH_OTHER } from '../data/churches';
             }
           </div>
           <div>
-            <label class="my-2 text-sm">
-              As winter wraps us in its quiet beauty, we're reminded how
-              important it is to stay connected and warm in fellowship. Please
-              share the name of the church you attend below — just like the
-              steady glow of a winter hearth, your church community helps keep
-              our camp family strong and united through the season!
-              <span class="text-red-700">*</span>
+            <label class="my-2 text-sm block">
+              Which church do you attend? <span class="text-red-700">*</span>
             </label>
+            <p class="text-xs mb-2" style="color: var(--color-saga-text-muted)">
+              Pick from the list — or choose "Other" if yours isn't there yet.
+            </p>
             <select
               [value]="dropdownValue()"
               (change)="onChurchSelect($any($event.target).value)"
