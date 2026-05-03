@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AdminLeader, AdminService } from '../admin.service';
+import { UiService } from '../../ui/ui.service';
 
 @Component({
   selector: 'app-admin-leaders',
@@ -17,11 +18,10 @@ import { AdminLeader, AdminService } from '../admin.service';
         </button>
       </div>
 
-      <nav class="flex gap-4 border-b border-gray-200 mb-4 text-sm">
-        <a routerLink="/admin" class="px-1 py-2 text-gray-500 hover:text-gray-700">Campers</a>
-        <span class="px-1 py-2 border-b-2 border-green-500 text-green-700 font-semibold">
-          Leaders
-        </span>
+      <nav class="flex gap-4 mb-4 text-sm" style="border-bottom: 1px solid var(--color-saga-border)">
+        <a routerLink="/admin" class="saga-tab no-underline">Campers</a>
+        <span class="saga-tab is-active">Leaders</span>
+        <a routerLink="/admin/bulk-email" class="saga-tab no-underline">Bulk email</a>
       </nav>
 
       <div class="flex items-center gap-3 mb-6 flex-wrap">
@@ -124,44 +124,66 @@ import { AdminLeader, AdminService } from '../admin.service';
           </div>
         }
 
-        <div class="overflow-x-auto border rounded">
-          <table class="w-full text-sm">
-            <thead class="bg-gray-50 text-left">
+        <div class="overflow-x-auto">
+          <table class="saga-table text-sm">
+            <thead>
               <tr>
-                <th class="px-3 py-2">Name</th>
-                <th class="px-3 py-2">Email</th>
-                <th class="px-3 py-2">Status</th>
-                <th class="px-3 py-2">By Neil</th>
-                <th class="px-3 py-2 w-48">Actions</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Status</th>
+                <th>By Neil</th>
+                <th class="w-48">Actions</th>
               </tr>
             </thead>
-            <tbody class="divide-y" data-testid="leaders-rows">
+            <tbody data-testid="leaders-rows">
               @for (l of visibleLeaders(); track l.id) {
-                <tr class="hover:bg-gray-50">
-                  <td class="px-3 py-2">{{ l.firstName }} {{ l.lastName }}</td>
-                  <td class="px-3 py-2 font-mono text-xs">{{ l.email }}</td>
-                  <td class="px-3 py-2">
+                <tr>
+                  <td>{{ l.firstName }} {{ l.lastName }}</td>
+                  <td class="font-mono text-xs">
+                    <span class="inline-flex items-center gap-1.5">
+                      <span>{{ l.email }}</span>
+                      <button
+                        type="button"
+                        (click)="copyEmail(l.email)"
+                        [title]="copiedEmail() === l.email ? 'Copied!' : 'Copy email'"
+                        class="cursor-pointer p-1 rounded hover:bg-white/5"
+                        style="background: none; border: none;"
+                      >
+                        @if (copiedEmail() === l.email) {
+                          <span style="color: var(--color-saga-success); font-size: 11px;">✓</span>
+                        } @else {
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-saga-text-muted)">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                          </svg>
+                        }
+                      </button>
+                    </span>
+                  </td>
+                  <td>
                     <span
-                      [class.text-green-700]="l.status === 'approved'"
-                      [class.text-red-700]="l.status === 'rejected'"
-                      [class.text-yellow-700]="l.status === 'pending'"
+                      [style.color]="
+                        l.status === 'approved' ? 'var(--color-saga-success)'
+                        : l.status === 'rejected' ? 'var(--color-saga-danger)'
+                        : 'var(--color-saga-warning)'
+                      "
                     >
                       {{ l.status }}
                     </span>
                   </td>
-                  <td class="px-3 py-2">
+                  <td>
                     @if (l.approvedByNeil) {
-                      <span class="text-green-700">✓</span>
+                      <span style="color: var(--color-saga-success)">✓</span>
                     } @else {
-                      <span class="text-gray-400">—</span>
+                      <span style="color: var(--color-saga-text-muted)">—</span>
                     }
                   </td>
-                  <td class="px-3 py-2">
+                  <td>
                     @if (l.status !== 'approved') {
                       <button
                         type="button"
                         (click)="approve(l)"
-                        class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded mr-1"
+                        class="saga-btn saga-btn-secondary !py-1 !px-2 !text-xs mr-1"
                       >
                         Approve
                       </button>
@@ -170,7 +192,7 @@ import { AdminLeader, AdminService } from '../admin.service';
                       <button
                         type="button"
                         (click)="reject(l)"
-                        class="text-xs bg-red-100 text-red-800 px-2 py-1 rounded"
+                        class="saga-btn saga-btn-secondary !py-1 !px-2 !text-xs"
                       >
                         Reject
                       </button>
@@ -179,7 +201,7 @@ import { AdminLeader, AdminService } from '../admin.service';
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="5" class="px-3 py-6 text-center text-gray-400">
+                  <td colspan="5" class="text-center py-6" style="color: var(--color-saga-text-muted)">
                     No leaders in this year.
                   </td>
                 </tr>
@@ -203,6 +225,7 @@ export class AdminLeadersComponent {
   addForm: FormGroup;
   addBusy = signal(false);
   addError = signal<string | null>(null);
+  copiedEmail = signal<string | null>(null);
 
   years = computed(() => {
     const set = new Set(this.leaders().map((l) => l.year));
@@ -224,6 +247,7 @@ export class AdminLeadersComponent {
   private readonly admin = inject(AdminService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
+  private readonly ui = inject(UiService);
 
   constructor() {
     this.addForm = this.fb.group({
@@ -263,24 +287,40 @@ export class AdminLeadersComponent {
     });
   }
 
-  approve(l: AdminLeader): void {
-    const pw = window.prompt(`Enter Neil's password to approve ${l.firstName} ${l.lastName}:`);
+  async approve(l: AdminLeader): Promise<void> {
+    const pw = await this.ui.prompt({
+      text: `Enter Neil's password to approve ${l.firstName} ${l.lastName}:`,
+      inputType: 'password',
+      placeholder: "Neil's password",
+      confirmLabel: 'Approve',
+    });
     if (!pw) return;
     this.admin.approveLeader(l.id, pw).subscribe({
-      next: () => this.refresh(),
+      next: () => {
+        this.refresh();
+        this.ui.toast(`✓ ${l.firstName} approved.`, 'success');
+      },
       error: (err) => {
-        window.alert(err?.status === 401 ? 'Wrong Neil password.' : 'Failed to approve.');
+        this.ui.toast(err?.status === 401 ? 'Wrong Neil password.' : 'Failed to approve.', 'error');
       },
     });
   }
 
-  reject(l: AdminLeader): void {
-    const pw = window.prompt(`Enter Neil's password to reject ${l.firstName} ${l.lastName}:`);
+  async reject(l: AdminLeader): Promise<void> {
+    const pw = await this.ui.prompt({
+      text: `Enter Neil's password to reject ${l.firstName} ${l.lastName}:`,
+      inputType: 'password',
+      placeholder: "Neil's password",
+      confirmLabel: 'Reject',
+    });
     if (!pw) return;
     this.admin.rejectLeader(l.id, pw).subscribe({
-      next: () => this.refresh(),
+      next: () => {
+        this.refresh();
+        this.ui.toast(`${l.firstName} rejected.`, 'info');
+      },
       error: (err) => {
-        window.alert(err?.status === 401 ? 'Wrong Neil password.' : 'Failed to reject.');
+        this.ui.toast(err?.status === 401 ? 'Wrong Neil password.' : 'Failed to reject.', 'error');
       },
     });
   }
@@ -307,5 +347,30 @@ export class AdminLeadersComponent {
   logout(): void {
     this.admin.clearToken();
     this.router.navigate(['/admin/login']);
+  }
+
+  copyEmail(email: string): void {
+    if (!email) return;
+    const ui = this.ui;
+    const done = () => {
+      this.copiedEmail.set(email);
+      ui.toast(`📋 ${email} copied to clipboard`, 'success', 1800);
+      setTimeout(() => this.copiedEmail.set(null), 1600);
+    };
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(email).then(done, () => fallback());
+    } else {
+      fallback();
+    }
+    function fallback() {
+      const ta = document.createElement('textarea');
+      ta.value = email;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); done(); } catch {}
+      document.body.removeChild(ta);
+    }
   }
 }

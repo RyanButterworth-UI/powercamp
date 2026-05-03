@@ -16,9 +16,13 @@ import { environment } from '../../environments/environment';
       [class.opacity-0]="!stepVisible()"
       [class.opacity-100]="stepVisible()"
     >
-      <h1 class="text-3xl font-bold mb-2">Power Camp 2026</h1>
+      <h1 class="text-3xl font-bold mb-1">Power Camp 2026</h1>
+      <p class="mb-1 text-sm" style="color: var(--color-saga-text-muted)">
+        Purity · Obedience · Worship · Endurance · Righteousness
+      </p>
       <p class="mb-6 text-sm" style="color: var(--color-saga-text-muted)">
-        Have you been to Power Camp before? Search for your name to pick up where you left off.
+        Been to Power Camp before? Search for your name and we'll pick up where you left off.
+        Registering also adds you to our mailing list (one-click unsubscribe on every email).
       </p>
 
       <div class="flex gap-2 mb-4">
@@ -62,6 +66,10 @@ import { environment } from '../../environments/environment';
             No matches. Try a different name, or use one of the options below.
           </div>
         } @else {
+          <p class="text-xs mb-2" style="color: var(--color-saga-text-muted)">
+            For privacy, only the email already linked to the camper can edit the registration.
+            Hit Register and we'll send a sign-in link to that email.
+          </p>
           <ul
             class="saga-card divide-y mb-6"
             data-testid="results"
@@ -83,7 +91,7 @@ import { environment } from '../../environments/environment';
                   [disabled]="sendingLinkFor() === r.id"
                   (click)="select(r)"
                 >
-                  {{ sendingLinkFor() === r.id ? 'Sending…' : 'This is me' }}
+                  {{ sendingLinkFor() === r.id ? 'Sending…' : 'Register' }}
                 </button>
               </li>
             }
@@ -98,7 +106,7 @@ import { environment } from '../../environments/environment';
         style="border-top: 1px solid var(--color-saga-border)"
       >
         <div class="text-sm" style="color: var(--color-saga-text-muted)">
-          New to Power Camp?
+          First time? No problem.
         </div>
         <div class="flex flex-col sm:flex-row gap-3 sm:w-auto">
           <button
@@ -116,6 +124,19 @@ import { environment } from '../../environments/environment';
           </a>
         </div>
       </div>
+
+      @if (hasDraft()) {
+        <div class="mt-4 text-xs text-right">
+          <button
+            type="button"
+            (click)="startOver()"
+            class="saga-btn-ghost underline"
+            style="color: var(--color-saga-text-muted); background: none; border: none; cursor: pointer; padding: 0;"
+          >
+            We saved your draft from earlier — clear and start over
+          </button>
+        </div>
+      }
     </div>
   `,
   styles: ``,
@@ -175,5 +196,25 @@ export class LookupComponent {
 
   registerNew() {
     this.goToStep.emit(StepKey.Intro);
+  }
+
+  hasDraft(): boolean {
+    if (typeof localStorage === 'undefined') return false;
+    const raw = localStorage.getItem('powercamp.form.draft');
+    if (!raw) return false;
+    try {
+      const v = JSON.parse(raw);
+      // Only show the "clear" link if at least one user-typed field is present.
+      return !!(
+        v?.firstName || v?.lastName || v?.parentEmail || v?.parentName || v?.email
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  startOver(): void {
+    localStorage.removeItem('powercamp.form.draft');
+    window.location.reload();
   }
 }

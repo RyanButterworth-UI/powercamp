@@ -1,16 +1,15 @@
 import { Component } from '@angular/core';
-
 import { RouterOutlet } from '@angular/router';
+import { SiteNavComponent } from './site-nav/site-nav.component';
+import { UiHostComponent } from './ui/ui-host.component';
 
 @Component({
   selector: 'app-root',
-  imports: [
-    RouterOutlet,
-  ],
+  imports: [RouterOutlet, SiteNavComponent, UiHostComponent],
   template: `
-   <div>
-     <router-outlet></router-outlet>
-   </div>
+    <app-site-nav></app-site-nav>
+    <router-outlet></router-outlet>
+    <app-ui-host></app-ui-host>
   `,
   styles: [],
 })

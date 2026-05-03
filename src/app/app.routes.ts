@@ -23,6 +23,21 @@ export const routes: Routes = [
       import('./verify-link/verify-link.component').then((m) => m.VerifyLinkComponent),
   },
   {
+    path: 'unsubscribe',
+    loadComponent: () =>
+      import('./unsubscribe/unsubscribe.component').then((m) => m.UnsubscribeComponent),
+  },
+  {
+    path: 'info',
+    loadComponent: () =>
+      import('./info/info.component').then((m) => m.InfoComponent),
+  },
+  {
+    path: 'kit-list',
+    loadComponent: () =>
+      import('./kit-list/kit-list.component').then((m) => m.KitListComponent),
+  },
+  {
     path: 'admin/login',
     loadComponent: () =>
       import('./admin/admin-login/admin-login.component').then((m) => m.AdminLoginComponent),
@@ -37,6 +52,12 @@ export const routes: Routes = [
     path: 'admin/leaders',
     loadComponent: () =>
       import('./admin/admin-leaders/admin-leaders.component').then((m) => m.AdminLeadersComponent),
+    canActivate: [adminGuard],
+  },
+  {
+    path: 'admin/bulk-email',
+    loadComponent: () =>
+      import('./admin/bulk-email/bulk-email.component').then((m) => m.BulkEmailComponent),
     canActivate: [adminGuard],
   },
   {

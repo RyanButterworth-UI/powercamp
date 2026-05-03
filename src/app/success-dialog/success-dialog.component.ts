@@ -1,122 +1,107 @@
 import { CommonModule } from '@angular/common';
-import { Component,input, Input, output } from '@angular/core';
+import { Component, input, Input, output } from '@angular/core';
 
 @Component({
   selector: 'app-success-dialog',
   imports: [CommonModule],
   template: `
-    <!-- success-dialog.component.html -->
     <div class="relative z-10" role="dialog" aria-modal="true">
-      <!-- backdrop -->
-      <div
-        class="fixed inset-0 bg-gray-500/75 transition-opacity"
-        aria-hidden="true"
-      ></div>
+      <!-- Dark backdrop on dark theme. -->
+      <div class="fixed inset-0 transition-opacity" style="background-color: rgba(17, 18, 23, 0.85)" aria-hidden="true"></div>
 
       <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
-        <div
-          class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0"
-        >
-          <div
-            class="relative transform overflow-hidden rounded-lg bg-white px-4 pt-5 pb-4 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-sm sm:p-6"
-          >
+        <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+          <div class="saga-card relative transform overflow-hidden px-4 pt-5 pb-5 text-left transition-all sm:my-8 sm:w-full sm:max-w-md sm:p-6">
             <div>
               <div
                 class="mx-auto flex size-12 items-center justify-center rounded-full"
-                [ngClass]="status === 'success' ? 'bg-green-100' : 'bg-red-100'"
+                [ngClass]="status === 'success' ? '' : ''"
+                [style.backgroundColor]="status === 'success' ? 'rgba(78, 192, 125, 0.18)' : 'var(--color-saga-danger-soft)'"
               >
                 <svg
                   *ngIf="status === 'success'; else errorIcon"
-                  class="size-6 text-green-600"
+                  class="size-6"
+                  [style.color]="'var(--color-saga-success)'"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke-width="1.5"
                   stroke="currentColor"
                   aria-hidden="true"
                 >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="m4.5 12.75 6 6 9-13.5"
-                  />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                 </svg>
                 <ng-template #errorIcon>
                   <svg
-                    class="size-6 text-red-600"
+                    class="size-6"
+                    [style.color]="'var(--color-saga-danger)'"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke-width="1.5"
                     stroke="currentColor"
                     aria-hidden="true"
                   >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M6 18L18 6M6 6l12 12"
-                    />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </ng-template>
               </div>
-              <div class="mt-3 text-center sm:mt-5">
-                <h3 class="text-base font-semibold text-gray-900">
+
+              <div class="mt-4 text-center">
+                <h3 class="text-lg font-semibold">
                   @if (!consent() && !feedback()) {
-                    {{
-                      status === 'success'
-                        ? 'Registration Successful'
-                        : 'Registration Failed'
-                    }}
+                    {{ status === 'success' ? "You're in!" : "Hmm, that didn't go through" }}
                   } @else if (feedback()) {
-                    {{
-                      status === 'success'
-                        ? 'Feedback Submitted'
-                        : 'Feedback Submission Failed'
-                    }}
+                    {{ status === 'success' ? 'Got it — thank you!' : "We didn't catch that" }}
                   } @else {
-                    {{
-                      status === 'success'
-                        ? 'Consent Capture Successful'
-                        : 'Consent Capture Failed'
-                    }}
+                    {{ status === 'success' ? 'Consent recorded' : 'Consent didn’t save' }}
                   }
                 </h3>
-                <div class="mt-2">
+                <div class="mt-2 text-sm" style="color: var(--color-saga-text-muted)">
                   @if (!consent() && !feedback()) {
-                    <p class="text-sm text-gray-500">
-                      {{
-                        status === 'success'
-                          ? camperName +
-                          ', your registration for Power Camp Winter 2025 has been recorded successfully. Get ready for a season of faith, fellowship, and unforgettable winter adventure!'
-                          : camperName +
-                          ', there was a problem submitting your registration for Power Camp Winter 2025. Please try again or contact us if the issue continues.'
-                      }}
-                    </p>
+                    @if (status === 'success') {
+                      <p>
+                        {{ camperName }}, your spot at Power Camp 2026 is provisionally held. We'll
+                        confirm once payment lands. Check your inbox for the receipt.
+                      </p>
+                      <p class="mt-2 text-xs" style="color: var(--color-saga-text-muted)">
+                        Parent and camper emails have been added to the Power Camp mailing
+                        list. Every campaign email has a one-click unsubscribe.
+                      </p>
+                      <p class="mt-2">If you have another child to register, hit the button below — we'll keep your parent details prefilled.</p>
+                    } @else {
+                      <p>
+                        {{ camperName }}, our gremlins ate that submission. Try again, and if it
+                        keeps grumbling, give us a shout.
+                      </p>
+                    }
                   } @else if (feedback()) {
-                    <p class="text-sm text-gray-700">
-                      {{
-                        status === 'success'
-                          ? camperName + ', thank you for your feedback on Power Camp 2025! We appreciate your input.'
-                          : camperName + ', there was a problem submitting your feedback. Please try again or contact us if the issue continues.'
-                      }}
+                    <p>
+                      {{ status === 'success' ? camperName + ", thanks for taking the time. Future-you (and us) appreciates it." : camperName + ", the feedback didn't go through. One more try?" }}
                     </p>
                   } @else {
-                    {{
-                      status === 'success'
-                        ? camperName + ', we have successfully received your consent for Power Camp 2025. Thank you!'
-                        : camperName + ', there was a problem submitting your consent. Please try again or contact us if the issue continues.'
-                    }}
+                    <p>
+                      {{ status === 'success' ? camperName + ', consent saved. You\'re cleared for adventure.' : camperName + ", that consent didn't save. Try again or give us a shout." }}
+                    </p>
                   }
                 </div>
               </div>
             </div>
-            <div class="mt-5 sm:mt-6">
+
+            <div class="mt-5 flex flex-col sm:flex-row gap-2">
+              @if (status === 'success' && !consent() && !feedback()) {
+                <button
+                  type="button"
+                  class="saga-btn saga-btn-secondary w-full sm:flex-1"
+                  (click)="registerAnother.emit()"
+                >
+                  ＋ Register another child
+                </button>
+              }
               <button
                 type="button"
-                class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                class="saga-btn saga-btn-primary w-full sm:flex-1"
                 (click)="refreshApp.emit()"
               >
-                {{
-                  status === 'success' ? 'Return To Start' : 'Please try Again'
-                }}
+                {{ status === 'success' ? "We're done" : 'Please try again' }}
               </button>
             </div>
           </div>
@@ -132,4 +117,5 @@ export class SuccessDialogComponent {
   consent = input<boolean>(false);
   feedback = input<boolean>(false);
   refreshApp = output();
+  registerAnother = output();
 }

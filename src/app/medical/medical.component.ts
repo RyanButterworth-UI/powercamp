@@ -17,27 +17,24 @@ import { StepKey } from '../../models';
         [class.opacity-100]="stepVisible()"
       >
         <div>
-          <p class="text-red-800">Medical Information:</p>
-          <p class="block text-sm/4 font-medium text-gray-500">
-            We want to be prepared. Please give any important medical info.
+          <h2 class="text-lg font-semibold mb-1">Medical info</h2>
+          <p class="text-sm mb-3" style="color: var(--color-saga-text-muted)">
+            Anything we should know about? Allergies, medication, conditions —
+            our nurses like the heads-up. Skip if you're fighting fit.
           </p>
-          <label class="block text-xs/6 font-medium text-gray-900 my-2">
-            You can skip this section if you are fighting fit.
-            <span class="text-red-700">*</span>
-          </label>
           <textarea
             formControlName="medical"
-            placeholder="Please provide any medical information that we should be aware of, such as allergies, medications, or other health concerns."
+            placeholder="e.g. Asthma — uses pump. Allergic to peanuts."
             name="medical"
             rows="3"
-            class="w-full border rounded px-3 py-2 mb-4 text-sm"
+            class="w-full rounded-lg px-3 py-2 mb-2 text-sm"
           ></textarea>
         </div>
         <div class="flex gap-6 mt-6">
           <button
             type="button"
             (click)="goToStep.emit(StepKey.Friends)"
-            class="px-8 py-2 rounded border"
+            class="saga-btn saga-btn-secondary"
           >
             Back
           </button>
@@ -45,7 +42,7 @@ import { StepKey } from '../../models';
             [disabled]="!areCamperFieldsValid()"
             type="button"
             (click)="goToStep.emit(StepKey.ParentInfo)"
-            class="bg-green-300 text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed"
+            class="saga-btn saga-btn-primary"
           >
             Next
           </button>

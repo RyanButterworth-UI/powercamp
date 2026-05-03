@@ -17,7 +17,7 @@ import {
     >
       <form [formGroup]="form">
         <div>
-          <p class="my-2 text-md text-gray-500">
+          <p class="my-2 text-sm">
             The details below are for the camper attending Power Camp. Please
             fill out each field carefully!
           </p>
@@ -131,7 +131,7 @@ import {
           >
             Camper Email
           </label>
-          <p class="mt-2 mb-2 text-md text-gray-500 text-xs">
+          <p class="mt-2 mb-2 text-sm text-xs">
             Not required but definitely helpful!
           </p>
           <div class="relative mt-2">
@@ -168,11 +168,16 @@ import {
             </div>
           }
         </div>
-        <div class="flex gap-6 mt-10">
+        @if (missingLabels().length > 0) {
+          <p class="text-xs mt-3" style="color: var(--color-saga-warning)">
+            Still need: {{ missingLabels().join(', ') }}
+          </p>
+        }
+        <div class="flex gap-6 mt-4">
           <button
             type="button"
             (click)="goToStep.emit(StepKey.LeaderApplication)"
-            class="px-8 py-2 rounded border border-gray-300  text-gray-600 cursor-pointer"
+            class="saga-btn saga-btn-secondary"
           >
             Back
           </button>
@@ -180,7 +185,7 @@ import {
             [disabled]="!areCamperFieldsValid()"
             type="button"
             (click)="goToStep.emit(StepKey.CamperAdditionalInfo)"
-            class="bg-green-300 text-green-900 px-8 py-2 rounded disabled:bg-red-700 cursor-pointer disabled:text-white disabled:cursor-not-allowed"
+            class="saga-btn saga-btn-primary"
           >
             Next
           </button>
@@ -202,7 +207,18 @@ export class CamperInfoComponent {
 
   camperFields = ['firstName', 'lastName'];
 
+  private readonly LABELS: Record<string, string> = {
+    firstName: 'First Name',
+    lastName: 'Last Name',
+  };
+
   areCamperFieldsValid(): boolean {
     return this.camperFields.every((field) => this.form.get(field)?.valid);
+  }
+
+  missingLabels(): string[] {
+    return this.camperFields
+      .filter((f) => !this.form.get(f)?.valid)
+      .map((f) => this.LABELS[f] ?? f);
   }
 }

@@ -1,4 +1,4 @@
-import { Component, computed, input, output, signal } from '@angular/core';
+import { Component, input, output, signal } from '@angular/core';
 import {
   FormGroup,
   FormGroupDirective,
@@ -17,7 +17,7 @@ import { StepKey } from '../../models';
         [class.opacity-100]="stepVisible()"
       >
         <div>
-          <p class="my-2 text-md text-gray-500">
+          <p class="my-2 text-sm">
             The details below are for the PARENT of
             {{ firstName() }}. Please fill out each field carefully!
           </p>
@@ -131,11 +131,16 @@ import { StepKey } from '../../models';
             }
           </fieldset>
         </div>
-        <div class="flex gap-6 mt-6">
+        @if (missingLabels().length > 0) {
+          <p class="text-xs mt-3" style="color: var(--color-saga-warning)">
+            Still need: {{ missingLabels().join(', ') }}
+          </p>
+        }
+        <div class="flex gap-6 mt-4">
           <button
             type="button"
             (click)="goToStep.emit(StepKey.Medical)"
-            class="px-8 py-2 rounded border border-gray-300  text-gray-600 cursor-pointer"
+            class="saga-btn saga-btn-secondary"
           >
             Back
           </button>
@@ -143,7 +148,7 @@ import { StepKey } from '../../models';
             [disabled]="!areCamperFieldsValid()"
             type="button"
             (click)="goToStep.emit(StepKey.Tshirt)"
-            class="bg-green-300 text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed"
+            class="saga-btn saga-btn-primary"
           >
             Next
           </button>
@@ -161,11 +166,25 @@ export class ParentComponent {
 
   camperFields = ['parentPhone', 'parentEmail', 'parentName'];
 
+  private readonly LABELS: Record<string, string> = {
+    parentName: 'Parent Name',
+    parentPhone: 'Parent Phone',
+    parentEmail: 'Parent Email',
+  };
+
+  missingLabels(): string[] {
+    return this.camperFields
+      .filter((f) => !this.form.get(f)?.valid)
+      .map((f) => this.LABELS[f] ?? f);
+  }
+
   constructor(private rootFormGroup: FormGroupDirective) {
     this.form = this.rootFormGroup.control;
   }
 
-  firstName = computed(() => this.form.get('firstName')?.value || '');
+  // Plain method, not computed() — form.get().value isn't a signal, so a
+  // computed would only run once at init and never reflect typed input.
+  firstName(): string { return this.form.get('firstName')?.value || ''; }
 
   areCamperFieldsValid(): boolean {
     return this.camperFields.every((field) => this.form.get(field)?.valid);

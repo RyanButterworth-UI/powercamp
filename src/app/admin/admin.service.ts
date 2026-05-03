@@ -50,6 +50,13 @@ export class AdminService {
     );
   }
 
+  me(): Observable<{ ok: boolean; campYear: number }> {
+    return this.http.get<{ ok: boolean; campYear: number }>(
+      `${environment.baseApi}/admin/me`,
+      { headers: this.authHeaders() }
+    );
+  }
+
   exportXlsxUrl(): string {
     // The /admin/export endpoint requires Authorization, so we can't just window.location it.
     // The component will fetch as a blob and trigger a download.
@@ -93,7 +100,49 @@ export class AdminService {
       { headers: this.authHeaders() }
     );
   }
+
+  markPaid(camperId: number): Observable<{ id: number; paymentReceivedAt: string }> {
+    return this.http.post<{ id: number; paymentReceivedAt: string }>(
+      `${environment.baseApi}/admin/campers/${camperId}/mark-paid`,
+      {},
+      { headers: this.authHeaders() }
+    );
+  }
+
+  updateParentEmail(camperId: number, parentEmail: string): Observable<{ id: number; parentEmail: string }> {
+    return this.http.post<{ id: number; parentEmail: string }>(
+      `${environment.baseApi}/admin/campers/${camperId}/update-email`,
+      { parentEmail },
+      { headers: this.authHeaders() }
+    );
+  }
+
+  bulkEmailPreview(subject: string, blocks: EmailBlock[]): Observable<{ html: string }> {
+    return this.http.post<{ html: string }>(
+      `${environment.baseApi}/admin/bulk-email/preview`,
+      { subject, blocks },
+      { headers: this.authHeaders() }
+    );
+  }
+
+  bulkEmailSend(
+    subject: string,
+    blocks: EmailBlock[],
+    recipients: string[]
+  ): Observable<{ sent: number; totalRecipients: number; unsubscribedSkipped: number; failed: { to: string; error: string }[] }> {
+    return this.http.post<{ sent: number; totalRecipients: number; unsubscribedSkipped: number; failed: { to: string; error: string }[] }>(
+      `${environment.baseApi}/admin/bulk-email`,
+      { subject, blocks, recipients },
+      { headers: this.authHeaders() }
+    );
+  }
 }
+
+export type EmailBlock =
+  | { kind: 'heading'; text: string }
+  | { kind: 'paragraph'; text: string }
+  | { kind: 'button'; text: string; url: string }
+  | { kind: 'divider' };
 
 export interface AdminLeader {
   id: number;

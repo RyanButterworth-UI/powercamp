@@ -1,4 +1,4 @@
-import { Component, computed, input, output, signal } from '@angular/core';
+import { Component, input, output, signal } from '@angular/core';
 import {
   FormGroup,
   FormGroupDirective,
@@ -17,7 +17,7 @@ import { StepKey } from '../../models';
         [class.opacity-100]="stepVisible()"
       >
         <div>
-          <p class="my-2 text-md text-gray-500">
+          <p class="my-2 text-sm">
             So glad to have you here {{ firstName() }}, please give us a few
             more details
           </p>
@@ -65,7 +65,7 @@ import { StepKey } from '../../models';
             <label class="block text-sm/2 font-medium text-gray-900">
               Age <span class="text-red-700">*</span>
             </label>
-            <div class="mt-2 grid grid-cols-3 gap-3 sm:grid-cols-5 mb-4">
+            <div class="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6 mb-4">
               @for (age of ageOptions(); track age) {
                 <label
                   [attr.aria-label]="age"
@@ -92,13 +92,18 @@ import { StepKey } from '../../models';
           <input
             type="date"
             formControlName="dob"
-            class="w-full border border-gray-500 rounded px-3 py-2 mb-4"
+            (click)="openDatePicker($event)"
+            (focus)="openDatePicker($event)"
+            class="w-full rounded-lg mb-4 px-3 py-2"
+            style="cursor: pointer;"
+            min="2002-01-01"
+            [max]="todayIso"
           />
           <fieldset aria-label="Camper Grade">
             <label class="block text-sm/2 font-medium text-gray-900">
               Grade <span class="text-red-700">*</span>
             </label>
-            <div class="mt-2 grid grid-cols-3 gap-3 sm:grid-cols-5 mb-4">
+            <div class="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6 mb-4">
               @for (grade of grades(); track grade) {
                 <label
                   [attr.aria-label]="grade"
@@ -119,11 +124,16 @@ import { StepKey } from '../../models';
             </div>
           </fieldset>
         </div>
-        <div class="flex gap-6 mt-6">
+        @if (missingLabels().length > 0) {
+          <p class="text-xs mt-3" style="color: var(--color-saga-warning)">
+            Still need: {{ missingLabels().join(', ') }}
+          </p>
+        }
+        <div class="flex gap-6 mt-4">
           <button
             type="button"
             (click)="goToStep.emit(StepKey.Details)"
-            class="px-8 py-2 rounded border border-gray-300  text-gray-600 cursor-pointer"
+            class="saga-btn saga-btn-secondary"
           >
             Back
           </button>
@@ -131,7 +141,7 @@ import { StepKey } from '../../models';
             [disabled]="!areCamperFieldsValid()"
             type="button"
             (click)="goToStep.emit(StepKey.Friends)"
-            class="bg-green-300 text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed cursor-pointer"
+            class="saga-btn saga-btn-primary"
           >
             Next
           </button>
@@ -147,16 +157,49 @@ export class CampAdditionalInfoComponent {
   goToStep = output<StepKey>();
   StepKey = StepKey;
   grades = signal(['8', '9', '10', '11', '12', 'Leader']);
-  ageOptions = signal<(number | string)[]>([14, 15, 16, 17, 18, 'Leader 18+']);
+  // String values so the form's age field stays a string — the backend zod
+  // schema rejects numbers and Excel-style numeric ages broke earlier
+  // submissions ("Expected string, received number").
+  ageOptions = signal<string[]>(['14', '15', '16', '17', '18', 'Leader 18+']);
   camperFields = ['gender', 'age', 'dob', 'grade'];
 
   constructor(private rootFormGroup: FormGroupDirective) {
     this.form = this.rootFormGroup.control;
   }
 
-  firstName = computed(() => this.form.get('firstName')?.value || '');
+  // Plain method, not computed() — form.get().value isn't a signal, so a
+  // computed would only run once at init and never reflect typed input.
+  firstName(): string { return this.form.get('firstName')?.value || ''; }
+  todayIso = new Date().toISOString().split('T')[0];
+
+  private readonly LABELS: Record<string, string> = {
+    gender: 'Gender',
+    age: 'Age',
+    dob: 'Date of Birth',
+    grade: 'Grade',
+  };
 
   areCamperFieldsValid(): boolean {
     return this.camperFields.every((field) => this.form.get(field)?.valid);
+  }
+
+  missingLabels(): string[] {
+    return this.camperFields
+      .filter((f) => !this.form.get(f)?.valid)
+      .map((f) => this.LABELS[f] ?? f);
+  }
+
+  // Some browsers (Safari, especially mobile) don't pop the native date
+  // picker until the icon is clicked. showPicker() forces the calendar
+  // open as soon as the field receives focus or a click.
+  openDatePicker(e: Event): void {
+    const el = e.target as HTMLInputElement & { showPicker?: () => void };
+    if (typeof el.showPicker === 'function') {
+      try {
+        el.showPicker();
+      } catch {
+        // Some browsers throw when the input is disabled — silent ignore.
+      }
+    }
   }
 }

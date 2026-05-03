@@ -103,3 +103,20 @@ export const leaders = pgTable(
 
 export type Leader = typeof leaders.$inferSelect;
 export type NewLeader = typeof leaders.$inferInsert;
+
+export const subscriptions = pgTable(
+  'subscriptions',
+  {
+    id: serial('id').primaryKey(),
+    email: text('email').notNull().unique(),
+    subscribed: boolean('subscribed').default(true).notNull(),
+    unsubscribedAt: timestamp('unsubscribed_at'),
+    source: text('source').default('registration'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (t) => [index('subscriptions_email_idx').on(t.email)]
+);
+
+export type Subscription = typeof subscriptions.$inferSelect;
+export type NewSubscription = typeof subscriptions.$inferInsert;

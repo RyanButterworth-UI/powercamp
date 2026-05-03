@@ -1,4 +1,4 @@
-import { Component, computed, input, output, signal } from '@angular/core';
+import { Component, input, output, signal } from '@angular/core';
 import {
   FormGroup,
   FormGroupDirective,
@@ -17,7 +17,7 @@ import { StepKey } from '../../models';
         [class.opacity-100]="stepVisible()"
       >
         <div>
-          <label class="my-2 text-sm text-gray-500">
+          <label class="my-2 text-sm">
             Before you cross the finish line, is there anything else we should
             know? We want to make sure you have everything you need for an
             amazing camp experience this winter! (You can skip this too!)
@@ -34,15 +34,14 @@ import { StepKey } from '../../models';
           <button
             type="button"
             (click)="goToStep.emit(StepKey.Friends)"
-            class="px-8 py-2 rounded border"
+            class="saga-btn saga-btn-secondary"
           >
             Back
           </button>
           <button
-            [disabled]="!areCamperFieldsValid()"
             type="button"
             (click)="goToStep.emit(StepKey.CheckData)"
-            class="bg-green-300 text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed"
+            class="saga-btn saga-btn-primary"
           >
             Next
           </button>
@@ -63,7 +62,9 @@ export class OtherInfoComponent {
     this.form = this.rootFormGroup.control;
   }
 
-  firstName = computed(() => this.form.get('firstName')?.value || '');
+  // Plain method, not computed() — form.get().value isn't a signal, so a
+  // computed would only run once at init and never reflect typed input.
+  firstName(): string { return this.form.get('firstName')?.value || ''; }
 
   areCamperFieldsValid(): boolean {
     return this.camperFields.every((field) => this.form.get(field)?.valid);

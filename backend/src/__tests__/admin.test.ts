@@ -143,3 +143,19 @@ describe('GET /admin/me', () => {
     expect((await request(buildApp()).get('/admin/me')).status).toBe(401);
   });
 });
+
+describe('POST /admin/campers/:id/mark-paid', () => {
+  beforeEach(() => selectMock.mockReset());
+
+  it('returns 401 without an admin token', async () => {
+    const res = await request(buildApp()).post('/admin/campers/1/mark-paid');
+    expect(res.status).toBe(401);
+  });
+
+  it('rejects non-numeric ids with 400', async () => {
+    const res = await request(buildApp())
+      .post('/admin/campers/abc/mark-paid')
+      .set('Authorization', `Bearer ${signAdminToken()}`);
+    expect(res.status).toBe(400);
+  });
+});

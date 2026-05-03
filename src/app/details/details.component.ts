@@ -10,7 +10,7 @@ import { StepKey } from '../../models';
       [class.opacity-0]="!stepVisible()"
       [class.opacity-100]="stepVisible()"
     >
-      <h2 class="text-2xl font-bold mb-4 text-gray-900">Camp Details</h2>
+      <h2 class="text-xl font-bold mb-3">Camp Details</h2>
       <div class="mb-4 text-md text-gray-700 space-y-2">
         <div>
           <span class="font-semibold">Starts:</span> Friday 31 July 2026 at 17:00
@@ -30,17 +30,19 @@ import { StepKey } from '../../models';
           <span class="font-semibold">Cost:</span> R1300 (accommodation, meals,
           all activities, and the POWER camp T-shirt)
         </div>
-        <div class="text-xs text-gray-500">
+        <div class="text-xs">
           Excludes transport to and from camp and tuck money.
         </div>
       </div>
-      <button
-        type="button"
-        (click)="goToStep.emit(StepKey.LeaderApplication)"
-        class="rounded-full bg-white mt-4 px-4 py-2.5 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50"
-      >
-        Let me Register already!
-      </button>
+      <div class="flex flex-col sm:flex-row gap-3 mt-4">
+        <button
+          type="button"
+          (click)="goToStep.emit(StepKey.LeaderApplication)"
+          class="saga-btn saga-btn-primary"
+        >
+          Let me Register already!
+        </button>
+      </div>
     </div>
   `,
   styles: ``,

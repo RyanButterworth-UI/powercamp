@@ -21,7 +21,7 @@ import { CommonModule } from '@angular/common';
         [class.opacity-100]="stepVisible()"
       >
         <div class="flex flex-col">
-          <label class="my-2 text-md text-gray-500">
+          <label class="my-2 text-sm">
             Power Camp memories last a lifetime! Roommate requests aren’t
             guaranteed, but we’ll do our best. If you have a fellow champion in
             mind, share their name below — a supportive teammate can make camp
@@ -64,15 +64,14 @@ import { CommonModule } from '@angular/common';
           <button
             type="button"
             (click)="goToStep.emit(StepKey.CamperAdditionalInfo)"
-            class="px-8 py-2 rounded border border-gray-300  text-gray-600 cursor-pointer"
+            class="saga-btn saga-btn-secondary"
           >
             Back
           </button>
           <button
             type="button"
             (click)="goToStep.emit(StepKey.Medical)"
-            [disabled]="!areCamperFieldsValid"
-            class="bg-green-300 text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed"
+            class="saga-btn saga-btn-primary"
           >
             Next
           </button>

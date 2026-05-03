@@ -1,10 +1,12 @@
-import { Component, computed, input, output, signal } from '@angular/core';
+import { Component, input, output, signal } from '@angular/core';
 import {
+  FormControl,
   FormGroup,
   FormGroupDirective,
   ReactiveFormsModule,
 } from '@angular/forms';
 import { StepKey } from '../../models';
+import { CHURCHES, CHURCH_OTHER } from '../data/churches';
 
 @Component({
   selector: 'app-t-shirt',
@@ -43,41 +45,54 @@ import { StepKey } from '../../models';
             }
           </div>
           <div>
-            <label class="my-2 text-sm text-gray-500">
-              As winter wraps us in its quiet beauty, we’re reminded how
-              important it is to stay connected and warm in fellowship. Please
-              share the name of the church you attend below — just like the
-              steady glow of a winter hearth, your church community helps keep
-              our camp family strong and united through the season! </label
-            ><span class="text-red-700">*</span>
-            <input
-              formControlName="church"
-              placeholder="Name of the church you attend"
-              type="text"
-              name="generalInfo"
-              rows="3"
-              class="w-full border rounded px-3 py-2 my-4"
-            />
+            <label class="my-2 text-sm block">
+              Which church do you attend? <span class="text-red-700">*</span>
+            </label>
+            <p class="text-xs mb-2" style="color: var(--color-saga-text-muted)">
+              Pick from the list — or choose "Other" if yours isn't there yet.
+            </p>
+            <select
+              [formControl]="churchSelect"
+              class="rounded-lg w-full px-3 py-2 my-2"
+            >
+              <option value="">Select your church…</option>
+              @for (c of churches; track c) {
+                <option [value]="c">{{ c }}</option>
+              }
+              <option [value]="OTHER">Other (type your own)</option>
+            </select>
+
+            @if (otherSelected()) {
+              <input
+                formControlName="church"
+                placeholder="Type your church name"
+                type="text"
+                class="w-full rounded-lg px-3 py-2 my-2"
+              />
+            }
           </div>
         </div>
-        <div class="flex gap-6 mt-6">
-          <div class="flex gap-6 mt-6">
-            <button
-              type="button"
-              (click)="goToStep.emit(StepKey.ParentInfo)"
-              class="px-8 py-2 rounded border"
-            >
-              Back
-            </button>
-            <button
-              [disabled]="!areCamperFieldsValid()"
-              type="button"
-              (click)="goToStep.emit(StepKey.OtherInfo)"
-              class="bg-green-300 text-green-900 px-8 py-2 rounded disabled:bg-red-700 disabled:text-white disabled:cursor-not-allowed"
-            >
-              Next
-            </button>
-          </div>
+        @if (missingLabels().length > 0) {
+          <p class="text-xs mt-3" style="color: var(--color-saga-warning)">
+            Still need: {{ missingLabels().join(', ') }}
+          </p>
+        }
+        <div class="flex gap-6 mt-4">
+          <button
+            type="button"
+            (click)="goToStep.emit(StepKey.ParentInfo)"
+            class="saga-btn saga-btn-secondary"
+          >
+            Back
+          </button>
+          <button
+            [disabled]="!areCamperFieldsValid()"
+            type="button"
+            (click)="goToStep.emit(StepKey.OtherInfo)"
+            class="saga-btn saga-btn-primary"
+          >
+            Next
+          </button>
         </div>
       </div>
     </form>
@@ -89,15 +104,57 @@ export class TShirtComponent {
   stepVisible = input.required<boolean>();
   goToStep = output<StepKey>();
   StepKey = StepKey;
-  grades = signal(['8', '9', '10', '11', '12']);
-  ageOptions = signal([14, 15, 16, 17, 18]);
   camperFields = ['tshirt', 'church'];
+
+  private readonly LABELS: Record<string, string> = {
+    tshirt: 'T-shirt size',
+    church: 'Church',
+  };
+
+  missingLabels(): string[] {
+    return this.camperFields
+      .filter((f) => !this.form.get(f)?.valid)
+      .map((f) => this.LABELS[f] ?? f);
+  }
+
+  readonly churches = CHURCHES;
+  readonly OTHER = CHURCH_OTHER;
+  otherSelected = signal(false);
+  // The dropdown is driven by its own FormControl rather than [value] —
+  // [value] on a <select> doesn't reliably move the selected option after
+  // the user navigates away and back. The control's valueChanges keeps
+  // the parent form's `church` field in sync.
+  churchSelect = new FormControl<string>('');
 
   constructor(private rootFormGroup: FormGroupDirective) {
     this.form = this.rootFormGroup.control;
+
+    // Sync the dropdown to whatever's already in the form's church field
+    // (e.g. a restored draft or a re-entered camper).
+    const initial = this.form.get('church')?.value ?? '';
+    if (!initial) {
+      this.churchSelect.setValue('');
+    } else if (CHURCHES.includes(initial)) {
+      this.churchSelect.setValue(initial);
+    } else {
+      this.churchSelect.setValue(CHURCH_OTHER);
+      this.otherSelected.set(true);
+    }
+
+    this.churchSelect.valueChanges.subscribe((value) => {
+      if (value === CHURCH_OTHER) {
+        this.otherSelected.set(true);
+        // Don't wipe what they had — let the text input edit the existing value.
+      } else {
+        this.otherSelected.set(false);
+        this.form.get('church')?.setValue(value ?? '');
+      }
+    });
   }
 
-  firstName = computed(() => this.form.get('firstName')?.value || '');
+  // Plain method, not computed() — form.get().value isn't a signal, so a
+  // computed would only run once at init and never reflect typed input.
+  firstName(): string { return this.form.get('firstName')?.value || ''; }
 
   areCamperFieldsValid(): boolean {
     return this.camperFields.every((field) => this.form.get(field)?.valid);

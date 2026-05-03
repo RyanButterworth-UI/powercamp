@@ -9,7 +9,20 @@ import { signAdminToken } from '../services/auth';
 import { env } from '../env';
 import { requireAdmin } from '../middleware/require-admin';
 import { appendToSheet } from '../services/sheets';
+import {
+  sendPaymentConfirmed,
+  renderBlocksToHtml,
+  blocksToPlainText,
+  sendBulkEmail,
+  EmailBlock,
+} from '../services/email';
 import { leaderRow } from './leaders';
+import {
+  filterToSubscribed,
+  listSubscriptions,
+  setSubscribed,
+} from '../services/subscriptions';
+import { signUnsubscribeToken } from '../services/auth';
 
 // Hardcoded by design (per spec) — Neil's approve / reject / direct-add password.
 const NEIL_PASSWORD = 'gravelROx';
@@ -116,9 +129,76 @@ adminRouter.get('/admin/export', requireAdmin, async (_req, res) => {
   }
 });
 
-// Tiny endpoint so the FE guard can probe whether a token is still valid.
+// Tiny endpoint so the FE guard can probe whether a token is still valid
+// and pick up the active CAMP_YEAR (so the year tabs render even with no
+// rows for the current year yet).
 adminRouter.get('/admin/me', requireAdmin, (_req, res) => {
-  res.json({ ok: true });
+  res.json({ ok: true, campYear: env.CAMP_YEAR });
+});
+
+const updateEmailBody = z.object({
+  parentEmail: z.string().email(),
+});
+
+adminRouter.post('/admin/campers/:id/update-email', requireAdmin, async (req, res) => {
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'Invalid camper id' });
+  }
+  const parsed = updateEmailBody.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid email' });
+  }
+  try {
+    const [updated] = await db
+      .update(campers)
+      .set({ parentEmail: parsed.data.parentEmail.toLowerCase(), updatedAt: new Date() })
+      .where(eq(campers.id, id))
+      .returning({ id: campers.id, parentEmail: campers.parentEmail });
+    if (!updated) return res.status(404).json({ error: 'Camper not found' });
+    res.json(updated);
+  } catch (err) {
+    console.error('update-email error:', err);
+    res.status(500).json({ error: 'Failed to update email' });
+  }
+});
+
+adminRouter.post('/admin/campers/:id/mark-paid', requireAdmin, async (req, res) => {
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'Invalid camper id' });
+  }
+  try {
+    const [updated] = await db
+      .update(campers)
+      .set({ paymentReceivedAt: new Date(), updatedAt: new Date() })
+      .where(eq(campers.id, id))
+      .returning();
+    if (!updated) return res.status(404).json({ error: 'Camper not found' });
+
+    // Best-effort: append to the Payments sheet tab so organisers see a
+    // running log alongside the live registration sheet.
+    appendToSheet('Payments', [
+      new Date().toISOString(),
+      String(updated.id),
+      `${updated.firstName} ${updated.lastName}`,
+      updated.parentEmail,
+      updated.email ?? '',
+      String(updated.year),
+    ]).catch((err) => {
+      console.error('Payments sheet sync failed (DB write succeeded):', err);
+    });
+
+    // Best-effort confirmation email to parent + camper (CCed when present).
+    sendPaymentConfirmed(updated.parentEmail, updated.firstName, updated.email).catch((err) => {
+      console.error('Payment-confirmed email failed:', err);
+    });
+
+    res.json({ id: updated.id, paymentReceivedAt: updated.paymentReceivedAt });
+  } catch (err) {
+    console.error('mark-paid error:', err);
+    res.status(500).json({ error: 'Failed to mark as paid' });
+  }
 });
 
 adminRouter.get('/admin/leaders', requireAdmin, async (_req, res) => {
@@ -203,6 +283,107 @@ const directAddBody = z.object({
   parentPhone: z.string().optional(),
   parentEmail: z.string().optional(),
   applicationNotes: z.string().optional(),
+});
+
+// ---------- Bulk email ----------
+
+const blockSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('heading'), text: z.string().min(1).max(200) }),
+  z.object({ kind: z.literal('paragraph'), text: z.string().min(1).max(4000) }),
+  z.object({
+    kind: z.literal('button'),
+    text: z.string().min(1).max(80),
+    url: z.string().url(),
+  }),
+  z.object({ kind: z.literal('divider') }),
+]);
+
+const bulkEmailBody = z.object({
+  subject: z.string().min(1).max(200),
+  blocks: z.array(blockSchema).min(1).max(50),
+  recipients: z.array(z.string().email()).min(1).max(500),
+});
+
+adminRouter.post('/admin/bulk-email', requireAdmin, async (req, res) => {
+  const parsed = bulkEmailBody.safeParse(req.body);
+  if (!parsed.success) {
+    return res
+      .status(400)
+      .json({ error: 'Invalid bulk email request', details: parsed.error.flatten() });
+  }
+  const { subject, blocks, recipients } = parsed.data;
+  // Dedup + normalise recipients, then drop anyone who has unsubscribed.
+  const uniq = Array.from(new Set(recipients.map((r) => r.trim().toLowerCase())));
+
+  try {
+    const { allowed, skipped } = await filterToSubscribed(uniq);
+    const text = blocksToPlainText(blocks as EmailBlock[]);
+
+    const result = await sendBulkEmail(subject, allowed, (email) => {
+      const url = `${env.APP_BASE_URL}/unsubscribe?token=${encodeURIComponent(
+        signUnsubscribeToken(email)
+      )}`;
+      return {
+        html: renderBlocksToHtml(subject, blocks as EmailBlock[], url),
+        text: text + `\n\nDon't want these? Unsubscribe: ${url}`,
+      };
+    });
+
+    res.json({
+      ...result,
+      totalRecipients: uniq.length,
+      unsubscribedSkipped: skipped.length,
+    });
+  } catch (err) {
+    console.error('bulk-email error:', err);
+    res.status(500).json({ error: 'Failed to send bulk email' });
+  }
+});
+
+// Render-only endpoint so the FE preview can mirror the server's exact HTML
+// without re-implementing the renderer.
+adminRouter.post('/admin/bulk-email/preview', requireAdmin, (req, res) => {
+  const parsed = z
+    .object({ subject: z.string().min(1).max(200), blocks: z.array(blockSchema) })
+    .safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid preview request' });
+  }
+  const html = renderBlocksToHtml(
+    parsed.data.subject,
+    parsed.data.blocks as EmailBlock[],
+    `${env.APP_BASE_URL}/unsubscribe?token=preview`
+  );
+  res.json({ html });
+});
+
+// Subscriptions management.
+adminRouter.get('/admin/subscriptions', requireAdmin, async (_req, res) => {
+  try {
+    const rows = await listSubscriptions();
+    res.json({
+      total: rows.length,
+      subscribed: rows.filter((r) => r.subscribed).length,
+      subscriptions: rows,
+    });
+  } catch (err) {
+    console.error('list subscriptions error:', err);
+    res.status(500).json({ error: 'Failed to load subscriptions' });
+  }
+});
+
+const toggleBody = z.object({ email: z.string().email(), subscribed: z.boolean() });
+
+adminRouter.post('/admin/subscriptions/toggle', requireAdmin, async (req, res) => {
+  const parsed = toggleBody.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: 'Invalid request' });
+  try {
+    await setSubscribed(parsed.data.email, parsed.data.subscribed);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('toggle subscription error:', err);
+    res.status(500).json({ error: 'Failed to toggle' });
+  }
 });
 
 adminRouter.post('/admin/leaders/direct-add', requireAdmin, async (req, res) => {
