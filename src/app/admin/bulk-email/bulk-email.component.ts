@@ -33,9 +33,9 @@ type Filter = 'all' | 'paid' | 'unpaid' | 'consent' | 'no-consent';
 
           <label class="block text-xs mb-1" style="color: var(--color-saga-text-muted)">Year</label>
           <select [(ngModel)]="selectedYear" class="rounded-lg w-full px-3 py-2 mb-3">
-            <option [value]="0">All years</option>
+            <option [ngValue]="null">All years</option>
             @for (y of years(); track y) {
-              <option [value]="y">{{ y }}</option>
+              <option [ngValue]="y">{{ y }}</option>
             }
           </select>
 
@@ -61,7 +61,7 @@ type Filter = 'all' | 'paid' | 'unpaid' | 'consent' | 'no-consent';
 
           <div class="text-xs mb-2" style="color: var(--color-saga-text-muted)">
             {{ selected().size }} of {{ filtered().length }} selected
-            @if (searchQuery() || filter !== 'all' || selectedYear) {
+            @if (searchQuery() || filter !== 'all' || selectedYear !== null) {
               <span> · filtered from {{ campers().length }}</span>
             }
           </div>
@@ -241,7 +241,7 @@ export class BulkEmailComponent {
   // Recipient state
   campers = signal<AdminCamper[]>([]);
   loading = signal(true);
-  selectedYear = 0;
+  selectedYear: number | null = null;
   filter: Filter = 'all';
   searchQuery = signal('');
   selected = signal<Set<number>>(new Set());
@@ -253,8 +253,8 @@ export class BulkEmailComponent {
 
   filtered = computed(() => {
     let rows = this.campers();
-    if (this.selectedYear && this.selectedYear !== 0) {
-      rows = rows.filter((c) => c.year === Number(this.selectedYear));
+    if (this.selectedYear !== null) {
+      rows = rows.filter((c) => c.year === this.selectedYear);
     }
     switch (this.filter) {
       case 'paid':
