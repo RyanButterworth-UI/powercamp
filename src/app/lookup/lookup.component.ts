@@ -67,7 +67,7 @@ import { environment } from '../../environments/environment';
           </div>
         } @else {
           <p class="text-xs mb-2" style="color: var(--color-saga-text-muted)">
-            🔒 For privacy, only the email already linked to the camper can edit the registration.
+            For privacy, only the email already linked to the camper can edit the registration.
             Hit Register and we'll send a sign-in link to that email.
           </p>
           <ul

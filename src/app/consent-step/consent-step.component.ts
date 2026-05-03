@@ -50,6 +50,17 @@ const CONSENT_EXTRA_KEYS = [
           }
         </div>
 
+        <div class="flex justify-end mb-2">
+          <button
+            type="button"
+            (click)="useParentAsEmergencyContact()"
+            class="text-xs underline cursor-pointer"
+            style="background: none; border: none; color: var(--color-saga-text-muted); padding: 0;"
+            data-testid="same-as-parent"
+          >
+            Use parent's name &amp; number
+          </button>
+        </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
           <label class="flex flex-col text-sm">
             <span class="mb-1">Emergency contact name <span class="text-red-700">*</span></span>
@@ -85,7 +96,7 @@ const CONSENT_EXTRA_KEYS = [
           class="rounded-lg p-3 mb-4 text-xs"
           style="background-color: var(--color-saga-primary-soft); border: 1px solid var(--color-saga-primary); color: var(--color-saga-text);"
         >
-          📧 By submitting, the parent and camper email addresses on file are added to the
+          By submitting, the parent and camper email addresses on file are added to the
           Power Camp mailing list — we'll use it for camp updates, packing reminders, and the odd
           'is the bus on time?' bulletin. Each email has a one-click unsubscribe in the footer
           if it's ever not for you. Registration confirmations and payment receipts always come
@@ -106,7 +117,7 @@ const CONSENT_EXTRA_KEYS = [
             (click)="triggerSubmission.emit()"
             class="saga-btn saga-btn-primary"
           >
-            Confirm & Submit
+            Confirm
           </button>
         </div>
       </div>
@@ -145,6 +156,18 @@ export class ConsentStepComponent {
     const bools = CONSENT_BOOL_KEYS.every((k) => this.form.get(k)?.value === true);
     const extras = CONSENT_EXTRA_KEYS.every((k) => !!this.form.get(k)?.value?.toString().trim());
     return bools && extras;
+  }
+
+  // Convenience: copy parentName / parentPhone into the emergency contact
+  // fields. Most parents are themselves the emergency contact, so this
+  // saves them retyping the same details.
+  useParentAsEmergencyContact(): void {
+    const parentName = this.form.get('parentName')?.value ?? '';
+    const parentPhone = this.form.get('parentPhone')?.value ?? '';
+    this.form.patchValue({
+      consent_emergencyName: parentName,
+      consent_emergencyContact: parentPhone,
+    });
   }
 
   constructor(private rootFormGroup: FormGroupDirective) {

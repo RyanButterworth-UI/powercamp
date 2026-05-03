@@ -63,7 +63,7 @@ import { Component, input, Input, output } from '@angular/core';
                         confirm once payment lands. Check your inbox for the receipt.
                       </p>
                       <p class="mt-2 text-xs" style="color: var(--color-saga-text-muted)">
-                        📧 Parent and camper emails have been added to the Power Camp mailing
+                        Parent and camper emails have been added to the Power Camp mailing
                         list. Every campaign email has a one-click unsubscribe.
                       </p>
                       <p class="mt-2">If you have another child to register, hit the button below — we'll keep your parent details prefilled.</p>

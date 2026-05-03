@@ -36,17 +36,12 @@ import { RouterLink } from '@angular/router';
 
       <div class="saga-card p-6 mb-6">
         <h2 class="text-lg font-semibold mb-2">What to bring</h2>
-        <p class="text-sm mb-3" style="color: var(--color-saga-text-muted)">
+        <p class="text-sm" style="color: var(--color-saga-text-muted)">
           Sleeping bag, warm clothes, closed shoes, Bible, notebook, water bottle, torch, and a
-          willingness to embrace early mornings. Full list in the kit list PDF.
+          willingness to embrace early mornings. Full list on the
+          <a routerLink="/kit-list" style="color: var(--color-saga-primary)">Kit list</a>
+          page (link in the top menu).
         </p>
-        <a
-          href="assets/kit-list.pdf"
-          download
-          class="saga-btn saga-btn-secondary no-underline"
-        >
-          📋 Download kit list (PDF)
-        </a>
       </div>
 
       <div class="saga-card p-6 mb-6">

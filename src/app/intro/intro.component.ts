@@ -38,13 +38,6 @@ import { StepKey } from '../../models';
         >
           Start Registration
         </button>
-        <a
-          href="assets/kit-list.pdf"
-          download
-          class="saga-btn saga-btn-secondary no-underline"
-        >
-          📋 Download kit list
-        </a>
       </div>
     </div>
   `,

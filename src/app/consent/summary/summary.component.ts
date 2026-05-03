@@ -72,7 +72,7 @@ import { NgClass } from '@angular/common';
           (click)="triggerSubmission.emit()"
           class="bg-green-300 text-green-900 px-8 py-2 rounded"class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded"
         >
-          Confirm & Submit
+          Confirm
         </button>
       </div>
     </div>

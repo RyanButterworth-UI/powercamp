@@ -73,7 +73,7 @@ import { StepKey } from '../../models';
           (click)="triggerSubmission.emit()"
           class="saga-btn saga-btn-primary"
         >
-          Confirm & Submit
+          Confirm
         </button>
       </div>
     </div>
