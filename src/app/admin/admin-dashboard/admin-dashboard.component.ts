@@ -53,9 +53,44 @@ import { UiService } from '../../ui/ui.service';
         [value]="searchQuery()"
         (input)="searchQuery.set($any($event.target).value)"
         placeholder="Search by name or parent email…"
-        class="rounded-lg w-full px-3 py-2 mb-4"
+        class="rounded-lg w-full px-3 py-2 mb-3"
         data-testid="campers-search"
       />
+
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2 mb-4 text-xs">
+        <div class="flex items-center gap-1.5" data-testid="payment-filter">
+          <span style="color: var(--color-saga-text-muted)">Payment:</span>
+          @for (opt of paymentOptions; track opt.value) {
+            <button
+              type="button"
+              (click)="paymentFilter.set(opt.value)"
+              class="saga-tab"
+              [class.is-active]="paymentFilter() === opt.value"
+              [attr.data-testid]="'payment-' + opt.value"
+            >{{ opt.label }}</button>
+          }
+        </div>
+        <div class="flex items-center gap-1.5" data-testid="consent-filter">
+          <span style="color: var(--color-saga-text-muted)">Consent:</span>
+          @for (opt of consentOptions; track opt.value) {
+            <button
+              type="button"
+              (click)="consentFilter.set(opt.value)"
+              class="saga-tab"
+              [class.is-active]="consentFilter() === opt.value"
+              [attr.data-testid]="'consent-' + opt.value"
+            >{{ opt.label }}</button>
+          }
+        </div>
+        @if (paymentFilter() !== 'all' || consentFilter() !== 'all') {
+          <button
+            type="button"
+            (click)="clearFilters()"
+            class="underline cursor-pointer"
+            style="background: none; border: none; color: var(--color-saga-text-muted); padding: 0;"
+          >Clear</button>
+        }
+      </div>
 
       @if (loading()) {
         <div data-testid="loading" style="color: var(--color-saga-text-muted)">Loading campers…</div>
@@ -183,6 +218,19 @@ export class AdminDashboardComponent {
   searchQuery = signal('');
   campYear = signal<number | null>(null);
   copiedEmail = signal<string | null>(null);
+  paymentFilter = signal<'all' | 'paid' | 'unpaid'>('all');
+  consentFilter = signal<'all' | 'given' | 'missing'>('all');
+
+  paymentOptions: { value: 'all' | 'paid' | 'unpaid'; label: string }[] = [
+    { value: 'all', label: 'All' },
+    { value: 'paid', label: 'Paid' },
+    { value: 'unpaid', label: 'Unpaid' },
+  ];
+  consentOptions: { value: 'all' | 'given' | 'missing'; label: string }[] = [
+    { value: 'all', label: 'All' },
+    { value: 'given', label: 'Given' },
+    { value: 'missing', label: 'Missing' },
+  ];
 
   // Years with campers, plus CAMP_YEAR even if it has no rows yet, sorted
   // desc — so the active 2026 tab is always present even before submissions.
@@ -204,6 +252,8 @@ export class AdminDashboardComponent {
   visibleCampers = computed(() => {
     const y = this.selectedYear();
     const q = this.searchQuery().trim().toLowerCase();
+    const pay = this.paymentFilter();
+    const con = this.consentFilter();
     let rows = y === null ? this.campers() : this.campers().filter((c) => c.year === y);
     if (q) {
       rows = rows.filter((c) => {
@@ -211,8 +261,17 @@ export class AdminDashboardComponent {
         return hay.includes(q);
       });
     }
+    if (pay === 'paid') rows = rows.filter((c) => !!c.paymentReceivedAt);
+    else if (pay === 'unpaid') rows = rows.filter((c) => !c.paymentReceivedAt);
+    if (con === 'given') rows = rows.filter((c) => !!c.consentAcceptedAt);
+    else if (con === 'missing') rows = rows.filter((c) => !c.consentAcceptedAt);
     return rows;
   });
+
+  clearFilters(): void {
+    this.paymentFilter.set('all');
+    this.consentFilter.set('all');
+  }
 
   private readonly admin = inject(AdminService);
   private readonly router = inject(Router);
