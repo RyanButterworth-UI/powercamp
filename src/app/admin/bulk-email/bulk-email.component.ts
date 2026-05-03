@@ -251,7 +251,9 @@ export class BulkEmailComponent {
   // recompute — that's what was breaking Year + Filter dropdowns earlier.
   campers = signal<AdminCamper[]>([]);
   loading = signal(true);
-  selectedYear = signal<number | null>(null);
+  // Default to the active camp year so the recipient list opens scoped
+  // to the current cohort — admins can switch to "All years" if they need to.
+  selectedYear = signal<number | null>(2026);
   filter = signal<Filter>('all');
   searchQuery = signal('');
   selected = signal<Set<number>>(new Set());
