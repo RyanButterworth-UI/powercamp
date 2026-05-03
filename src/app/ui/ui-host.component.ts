@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { UiService } from './ui.service';
 
@@ -7,6 +7,24 @@ import { UiService } from './ui.service';
   standalone: true,
   imports: [CommonModule],
   template: `
+    <!-- Global loading spinner — visible whenever any /api/* request is in flight
+         for longer than the grace period, so quick (<200ms) requests don't flash. -->
+    @if (showSpinner()) {
+      <div
+        class="fixed top-4 left-1/2 -translate-x-1/2 z-50 saga-card flex items-center gap-2 px-3 py-2 shadow-lg pointer-events-none"
+        role="status"
+        aria-live="polite"
+        data-testid="global-loading"
+      >
+        <span
+          class="inline-block w-4 h-4 rounded-full border-2 border-t-transparent animate-spin"
+          [style.borderColor]="'var(--color-saga-border-strong)'"
+          [style.borderTopColor]="'transparent'"
+        ></span>
+        <span class="text-xs" style="color: var(--color-saga-text-muted)">Loading…</span>
+      </div>
+    }
+
     <!-- Toasts -->
     <div
       class="fixed top-16 right-4 z-50 flex flex-col gap-2 pointer-events-none"
@@ -104,4 +122,30 @@ import { UiService } from './ui.service';
 })
 export class UiHostComponent {
   ui = inject(UiService);
+
+  // 200ms grace before the spinner appears so requests that come back quickly
+  // don't cause a flash. Goes back to false the instant loading drops to 0.
+  private static readonly SHOW_DELAY_MS = 200;
+  showSpinner = signal(false);
+  private showTimer: ReturnType<typeof setTimeout> | null = null;
+
+  constructor() {
+    effect(() => {
+      const active = this.ui.loading() > 0;
+      if (active) {
+        if (this.showTimer === null && !this.showSpinner()) {
+          this.showTimer = setTimeout(() => {
+            this.showSpinner.set(true);
+            this.showTimer = null;
+          }, UiHostComponent.SHOW_DELAY_MS);
+        }
+      } else {
+        if (this.showTimer !== null) {
+          clearTimeout(this.showTimer);
+          this.showTimer = null;
+        }
+        this.showSpinner.set(false);
+      }
+    });
+  }
 }

@@ -32,6 +32,20 @@ export class UiService {
   confirmRequest = signal<ConfirmRequest | null>(null);
   promptRequest = signal<PromptRequest | null>(null);
 
+  // Active in-flight HTTP request count. Driven by the loading interceptor —
+  // any code path that wants to show "we're talking to the server" reads
+  // `loading()` and trusts the interceptor to keep it accurate.
+  private inFlight = signal(0);
+  loading = this.inFlight.asReadonly();
+
+  beginLoading(): void {
+    this.inFlight.update((n) => n + 1);
+  }
+
+  endLoading(): void {
+    this.inFlight.update((n) => Math.max(0, n - 1));
+  }
+
   toast(text: string, kind: Toast['kind'] = 'info', durationMs = 4000): void {
     const id = this.nextId++;
     this.toasts.update((t) => [...t, { id, text, kind }]);
