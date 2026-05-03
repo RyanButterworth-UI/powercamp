@@ -1,5 +1,6 @@
 import { Component, computed, input, output, signal } from '@angular/core';
 import {
+  FormControl,
   FormGroup,
   FormGroupDirective,
   ReactiveFormsModule,
@@ -51,8 +52,7 @@ import { CHURCHES, CHURCH_OTHER } from '../data/churches';
               Pick from the list — or choose "Other" if yours isn't there yet.
             </p>
             <select
-              [value]="dropdownValue()"
-              (change)="onChurchSelect($any($event.target).value)"
+              [formControl]="churchSelect"
               class="rounded-lg w-full px-3 py-2 my-2"
             >
               <option value="">Select your church…</option>
@@ -120,34 +120,36 @@ export class TShirtComponent {
   readonly churches = CHURCHES;
   readonly OTHER = CHURCH_OTHER;
   otherSelected = signal(false);
-  // What's currently selected in the dropdown — either a known church, '__other__',
-  // or '' (placeholder). Tracks the form's church value when it's a known one.
-  dropdownValue = computed(() => {
-    if (this.otherSelected()) return this.OTHER;
-    const current = this.form.get('church')?.value ?? '';
-    return CHURCHES.includes(current) ? current : '';
-  });
+  // The dropdown is driven by its own FormControl rather than [value] —
+  // [value] on a <select> doesn't reliably move the selected option after
+  // the user navigates away and back. The control's valueChanges keeps
+  // the parent form's `church` field in sync.
+  churchSelect = new FormControl<string>('');
 
   constructor(private rootFormGroup: FormGroupDirective) {
     this.form = this.rootFormGroup.control;
-    // If a church is already saved (e.g. from a re-entered camper), prime the
-    // "other" toggle so the right input is shown.
-    const current = this.form.get('church')?.value ?? '';
-    if (current && !CHURCHES.includes(current)) {
-      this.otherSelected.set(true);
-    }
-  }
 
-  onChurchSelect(value: string): void {
-    if (value === this.OTHER) {
-      this.otherSelected.set(true);
-      // DON'T auto-clear: if the user already typed an "Other" value
-      // earlier, keep it. The text input below will show the existing
-      // value so they can edit rather than start from scratch.
+    // Sync the dropdown to whatever's already in the form's church field
+    // (e.g. a restored draft or a re-entered camper).
+    const initial = this.form.get('church')?.value ?? '';
+    if (!initial) {
+      this.churchSelect.setValue('');
+    } else if (CHURCHES.includes(initial)) {
+      this.churchSelect.setValue(initial);
     } else {
-      this.otherSelected.set(false);
-      this.form.get('church')?.setValue(value);
+      this.churchSelect.setValue(CHURCH_OTHER);
+      this.otherSelected.set(true);
     }
+
+    this.churchSelect.valueChanges.subscribe((value) => {
+      if (value === CHURCH_OTHER) {
+        this.otherSelected.set(true);
+        // Don't wipe what they had — let the text input edit the existing value.
+      } else {
+        this.otherSelected.set(false);
+        this.form.get('church')?.setValue(value ?? '');
+      }
+    });
   }
 
   firstName = computed(() => this.form.get('firstName')?.value || '');
