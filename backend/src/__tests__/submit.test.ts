@@ -160,6 +160,37 @@ describe('POST /submit', () => {
     expect(insertMock).not.toHaveBeenCalled();
   });
 
+  it('coerces numeric age / grade / phones to strings before the DB insert', async () => {
+    // Regression: age came from radio buttons that bound JS numbers, and the
+    // server was returning '"camper": ["Expected string, received number"]'.
+    const numericBody = {
+      camper: {
+        firstName: 'Jane',
+        lastName: 'Doe',
+        parentEmail: 'parent@example.com',
+        age: 14,                  // <— number, not string
+        grade: 9,                 // <— number
+        camperCell: 821234567,    // <— number (Excel-imported style)
+        parentPhone: 827654321,   // <— number
+        dob: '2010-01-01',
+        friends: [],
+      },
+      consent: validBody.consent,
+    };
+
+    const res = await request(buildApp()).post('/submit').send(numericBody);
+
+    expect(res.status).toBe(200);
+    expect(insertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        age: '14',
+        grade: '9',
+        camperCell: '821234567',
+        parentPhone: '827654321',
+      })
+    );
+  });
+
   it('returns 500 if the DB insert fails (and does not append to sheet)', async () => {
     insertMock.mockRejectedValueOnce(new Error('db down'));
 

@@ -8,23 +8,32 @@ import { sendRegistrationReceived } from '../services/email';
 
 const optionalString = z.string().optional().nullable().transform((v) => v ?? undefined);
 
+// Some fields (age, grade, phone numbers, dob) come from radio buttons or
+// Excel imports that may bind numbers. Coerce to string so the FE doesn't
+// have to babysit every input — leniency at the boundary, not the core.
+const lenientOptionalString = z
+  .union([z.string(), z.number()])
+  .optional()
+  .nullable()
+  .transform((v) => (v === null || v === undefined ? undefined : String(v)));
+
 const camperBody = z.object({
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   parentEmail: z.string().email(),
-  dob: optionalString,
+  dob: lenientOptionalString,
   gender: optionalString,
-  age: optionalString,
-  grade: optionalString,
+  age: lenientOptionalString,
+  grade: lenientOptionalString,
   email: optionalString,
-  camperCell: optionalString,
+  camperCell: lenientOptionalString,
   medical: optionalString,
   tshirt: optionalString,
   church: optionalString,
   generalInfo: optionalString,
   friends: z.array(z.string()).optional(),
   parentName: optionalString,
-  parentPhone: optionalString,
+  parentPhone: lenientOptionalString,
 });
 
 const consentBody = z.object({
