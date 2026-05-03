@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { CampAdditionalInfoComponent } from '../camp-additional-info/camp-additional-info.component';
 import { CamperInfoComponent } from '../camper-info/camper-info.component';
 import { DetailsComponent } from '../details/details.component';
-import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormArray, FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FriendsComponent } from '../friends/friends.component';
 import { IntroComponent } from '../intro/intro.component';
 import { LookupComponent } from '../lookup/lookup.component';
@@ -51,6 +51,7 @@ import { environment } from '../../environments/environment';
               [camperName]="submittedCamperName()"
               [status]="submissionStatus()"
               (refreshApp)="refreshApp()"
+              (registerAnother)="registerAnotherChild()"
             ></app-success-dialog>
           } @else {
             @if (isSubmitting()) {
@@ -278,5 +279,54 @@ export class FormComponent {
   refreshApp() {
     window.location.reload();
     this.showDialog.set(false);
+  }
+
+  // 'Register another child' — keep the parent fields so a parent registering
+  // multiple kids doesn't have to retype them. Wipe everything camper-specific
+  // (including the consent block, since consent is required per child).
+  registerAnotherChild() {
+    const { parentName, parentPhone, parentEmail } = this.rootFormGroup.getRawValue();
+
+    // Replace the friends FormArray cleanly so no stale child controls linger.
+    const friendsArr = this.rootFormGroup.get('friends');
+    if (friendsArr instanceof FormArray) {
+      while (friendsArr.length > 0) friendsArr.removeAt(0);
+      friendsArr.push(this.fb.control(''));
+    }
+
+    this.rootFormGroup.reset({
+      firstName: '',
+      lastName: '',
+      camperCell: '',
+      gender: '',
+      email: '',
+      age: '',
+      grade: '',
+      friends: [''],
+      medical: '',
+      parentName,
+      parentPhone,
+      parentEmail,
+      church: '',
+      tshirt: '',
+      generalInfo: '',
+      dob: '',
+      consent_general: false,
+      consent_location: false,
+      consent_risk: false,
+      consent_powerCamp: false,
+      consent_behaviour: false,
+      consent_photo: false,
+      consent_emergencyName: '',
+      consent_emergencyContact: '',
+      consent_medicalAidName: '',
+      consent_medicalAidNumber: '',
+      consent_date: new Date().toISOString().split('T')[0],
+    });
+
+    this.showDialog.set(false);
+    this.submittedCamperName.set('Dear Camper');
+    // Skip Lookup/Intro/Details and drop them straight at CamperInfo for the next child.
+    this.fadeToStep(StepKey.CamperInfo);
   }
 }
