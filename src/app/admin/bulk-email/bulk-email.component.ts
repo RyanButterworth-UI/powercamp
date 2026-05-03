@@ -48,8 +48,22 @@ type Filter = 'all' | 'paid' | 'unpaid' | 'consent' | 'no-consent';
             <option value="no-consent">Consent missing</option>
           </select>
 
+          <label class="block text-xs mb-1" style="color: var(--color-saga-text-muted)">
+            Search
+          </label>
+          <input
+            type="text"
+            [value]="searchQuery()"
+            (input)="searchQuery.set($any($event.target).value)"
+            placeholder="name or email…"
+            class="rounded-lg w-full px-3 py-2 mb-3"
+          />
+
           <div class="text-xs mb-2" style="color: var(--color-saga-text-muted)">
             {{ selected().size }} of {{ filtered().length }} selected
+            @if (searchQuery() || filter !== 'all' || selectedYear) {
+              <span> · filtered from {{ campers().length }}</span>
+            }
           </div>
           <div class="flex gap-2 mb-3">
             <button type="button" (click)="selectAll()" class="saga-btn saga-btn-secondary !py-1 !px-2 !text-xs">
@@ -229,6 +243,7 @@ export class BulkEmailComponent {
   loading = signal(true);
   selectedYear = 0;
   filter: Filter = 'all';
+  searchQuery = signal('');
   selected = signal<Set<number>>(new Set());
 
   years = computed(() => {
@@ -254,6 +269,13 @@ export class BulkEmailComponent {
       case 'no-consent':
         rows = rows.filter((c) => !c.consentAcceptedAt);
         break;
+    }
+    const q = this.searchQuery().trim().toLowerCase();
+    if (q) {
+      rows = rows.filter((c) => {
+        const hay = `${c.firstName} ${c.lastName} ${c.parentEmail} ${c.email ?? ''}`.toLowerCase();
+        return hay.includes(q);
+      });
     }
     return rows;
   });
