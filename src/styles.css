@@ -100,15 +100,38 @@ label .text-red-500 {
   line-height: 1.25rem;
 }
 
-/* Inputs / textareas / selects: nudge colours dark but DON'T touch padding,
-   width, or font-size — components may use Tailwind utilities (pl-10 for
-   icons, etc.) that should win. */
+/* Inputs / textareas / selects: dark surface, soft border, blue focus ring.
+   Padding / width / font-size are deliberately NOT set here so component
+   templates can keep their Tailwind utilities (pl-10 for icons, etc.). */
 input:not([type='checkbox']):not([type='radio']),
 textarea,
 select {
   background-color: var(--color-saga-surface);
   color: var(--color-saga-text);
   font-family: var(--font-saga);
+  border: 1px solid var(--color-saga-border);
+  border-radius: 8px;
+}
+
+input:not([type='checkbox']):not([type='radio']):focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--color-saga-primary);
+  box-shadow: 0 0 0 3px var(--color-saga-focus);
+}
+
+/* Hover: slightly stronger border so unfocused inputs feel reachable. */
+input:not([type='checkbox']):not([type='radio']):hover:not(:focus),
+textarea:hover:not(:focus),
+select:hover:not(:focus) {
+  border-color: var(--color-saga-border-strong);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-saga-text-muted);
+  opacity: 0.7;
 }
 
 /* Many of the existing components use `bg-white` and `text-gray-900` directly
