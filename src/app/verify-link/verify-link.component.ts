@@ -31,146 +31,170 @@ interface VerifiedCamper {
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   template: `
-    <div class="container mx-auto p-6 max-w-3xl">
+    <div class="container mx-auto p-4 sm:p-6 max-w-3xl">
       @if (loading()) {
-        <div class="text-gray-500" data-testid="verifying">Verifying your link…</div>
+        <div data-testid="verifying" style="color: var(--color-saga-text-muted)">
+          Verifying your link…
+        </div>
       } @else if (verifyError()) {
-        <div class="rounded border border-red-200 bg-red-50 p-4" data-testid="error">
-          <h2 class="font-semibold text-red-900 mb-1">Link no longer works</h2>
-          <p class="text-sm text-red-900 mb-3">{{ verifyError() }}</p>
-          <button type="button" (click)="goHome()" class="px-4 py-2 rounded border border-red-300 text-red-700">
+        <div
+          class="saga-card p-4"
+          data-testid="error"
+          style="border-color: var(--color-saga-danger); background-color: var(--color-saga-danger-soft)"
+        >
+          <h2 class="font-semibold mb-1" style="color: var(--color-saga-danger)">
+            Link no longer works
+          </h2>
+          <p class="text-sm mb-3" style="color: var(--color-saga-text)">{{ verifyError() }}</p>
+          <button type="button" (click)="goHome()" class="saga-btn saga-btn-secondary">
             Go back to search
           </button>
         </div>
       } @else if (submittedAt()) {
-        <div class="rounded border border-green-200 bg-green-50 p-4" data-testid="submitted">
-          <h2 class="font-semibold text-green-900 mb-1">Registration received</h2>
-          <p class="text-sm text-green-900 mb-3">
+        <div
+          class="saga-card p-4"
+          data-testid="submitted"
+          style="border-color: var(--color-saga-success); background-color: var(--color-saga-primary-soft)"
+        >
+          <h2 class="font-semibold mb-1" style="color: var(--color-saga-success)">
+            Registration received
+          </h2>
+          <p class="text-sm mb-3" style="color: var(--color-saga-text)">
             Thanks {{ camper()?.firstName }}! Your spot is provisionally held — we'll send a
             confirmation once your payment is complete. Check your inbox at
             <span class="font-mono">{{ camper()?.parentEmail }}</span>.
           </p>
-          <button type="button" (click)="goHome()" class="px-4 py-2 rounded bg-green-300 text-green-900">
+          <button type="button" (click)="goHome()" class="saga-btn saga-btn-primary">
             Done
           </button>
         </div>
       } @else if (form && camper()) {
-        <h2 class="text-xl font-bold mb-1">
+        <h2 class="text-xl font-bold mb-1" style="color: var(--color-saga-text-strong)">
           Welcome back, {{ camper()!.firstName }} {{ camper()!.lastName }}
         </h2>
-        <p class="text-sm text-gray-500 mb-6">
+        <p class="text-sm mb-6" style="color: var(--color-saga-text-muted)">
           Review your details from {{ camper()!.year }}. Edit anything that's changed, then complete
           consent and submit to register for Power Camp 2026.
         </p>
 
-        <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-6">
+        <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-6">
           <!-- Camper details -->
-          <fieldset class="border rounded p-4">
-            <legend class="px-2 text-sm font-semibold text-gray-700">Camper details</legend>
-            <div class="grid grid-cols-2 gap-3" formGroupName="camper">
-              <label class="flex flex-col text-sm">First Name *
-                <input formControlName="firstName" class="border rounded px-2 py-1" />
+          <fieldset class="saga-card p-4">
+            <legend class="px-2 text-sm font-semibold" style="color: var(--color-saga-text)">
+              Camper details
+            </legend>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" formGroupName="camper">
+              <label class="flex flex-col gap-1.5 text-sm">First Name *
+                <input formControlName="firstName" class="w-full px-3 py-2" />
               </label>
-              <label class="flex flex-col text-sm">Last Name *
-                <input formControlName="lastName" class="border rounded px-2 py-1" />
+              <label class="flex flex-col gap-1.5 text-sm">Last Name *
+                <input formControlName="lastName" class="w-full px-3 py-2" />
               </label>
-              <label class="flex flex-col text-sm">Camper Email
-                <input formControlName="email" class="border rounded px-2 py-1" />
+              <label class="flex flex-col gap-1.5 text-sm">Camper Email
+                <input formControlName="email" class="w-full px-3 py-2" />
               </label>
-              <label class="flex flex-col text-sm">Camper Cell
-                <input formControlName="camperCell" class="border rounded px-2 py-1" />
+              <label class="flex flex-col gap-1.5 text-sm">Camper Cell
+                <input formControlName="camperCell" class="w-full px-3 py-2" />
               </label>
-              <label class="flex flex-col text-sm">Gender
-                <input formControlName="gender" class="border rounded px-2 py-1" />
+              <label class="flex flex-col gap-1.5 text-sm">Gender
+                <input formControlName="gender" class="w-full px-3 py-2" />
               </label>
-              <label class="flex flex-col text-sm">Age
-                <input formControlName="age" class="border rounded px-2 py-1" />
+              <label class="flex flex-col gap-1.5 text-sm">Age
+                <input formControlName="age" class="w-full px-3 py-2" />
               </label>
-              <label class="flex flex-col text-sm">Grade
-                <input formControlName="grade" class="border rounded px-2 py-1" />
+              <label class="flex flex-col gap-1.5 text-sm">Grade
+                <input formControlName="grade" class="w-full px-3 py-2" />
               </label>
-              <label class="flex flex-col text-sm">Date of birth
-                <input type="date" formControlName="dob" class="border rounded px-2 py-1" />
+              <label class="flex flex-col gap-1.5 text-sm">Date of birth
+                <input type="date" formControlName="dob" class="w-full px-3 py-2" />
               </label>
-              <label class="flex flex-col text-sm">Church
-                <input formControlName="church" class="border rounded px-2 py-1" />
+              <label class="flex flex-col gap-1.5 text-sm">Church
+                <input formControlName="church" class="w-full px-3 py-2" />
               </label>
-              <label class="flex flex-col text-sm">T-shirt size
-                <input formControlName="tshirt" class="border rounded px-2 py-1" />
+              <label class="flex flex-col gap-1.5 text-sm">T-shirt size
+                <input formControlName="tshirt" class="w-full px-3 py-2" />
               </label>
-              <label class="flex flex-col text-sm col-span-2">Medical info
-                <input formControlName="medical" class="border rounded px-2 py-1" />
+              <label class="flex flex-col gap-1.5 text-sm sm:col-span-2">Medical info
+                <input formControlName="medical" class="w-full px-3 py-2" />
               </label>
-              <label class="flex flex-col text-sm col-span-2">Anything else
-                <input formControlName="generalInfo" class="border rounded px-2 py-1" />
+              <label class="flex flex-col gap-1.5 text-sm sm:col-span-2">Anything else
+                <input formControlName="generalInfo" class="w-full px-3 py-2" />
               </label>
             </div>
           </fieldset>
 
           <!-- Parent details -->
-          <fieldset class="border rounded p-4">
-            <legend class="px-2 text-sm font-semibold text-gray-700">Parent / guardian</legend>
-            <div class="grid grid-cols-2 gap-3" formGroupName="camper">
-              <label class="flex flex-col text-sm">Parent name
-                <input formControlName="parentName" class="border rounded px-2 py-1" />
+          <fieldset class="saga-card p-4">
+            <legend class="px-2 text-sm font-semibold" style="color: var(--color-saga-text)">
+              Parent / guardian
+            </legend>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" formGroupName="camper">
+              <label class="flex flex-col gap-1.5 text-sm">Parent name
+                <input formControlName="parentName" class="w-full px-3 py-2" />
               </label>
-              <label class="flex flex-col text-sm">Parent phone
-                <input formControlName="parentPhone" class="border rounded px-2 py-1" />
+              <label class="flex flex-col gap-1.5 text-sm">Parent phone
+                <input formControlName="parentPhone" class="w-full px-3 py-2" />
               </label>
-              <label class="flex flex-col text-sm col-span-2">Parent email *
-                <input formControlName="parentEmail" class="border rounded px-2 py-1" />
+              <label class="flex flex-col gap-1.5 text-sm sm:col-span-2">Parent email *
+                <input formControlName="parentEmail" class="w-full px-3 py-2" />
               </label>
             </div>
           </fieldset>
 
           <!-- Consent (mandatory) -->
-          <fieldset class="border rounded p-4" formGroupName="consent">
-            <legend class="px-2 text-sm font-semibold text-gray-700">Consent (all required)</legend>
-            <p class="text-xs text-gray-500 mb-3">
+          <fieldset class="saga-card p-4" formGroupName="consent">
+            <legend class="px-2 text-sm font-semibold" style="color: var(--color-saga-text)">
+              Consent (all required)
+            </legend>
+            <p class="text-xs mb-3" style="color: var(--color-saga-text-muted)">
               I, the parent/guardian of {{ camper()!.firstName }} {{ camper()!.lastName }}, agree to the
               following.
             </p>
-            <div class="space-y-2">
+            <div class="flex flex-col gap-2">
               @for (c of consentItems; track c.key) {
                 <label class="flex items-center gap-3 text-sm">
-                  <input type="checkbox" [formControlName]="c.key" class="h-4 w-4" />
-                  <span>{{ c.label }}</span>
+                  <input type="checkbox" [formControlName]="c.key" class="h-4 w-4 shrink-0 m-0" />
+                  <span class="leading-5">{{ c.label }}</span>
                 </label>
               }
             </div>
-            <div class="grid grid-cols-2 gap-3 mt-4">
-              <label class="flex flex-col text-sm">Emergency contact name *
-                <input formControlName="emergencyName" class="border rounded px-2 py-1" />
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+              <label class="flex flex-col gap-1.5 text-sm">Emergency contact name *
+                <input formControlName="emergencyName" class="w-full px-3 py-2" />
               </label>
-              <label class="flex flex-col text-sm">Emergency contact number *
-                <input formControlName="emergencyContact" class="border rounded px-2 py-1" />
+              <label class="flex flex-col gap-1.5 text-sm">Emergency contact number *
+                <input formControlName="emergencyContact" class="w-full px-3 py-2" />
               </label>
-              <label class="flex flex-col text-sm">Medical aid name *
-                <input formControlName="medicalAidName" class="border rounded px-2 py-1" placeholder="NONE if not on medical aid" />
+              <label class="flex flex-col gap-1.5 text-sm">Medical aid name *
+                <input formControlName="medicalAidName" class="w-full px-3 py-2" placeholder="NONE if not on medical aid" />
               </label>
-              <label class="flex flex-col text-sm">Medical aid number *
-                <input formControlName="medicalAidNumber" class="border rounded px-2 py-1" placeholder="NONE if not on medical aid" />
+              <label class="flex flex-col gap-1.5 text-sm">Medical aid number *
+                <input formControlName="medicalAidNumber" class="w-full px-3 py-2" placeholder="NONE if not on medical aid" />
               </label>
-              <label class="flex flex-col text-sm col-span-2">Date of completion *
-                <input type="date" formControlName="date" class="border rounded px-2 py-1" />
+              <label class="flex flex-col gap-1.5 text-sm sm:col-span-2">Date of completion *
+                <input type="date" formControlName="date" class="w-full px-3 py-2" />
               </label>
             </div>
           </fieldset>
 
           @if (submitError()) {
-            <div class="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-900" data-testid="submit-error">
+            <div
+              class="saga-card p-3 text-sm"
+              data-testid="submit-error"
+              style="border-color: var(--color-saga-danger); background-color: var(--color-saga-danger-soft); color: var(--color-saga-danger)"
+            >
               {{ submitError() }}
             </div>
           }
 
-          <div class="flex gap-3 justify-end">
-            <button type="button" (click)="goHome()" class="px-4 py-2 rounded border border-gray-300 text-gray-600">
+          <div class="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
+            <button type="button" (click)="goHome()" class="saga-btn saga-btn-secondary w-full sm:w-auto">
               Cancel
             </button>
             <button
               type="submit"
               [disabled]="form.invalid || submitting()"
-              class="px-6 py-2 rounded bg-green-300 text-green-900 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
+              class="saga-btn saga-btn-primary w-full sm:w-auto"
             >
               {{ submitting() ? 'Submitting…' : 'Submit registration' }}
             </button>
