@@ -6,6 +6,7 @@ import { RouterLink } from '@angular/router';
 import { LookupResult, StepKey } from '../../models';
 import { environment } from '../../environments/environment';
 import { UiService } from '../ui/ui.service';
+import { SkeletonComponent } from '../skeleton/skeleton.component';
 
 interface StatsResponse {
   year: number;
@@ -19,7 +20,7 @@ interface StatsResponse {
 @Component({
   selector: 'app-lookup',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, SkeletonComponent],
   template: `
     <div
       class="customer-wrapper p-6"
@@ -35,10 +36,24 @@ interface StatsResponse {
         Registering also adds you to our mailing list (one-click unsubscribe on every email).
       </p>
 
-      <!-- Capacity widget. Quietly nudges parents that camp fills up.
-           Hidden until the API responds so we don't flash a placeholder
-           (or worse, a 0/150 that looks like an error). -->
-      @if (stats()) {
+      <!-- Capacity widget. While /stats is in flight we render a skeleton
+           with the same footprint as the real card so the layout doesn't
+           jump when the data arrives. If the call fails altogether the
+           widget collapses — it's a nice-to-have, not a blocker. -->
+      @if (statsLoading()) {
+        <div
+          class="mb-4 p-3 rounded-lg"
+          style="background-color: var(--color-saga-surface-2); border: 1px solid var(--color-saga-border);"
+          data-testid="stats-skeleton"
+        >
+          <div class="flex items-center justify-between gap-3 flex-wrap mb-1.5">
+            <app-skeleton width="9rem" height="14px" />
+            <app-skeleton width="7.5rem" height="22px" />
+          </div>
+          <app-skeleton width="80%" height="11px" />
+          <app-skeleton shape="block" width="100%" height="6px" />
+        </div>
+      } @else if (stats()) {
         <div
           class="mb-4 p-3 rounded-lg flex items-start gap-3"
           style="background-color: var(--color-saga-surface-2); border: 1px solid var(--color-saga-border);"
@@ -204,18 +219,25 @@ export class LookupComponent implements OnInit {
   sendingLinkFor = signal<number | null>(null);
   linkSentTo = signal<string | null>(null);
   stats = signal<StatsResponse | null>(null);
+  // Starts true so the skeleton renders on first paint. Flipped false
+  // on success or failure of /stats so we either show real data or
+  // collapse the widget. Render free-tier cold starts can take ~30s,
+  // so this skeleton is the difference between "is the page broken?"
+  // and "ah, it's loading".
+  statsLoading = signal(true);
 
   private readonly http = inject(HttpClient);
   private readonly ui = inject(UiService);
 
   ngOnInit(): void {
-    // Fire-and-forget — the counter is a nice-to-have, not blocking.
-    // If the endpoint is slow or fails (cold start, etc.) the widget
-    // simply doesn't render, which is fine.
     this.http.get<StatsResponse>(`${environment.baseApi}/stats`).subscribe({
-      next: (s) => this.stats.set(s),
+      next: (s) => {
+        this.stats.set(s);
+        this.statsLoading.set(false);
+      },
       error: () => {
         // Swallow — the page is still useful without the counter.
+        this.statsLoading.set(false);
       },
     });
   }

@@ -4,11 +4,12 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router, RouterLink } from '@angular/router';
 import { AdminLeader, AdminService } from '../admin.service';
 import { UiService } from '../../ui/ui.service';
+import { SkeletonComponent } from '../../skeleton/skeleton.component';
 
 @Component({
   selector: 'app-admin-leaders',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, SkeletonComponent],
   template: `
     <div class="container mx-auto p-6 max-w-5xl">
       <div class="flex items-center justify-between mb-4">
@@ -99,7 +100,17 @@ import { UiService } from '../../ui/ui.service';
       }
 
       @if (loading()) {
-        <div class="text-gray-500" data-testid="loading">Loading leaders…</div>
+        <!-- Skeleton table — 6 placeholder rows + a year-tab row above so
+             the page doesn't reflow when the real data arrives. -->
+        <div data-testid="loading" class="flex flex-col gap-3">
+          <div class="flex gap-2 mb-1">
+            <app-skeleton width="3.5rem" height="20px" />
+            <app-skeleton width="3.5rem" height="20px" />
+          </div>
+          @for (i of [1,2,3,4,5,6]; track i) {
+            <app-skeleton shape="block" height="44px" />
+          }
+        </div>
       } @else if (loadError()) {
         <div class="text-red-700" data-testid="load-error">{{ loadError() }}</div>
       } @else {
