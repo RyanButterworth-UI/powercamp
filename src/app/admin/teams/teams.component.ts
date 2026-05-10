@@ -57,6 +57,14 @@ const TEAM_PALETTE = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#e
             (click)="addTeam()"
             class="saga-btn saga-btn-secondary !py-1 !px-2.5 !text-xs"
           >Add team</button>
+          @if (teams().length === 0) {
+            <button
+              type="button"
+              (click)="quickStart()"
+              class="saga-btn saga-btn-primary !py-1 !px-2.5 !text-xs"
+              title="Create the four standard Power Camp teams"
+            >Quick start (4 teams)</button>
+          }
           <button
             type="button"
             (click)="autoBalance()"
@@ -289,6 +297,30 @@ export class TeamsComponent {
       },
       error: () => this.ui.toast('Failed to create team.', 'error'),
     });
+  }
+
+  // One-click bootstrap when no teams exist yet. Creates the four
+  // standard names with the standard colour palette, then refreshes —
+  // saves the admin from typing the same names every year.
+  quickStart(): void {
+    const defaults: { name: string; color: string }[] = [
+      { name: 'Phoenix', color: TEAM_PALETTE[0] },
+      { name: 'Lions', color: TEAM_PALETTE[1] },
+      { name: 'Eagles', color: TEAM_PALETTE[2] },
+      { name: 'Rhinos', color: TEAM_PALETTE[3] },
+    ];
+    Promise.all(
+      defaults.map(
+        (d) => new Promise<void>((resolve, reject) => {
+          this.admin.createTeam(d).subscribe({ next: () => resolve(), error: reject });
+        })
+      )
+    )
+      .then(() => {
+        this.ui.toast('Created the four standard teams.', 'success');
+        this.refresh();
+      })
+      .catch(() => this.ui.toast('Failed to create default teams.', 'error'));
   }
 
   async removeTeam(id: number): Promise<void> {

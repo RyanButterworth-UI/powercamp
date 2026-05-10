@@ -5,7 +5,6 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { NgClass } from '@angular/common';
 import { SuccessDialogComponent } from '../success-dialog/success-dialog.component';
 import { PageGhostComponent } from '../skeleton/page-ghost.component';
 import { HttpClient } from '@angular/common/http';
@@ -13,7 +12,7 @@ import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'app-feedback',
-  imports: [ReactiveFormsModule, NgClass, SuccessDialogComponent, PageGhostComponent],
+  imports: [ReactiveFormsModule, SuccessDialogComponent, PageGhostComponent],
   template: `
     @if (!ready()) {
       <app-page-ghost height="60vh" />

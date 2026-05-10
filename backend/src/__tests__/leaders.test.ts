@@ -1,13 +1,10 @@
 import express from 'express';
 import request from 'supertest';
-import bcrypt from 'bcryptjs';
-
-const LEADER_HASH = bcrypt.hashSync('correct-leader-password', 4);
 
 jest.mock('../env', () => ({
   env: {
     CAMP_YEAR: 2026,
-    LEADER_PASSWORD_HASH: LEADER_HASH,
+    GMAIL_USER: 'powercamp@example.com',
   },
 }));
 
@@ -25,6 +22,20 @@ jest.mock('../services/sheets', () => ({
   appendToSheet: (...args: unknown[]) => sheetMock(...args),
 }));
 
+const noticeMock = jest.fn();
+jest.mock('../services/email', () => ({
+  sendLeaderApplicationNotice: (...args: unknown[]) => noticeMock(...args),
+}));
+
+const subscribeMock = jest.fn();
+jest.mock('../services/subscriptions', () => ({
+  ensureSubscription: (...args: unknown[]) => subscribeMock(...args),
+}));
+
+jest.mock('../services/auth', () => ({
+  verifyLeaderInviteToken: jest.fn(() => null),
+}));
+
 import { leadersRouter } from '../routes/leaders';
 
 function buildApp() {
@@ -34,32 +45,12 @@ function buildApp() {
   return app;
 }
 
-describe('POST /leaders/check-password', () => {
-  it('returns ok on the correct leader password', async () => {
-    const res = await request(buildApp())
-      .post('/leaders/check-password')
-      .send({ password: 'correct-leader-password' });
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual({ ok: true });
-  });
-
-  it('returns 401 on the wrong password', async () => {
-    const res = await request(buildApp())
-      .post('/leaders/check-password')
-      .send({ password: 'nope' });
-    expect(res.status).toBe(401);
-  });
-
-  it('rejects an empty body with 400', async () => {
-    const res = await request(buildApp()).post('/leaders/check-password').send({});
-    expect(res.status).toBe(400);
-  });
-});
-
 describe('POST /leaders/apply', () => {
   beforeEach(() => {
     insertMock.mockReset();
     sheetMock.mockReset().mockResolvedValue(undefined);
+    noticeMock.mockReset().mockResolvedValue(undefined);
+    subscribeMock.mockReset().mockResolvedValue(undefined);
   });
 
   it('inserts a pending leader row tagged with CAMP_YEAR and approvedByNeil=false', async () => {
