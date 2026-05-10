@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 // Admin tests need a real password. CI / local set ADMIN_PASSWORD;
 // when it's missing we skip rather than fail so the suite still runs
 // for first-time contributors who haven't set the env.
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+const ADMIN_PASSWORD = process.env['ADMIN_PASSWORD'];
 
 test.describe('Admin login + tabs', () => {
   test.skip(!ADMIN_PASSWORD, 'set ADMIN_PASSWORD env to run admin tests');
