@@ -20,7 +20,6 @@ export interface CampFormData {
 export enum StepKey {
   Lookup = 0,
   Intro = 1,
-  Details = 2,
   CamperInfo = 3,
   CamperAdditionalInfo = 4,
   Friends = 5,

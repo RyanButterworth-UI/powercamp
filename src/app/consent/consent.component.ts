@@ -71,7 +71,7 @@ import { HttpClient } from '@angular/common/http';
         @if (currentStep() === 2) {
           <div class="pt-10 mx-auto">
             <label class="block text-sm/2 font-medium text-gray-900 mb-2">
-              Parent Name <span class="text-red-700">*</span>
+              Parent Name <span class="required-star">*</span>
             </label>
             <input
               type="text"
@@ -81,7 +81,7 @@ import { HttpClient } from '@angular/common/http';
             <div class="flex justify-between gap-2">
               <div class="flex flex-col w-full">
                 <label class="block text-sm/2 font-medium text-gray-900 mb-2">
-                  Camper Name <span class="text-red-700">*</span>
+                  Camper Name <span class="required-star">*</span>
                 </label>
                 <input
                   type="text"
@@ -91,7 +91,7 @@ import { HttpClient } from '@angular/common/http';
               </div>
               <div class="flex flex-col w-full">
                 <label class="block text-sm/2 font-medium text-gray-900 mb-2">
-                  Camper Age <span class="text-red-700">*</span>
+                  Camper Age <span class="required-star">*</span>
                 </label>
                 <input
                   type="text"
@@ -241,7 +241,7 @@ import { HttpClient } from '@angular/common/http';
           </div>
           <div class="flex flex-col w-full">
             <label class="block text-sm/2 font-medium text-gray-900 mb-2">
-              Emergency Contact Person Name <span class="text-red-700">*</span>
+              Emergency Contact Person Name <span class="required-star">*</span>
             </label>
             <input
               placeholder="The PERSON we call if there is a medical event"
@@ -252,7 +252,7 @@ import { HttpClient } from '@angular/common/http';
           </div>
           <div class="flex flex-col w-full">
             <label class="block text-sm/2 font-medium text-gray-900 mb-2">
-              Emergency Contact Number <span class="text-red-700">*</span>
+              Emergency Contact Number <span class="required-star">*</span>
             </label>
             <input
               placeholder="The NUMBER we call if there is a medical event"
@@ -263,7 +263,7 @@ import { HttpClient } from '@angular/common/http';
           </div>
           <div class="flex flex-col w-full">
             <label class="block text-sm/2 font-medium text-gray-900 mb-2">
-              Medical Aid Name <span class="text-red-700">*</span>
+              Medical Aid Name <span class="required-star">*</span>
             </label>
             <input
               placeholder="please type NONE if you are not on medical aid."
@@ -274,7 +274,7 @@ import { HttpClient } from '@angular/common/http';
           </div>
           <div class="flex flex-col w-full">
             <label class="block text-sm/2 font-medium text-gray-900 mb-2">
-              Medical Aid membership number <span class="text-red-700">*</span>
+              Medical Aid membership number <span class="required-star">*</span>
             </label>
             <input
               placeholder="please type NONE if you are not on medical aid."
@@ -285,7 +285,7 @@ import { HttpClient } from '@angular/common/http';
           </div>
           <div class="flex flex-col w-full">
             <label class="block text-sm/2 font-medium text-gray-900 mb-2">
-              Please enter the date of completion of this form <span class="text-red-700">*</span>
+              Please enter the date of completion of this form <span class="required-star">*</span>
             </label>
             <input
               type="date"

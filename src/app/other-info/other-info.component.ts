@@ -1,10 +1,11 @@
-import { Component, input, output, signal } from '@angular/core';
+import { Component, inject, input, output, signal } from '@angular/core';
 import {
   FormGroup,
   FormGroupDirective,
   ReactiveFormsModule,
 } from '@angular/forms';
 import { StepKey } from '../../models';
+import { ResetRegistrationService } from '../reset-registration.service';
 
 @Component({
   selector: 'app-other-info',
@@ -30,7 +31,7 @@ import { StepKey } from '../../models';
             class="w-full border rounded px-3 py-2 my-4 text-sm"
           ></textarea>
         </div>
-        <div class="flex gap-6 mt-6">
+        <div class="flex gap-3 mt-6 items-center flex-wrap">
           <button
             type="button"
             (click)="goToStep.emit(StepKey.Friends)"
@@ -45,6 +46,11 @@ import { StepKey } from '../../models';
           >
             Next
           </button>
+          <button
+            type="button"
+            (click)="resetSvc.request()"
+            class="saga-btn saga-btn-warning"
+          >Restart</button>
         </div>
       </div>
     </form>
@@ -57,6 +63,7 @@ export class OtherInfoComponent {
   goToStep = output<StepKey>();
   StepKey = StepKey;
   camperFields = ['firstName', 'lastName'];
+  protected readonly resetSvc = inject(ResetRegistrationService);
 
   constructor(private readonly rootFormGroup: FormGroupDirective) {
     this.form = this.rootFormGroup.control;

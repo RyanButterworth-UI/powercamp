@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormGroup,
@@ -6,6 +6,7 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { StepKey } from '../../models';
+import { ResetRegistrationService } from '../reset-registration.service';
 
 const CONSENT_BOOL_KEYS = [
   'consent_general',
@@ -63,15 +64,15 @@ const CONSENT_EXTRA_KEYS = [
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
           <label class="flex flex-col text-sm">
-            <span class="mb-1">Emergency contact name <span class="text-red-700">*</span></span>
+            <span class="mb-1">Emergency contact name <span class="required-star">*</span></span>
             <input formControlName="consent_emergencyName" class="rounded-lg w-full px-3 py-2" />
           </label>
           <label class="flex flex-col text-sm">
-            <span class="mb-1">Emergency contact number <span class="text-red-700">*</span></span>
+            <span class="mb-1">Emergency contact number <span class="required-star">*</span></span>
             <input formControlName="consent_emergencyContact" type="tel" class="rounded-lg w-full px-3 py-2" />
           </label>
           <label class="flex flex-col text-sm">
-            <span class="mb-1">Medical aid name <span class="text-red-700">*</span></span>
+            <span class="mb-1">Medical aid name <span class="required-star">*</span></span>
             <input
               formControlName="consent_medicalAidName"
               class="rounded-lg w-full px-3 py-2"
@@ -79,7 +80,7 @@ const CONSENT_EXTRA_KEYS = [
             />
           </label>
           <label class="flex flex-col text-sm">
-            <span class="mb-1">Medical aid number <span class="text-red-700">*</span></span>
+            <span class="mb-1">Medical aid number <span class="required-star">*</span></span>
             <input
               formControlName="consent_medicalAidNumber"
               class="rounded-lg w-full px-3 py-2"
@@ -87,7 +88,7 @@ const CONSENT_EXTRA_KEYS = [
             />
           </label>
           <label class="flex flex-col text-sm sm:col-span-2">
-            <span class="mb-1">Date of completion <span class="text-red-700">*</span></span>
+            <span class="mb-1">Date of completion <span class="required-star">*</span></span>
             <input formControlName="consent_date" type="date" class="rounded-lg px-3 py-2" />
           </label>
         </div>
@@ -103,7 +104,7 @@ const CONSENT_EXTRA_KEYS = [
           through, regardless of subscription state.
         </div>
 
-        <div class="flex flex-col sm:flex-row gap-3 justify-end">
+        <div class="flex gap-3 mt-4 items-center flex-wrap">
           <button
             type="button"
             (click)="goToStep.emit(StepKey.CheckData)"
@@ -119,6 +120,11 @@ const CONSENT_EXTRA_KEYS = [
           >
             Confirm
           </button>
+          <button
+            type="button"
+            (click)="resetSvc.request()"
+            class="saga-btn saga-btn-warning"
+          >Restart</button>
         </div>
       </div>
     </form>
@@ -131,6 +137,7 @@ export class ConsentStepComponent {
   goToStep = output<StepKey>();
   triggerSubmission = output<void>();
   StepKey = StepKey;
+  protected readonly resetSvc = inject(ResetRegistrationService);
 
   consentItems = [
     { key: 'consent_general', label: 'General consent — my child may attend Power Camp.' },

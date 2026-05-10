@@ -1,7 +1,7 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CampAdditionalInfoComponent } from '../camp-additional-info/camp-additional-info.component';
 import { CamperInfoComponent } from '../camper-info/camper-info.component';
-import { DetailsComponent } from '../details/details.component';
+import { FormStepperComponent, StepperStep } from '../form-stepper/form-stepper.component';
 import { FormArray, FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FriendsComponent } from '../friends/friends.component';
 import { IntroComponent } from '../intro/intro.component';
@@ -19,13 +19,14 @@ import { StepKey } from '../../models';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { UiService } from '../ui/ui.service';
+import { ResetRegistrationService } from '../reset-registration.service';
 
 @Component({
   selector: 'app-form',
   imports: [
     CampAdditionalInfoComponent,
     CamperInfoComponent,
-    DetailsComponent,
+    FormStepperComponent,
     FormsModule,
     FriendsComponent,
     IntroComponent,
@@ -46,7 +47,7 @@ import { UiService } from '../ui/ui.service';
       class="container mx-auto my-0 min-h-dvh font-inter flex lg:justify-center lg:items-center"
     >
       <div class="w-full lg:w-1/2 h-full flex flex-col">
-        <div class="w-full  mx-auto h-full flex flex-col">
+        <div class="w-full mx-auto h-full flex flex-col">
           @if (showDialog()) {
             <app-success-dialog
               [camperName]="submittedCamperName()"
@@ -65,8 +66,31 @@ import { UiService } from '../ui/ui.service';
                 ></div>
               </div>
             }
-            <form [formGroup]="rootFormGroup">
-              <div class="">
+            @if (!ready()) {
+              <div
+                class="flex items-center justify-center py-16"
+                data-testid="form-ghost-loader"
+              >
+                <div
+                  class="animate-spin rounded-full h-10 w-10"
+                  style="border: 3px solid var(--color-saga-border); border-top-color: var(--color-saga-action);"
+                ></div>
+              </div>
+            }
+            <div
+              class="transition-opacity duration-500 ease-in-out"
+              [class.opacity-0]="!stepVisible() || !ready()"
+              [class.opacity-100]="stepVisible() && ready()"
+            >
+              @if (showStepper()) {
+                <app-form-stepper
+                  [steps]="camperSteps()"
+                  [current]="currentStep()"
+                  (stepClick)="onStepperJump($event)"
+                ></app-form-stepper>
+              }
+              <form [formGroup]="rootFormGroup">
+                <div class="">
                 @if (currentStep() === StepKey.Lookup && stepVisible()) {
                   <app-lookup
                     [stepVisible]="stepVisible()"
@@ -79,12 +103,6 @@ import { UiService } from '../ui/ui.service';
                     [stepVisible]="stepVisible()"
                     (goToStep)="fadeToStep($event)"
                   ></app-intro>
-                }
-                @if (currentStep() === StepKey.Details && stepVisible()) {
-                  <app-details
-                    [stepVisible]="stepVisible()"
-                    (goToStep)="fadeToStep($event)"
-                  ></app-details>
                 }
                 @if (currentStep() === StepKey.LeaderApplication && stepVisible()) {
                   <app-leader-application
@@ -156,25 +174,8 @@ import { UiService } from '../ui/ui.service';
                 }
               </div>
             </form>
+            </div>
 
-            <!-- Mounted on the same stepVisible() gate as every step component so
-                 it appears in the same change-detection tick as the new step's
-                 content — never a beat earlier. -->
-            @if (currentStep() !== StepKey.Lookup && stepVisible()) {
-              <div
-                class="px-5 pb-6 pt-2 text-center text-xs"
-                style="color: var(--color-saga-text-muted)"
-              >
-                <button
-                  type="button"
-                  (click)="confirmReset()"
-                  class="underline cursor-pointer"
-                  style="background: none; border: none; color: inherit; padding: 0;"
-                >
-                  Reset registration and start over
-                </button>
-              </div>
-            }
           }
         </div>
       </div>
@@ -188,16 +189,76 @@ export class FormComponent {
 
   stepVisible = signal(true);
   isSubmitting = signal(false);
+  // Hides the form area on first paint so the stepper doesn't flash in before
+  // the rest of the layout settles. Flipped to true after a short tick — gives
+  // the browser one frame to lay things out before the fade-in starts.
+  ready = signal(false);
+
+  // Steps shown in the top stepper. Limited to the camper-registration path
+  // (Lookup / Intro / Details / LeaderApplication are pre-flow branches and
+  // don't belong in the progress strip).
+  private readonly camperStepDefs: { key: StepKey; label: string }[] = [
+    { key: StepKey.CamperInfo, label: 'Camper' },
+    { key: StepKey.CamperAdditionalInfo, label: 'Details' },
+    { key: StepKey.Friends, label: 'Friends' },
+    { key: StepKey.Medical, label: 'Medical' },
+    { key: StepKey.ParentInfo, label: 'Parent' },
+    { key: StepKey.Tshirt, label: 'T-shirt' },
+    { key: StepKey.OtherInfo, label: 'Other' },
+    { key: StepKey.CheckData, label: 'Review' },
+    { key: StepKey.CamperConsent, label: 'Consent' },
+  ];
+
+  // Lock anything past the first incomplete step so a parent can only jump
+  // forward as far as they've actually filled in.
+  camperSteps = computed<StepperStep[]>(() => {
+    // Track form state changes through the version signal so this re-runs on
+    // every patchValue / setValue / valueChange tick.
+    this.formVersion();
+    const furthest = this.furthestStep();
+    const furthestIdx = this.camperStepDefs.findIndex((s) => s.key === furthest);
+    return this.camperStepDefs.map((s, i) => ({
+      ...s,
+      locked: furthestIdx !== -1 && i > furthestIdx,
+    }));
+  });
+
+  showStepper(): boolean {
+    return this.camperStepDefs.some((s) => s.key === this.currentStep());
+  }
+
+  onStepperJump(stepKey: number): void {
+    this.fadeToStep(stepKey);
+  }
+
+  // Bumped on every form valueChange so the camperSteps computed re-evaluates
+  // and the stepper unlocks the next step as soon as required fields fill in.
+  private formVersion = signal(0);
+
+  showRestart(): boolean {
+    return !this.resetHiddenSteps.has(this.currentStep());
+  }
 
   rootFormGroup: FormGroup;
 
   private readonly http = inject(HttpClient);
   private readonly ui = inject(UiService);
+  private readonly resetSvc = inject(ResetRegistrationService);
 
   // localStorage key for persisting form state across reloads. Wiped after
    // a successful submit so the next session starts fresh; campers can also
    // hit "Clear & start over" on the Lookup screen.
   private readonly STORAGE_KEY = 'powercamp.form.draft';
+
+  // Steps where a Restart pill should appear in the global nav. Excludes the
+  // initial Lookup, the Intro marketing screen, and the Leader-application
+  // branch screen — all of which sit before the user has typed anything they
+  // could lose.
+  private readonly resetHiddenSteps = new Set<number>([
+    StepKey.Lookup,
+    StepKey.Intro,
+    StepKey.LeaderApplication,
+  ]);
 
   constructor(private readonly fb: FormBuilder) {
     this.rootFormGroup = this.fb.group({
@@ -245,7 +306,20 @@ export class FormComponent {
       this.currentStep.set(resumeAt);
     }
     // Persist on every change so a reload after a network blip keeps the data.
-    this.rootFormGroup.valueChanges.subscribe(() => this.saveDraft());
+    this.rootFormGroup.valueChanges.subscribe(() => {
+      this.saveDraft();
+      this.formVersion.update((v) => v + 1);
+    });
+
+    // Reveal the form area after a short tick so the stepper + first step
+    // fade in together instead of the stepper appearing a frame before the
+    // step content. 300 ms gives the layout a chance to settle and reads as
+    // a deliberate intro animation rather than a stutter.
+    setTimeout(() => this.ready.set(true), 300);
+
+    // Step components render their own inline Restart button and dispatch
+    // through this service rather than each carrying their own Output.
+    this.resetSvc.register(() => this.confirmReset());
   }
 
   // Walks the form's required fields in order and returns the step where the
@@ -391,7 +465,12 @@ export class FormComponent {
     setTimeout(() => {
       this.currentStep.set(idx);
       this.stepVisible.set(true);
-    }, 600);
+      // Scroll back to the top of the page so each step starts at the
+      // beginning — otherwise long steps leave the next one half-scrolled.
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }, 500);
   }
 
   refreshApp() {

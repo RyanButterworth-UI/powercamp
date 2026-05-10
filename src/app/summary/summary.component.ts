@@ -1,6 +1,7 @@
-import { Component, input, output } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 import { FormGroup, FormGroupDirective } from '@angular/forms';
 import { StepKey } from '../../models';
+import { ResetRegistrationService } from '../reset-registration.service';
 
 @Component({
   selector: 'app-summary',
@@ -60,7 +61,7 @@ import { StepKey } from '../../models';
         </div>
       </div>
 
-      <div class="flex  gap-4 mt-6">
+      <div class="flex gap-3 mt-6 items-center flex-wrap">
         <button
           type="button"
           (click)="goToStep.emit(StepKey.Tshirt)"
@@ -75,6 +76,11 @@ import { StepKey } from '../../models';
         >
           Confirm
         </button>
+        <button
+          type="button"
+          (click)="resetSvc.request()"
+          class="saga-btn saga-btn-warning"
+        >Restart</button>
       </div>
     </div>
   `,
@@ -86,6 +92,7 @@ export class SummaryComponent {
   goToStep = output<StepKey>();
   triggerSubmission = output();
   StepKey = StepKey;
+  protected readonly resetSvc = inject(ResetRegistrationService);
   constructor(private rootFormGroup: FormGroupDirective) {
     this.form = this.rootFormGroup.control;
   }
