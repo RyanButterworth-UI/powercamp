@@ -1,23 +1,15 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-
 import { BaseComponent } from './base.component';
+import { mountStep } from '../../testing/step-host';
 
 describe('BaseComponent', () => {
-  let component: BaseComponent;
-  let fixture: ComponentFixture<BaseComponent>;
-
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [BaseComponent]
-    })
-    .compileComponents();
-
-    fixture = TestBed.createComponent(BaseComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-  });
-
   it('should create', () => {
-    expect(component).toBeTruthy();
+    // BaseComponent wraps a RadioButtonsComponent which needs a parent
+    // formGroup. The host fixture supplies one; the gender control is a
+    // safe target for the radio's formControlName.
+    const { child } = mountStep(BaseComponent, {
+      consentText: "'Test consent text'",
+      formControlNameLabel: "'gender'",
+    });
+    expect(child).toBeTruthy();
   });
 });

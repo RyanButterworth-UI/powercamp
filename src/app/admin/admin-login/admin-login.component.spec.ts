@@ -28,6 +28,10 @@ describe('AdminLoginComponent', () => {
     });
     fixture = TestBed.createComponent(AdminLoginComponent);
     http = TestBed.inject(HttpTestingController);
+    // The page holds rendering behind a 300ms ready-signal so the page-ghost
+    // can flash on first paint. Flip it manually so the real form template
+    // renders synchronously for assertions.
+    fixture.componentInstance.ready.set(true);
     fixture.detectChanges();
   });
 

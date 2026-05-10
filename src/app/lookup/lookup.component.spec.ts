@@ -25,6 +25,18 @@ describe('LookupComponent', () => {
     component = fixture.componentInstance;
     http = TestBed.inject(HttpTestingController);
     fixture.detectChanges();
+    // ngOnInit fires GET /stats to populate the capacity widget. Flush
+    // it here so each test starts on a clean http.verify() footing —
+    // tests that don't care about /stats can ignore it, tests that do
+    // can re-trigger a fetch by calling ngOnInit again.
+    http.expectOne(`${environment.baseApi}/stats`).flush({
+      year: 2026,
+      campers: 0,
+      leaders: 0,
+      total: 0,
+      cap: 150,
+      remaining: 150,
+    });
   });
 
   afterEach(() => http.verify());

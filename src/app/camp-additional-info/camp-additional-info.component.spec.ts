@@ -1,23 +1,9 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-
 import { CampAdditionalInfoComponent } from './camp-additional-info.component';
+import { mountStep } from '../testing/step-host';
 
 describe('CampAdditionalInfoComponent', () => {
-  let component: CampAdditionalInfoComponent;
-  let fixture: ComponentFixture<CampAdditionalInfoComponent>;
-
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [CampAdditionalInfoComponent]
-    })
-    .compileComponents();
-
-    fixture = TestBed.createComponent(CampAdditionalInfoComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-  });
-
   it('should create', () => {
-    expect(component).toBeTruthy();
+    const { child } = mountStep(CampAdditionalInfoComponent);
+    expect(child).toBeTruthy();
   });
 });

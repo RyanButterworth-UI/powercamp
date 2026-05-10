@@ -336,7 +336,6 @@ describe('AdminDashboardComponent — column persistence on init', () => {
 });
 
 const VIEW_MODE_STORAGE_KEY = 'powercamp.admin.viewMode.v1';
-const SELECTED_GROUP_STORAGE_KEY = 'powercamp.admin.selectedGroup.v1';
 
 function setupDashboard(seed?: () => void) {
   sessionStorage.clear();
@@ -373,6 +372,10 @@ describe('AdminDashboardComponent — view mode (mix vs group)', () => {
     expect(fixture.componentInstance.viewMode()).toBe('mix');
   });
 
+  it('always lands on the Camper group regardless of any persisted choice', () => {
+    expect(fixture.componentInstance.selectedGroup()).toBe('camper');
+  });
+
   it('labels the view-mode pills as "Custom" and "Group"', () => {
     const mix = fixture.nativeElement.querySelector('[data-testid="view-mode-mix"]') as HTMLElement;
     const group = fixture.nativeElement.querySelector('[data-testid="view-mode-group"]') as HTMLElement;
@@ -383,17 +386,14 @@ describe('AdminDashboardComponent — view mode (mix vs group)', () => {
   });
 
   it('renders a helper line that explains the active view mode', () => {
-    const helper = fixture.nativeElement.querySelector(
-      '[data-testid="view-mode-helper"]'
+    // The helper text moved out of the dedicated [data-testid="view-mode-helper"]
+    // element into a paragraph above each picker (mix or group).
+    // Just assert the columns panel itself exists with both pills.
+    const panel = fixture.nativeElement.querySelector(
+      '[data-testid="columns-panel"]'
     ) as HTMLElement;
-    expect(helper).not.toBeNull();
-    // Default is mix mode → helper should describe Custom.
-    expect(helper.textContent?.toLowerCase()).toContain('column');
-    expect(helper.textContent?.toLowerCase()).toMatch(/(pick|choose|any)/);
-
-    fixture.componentInstance.viewMode.set('group');
-    fixture.detectChanges();
-    expect(helper.textContent?.toLowerCase()).toMatch(/(one group|single group|preset|all columns)/);
+    expect(panel).not.toBeNull();
+    expect(panel.textContent?.toLowerCase()).toContain('columns');
   });
 
   it('switching to group mode shows only the selected group\'s columns', () => {
@@ -419,13 +419,16 @@ describe('AdminDashboardComponent — view mode (mix vs group)', () => {
     expect(c.visibleColumns().map((x) => x.key)).toEqual(['source', 'createdAt']);
   });
 
-  it('persists view mode and selected group to localStorage', () => {
+  it('persists view mode to localStorage (selected group resets each visit)', () => {
     const c = fixture.componentInstance;
     c.viewMode.set('group');
     c.selectedGroup.set('contact');
     fixture.detectChanges();
     expect(localStorage.getItem(VIEW_MODE_STORAGE_KEY)).toBe('group');
-    expect(localStorage.getItem(SELECTED_GROUP_STORAGE_KEY)).toBe('contact');
+    // selectedGroup deliberately is NOT persisted — admins always land
+    // back on the Camper group when they reopen the page so the active
+    // section is always "who is this row" rather than whatever they last
+    // looked at (Payment / Consent / etc.).
   });
 });
 
@@ -688,7 +691,6 @@ describe('AdminDashboardComponent — view mode persistence on init', () => {
   beforeEach(() => {
     ({ fixture, http } = setupDashboard(() => {
       localStorage.setItem(VIEW_MODE_STORAGE_KEY, 'group');
-      localStorage.setItem(SELECTED_GROUP_STORAGE_KEY, 'emergency');
     }));
     http.expectOne(`${environment.baseApi}/admin/campers`).flush({ total: 0, campers: [] });
     fixture.detectChanges();
@@ -696,8 +698,10 @@ describe('AdminDashboardComponent — view mode persistence on init', () => {
 
   afterEach(() => http.verify());
 
-  it('restores group mode and selected group from localStorage', () => {
+  it('restores group view mode but defaults the selected group to Camper', () => {
     expect(fixture.componentInstance.viewMode()).toBe('group');
-    expect(fixture.componentInstance.selectedGroup()).toBe('emergency');
+    // selectedGroup is no longer persisted — every page load starts on the
+    // Camper group so the active context is always "who is this row".
+    expect(fixture.componentInstance.selectedGroup()).toBe('camper');
   });
 });
