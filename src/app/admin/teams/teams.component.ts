@@ -259,6 +259,18 @@ const TEAM_PALETTE = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#e
       color: var(--color-saga-danger);
       border-color: var(--color-saga-danger);
     }
+    .leader-radio {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.25rem 0.375rem;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .leader-radio:hover {
+      background: var(--color-saga-surface);
+    }
+    .leader-radio input { accent-color: var(--color-saga-action); }
     .camper-pill:active { cursor: grabbing; }
     .cdk-drag-preview {
       box-shadow: 0 8px 18px rgba(0,0,0,0.4);
