@@ -3,13 +3,17 @@ import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AdminService } from '../admin.service';
+import { PageGhostComponent } from '../../skeleton/page-ghost.component';
 
 @Component({
   selector: 'app-admin-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, PageGhostComponent],
   template: `
-    <div class="container mx-auto p-6 max-w-md">
+    @if (!ready()) {
+      <app-page-ghost />
+    } @else {
+    <div class="container mx-auto p-6 max-w-md page-fade-in">
       <div class="saga-card p-6">
         <h1 class="text-2xl font-bold mb-1">Admin sign in</h1>
         <p class="text-sm mb-4" style="color: var(--color-saga-text-muted)">
@@ -41,6 +45,7 @@ import { AdminService } from '../admin.service';
         </button>
       </div>
     </div>
+    }
   `,
   styles: ``,
 })
@@ -48,9 +53,14 @@ export class AdminLoginComponent {
   passwordControl = new FormControl('', Validators.required);
   loading = signal(false);
   error = signal<string | null>(null);
+  ready = signal(false);
 
   private readonly admin = inject(AdminService);
   private readonly router = inject(Router);
+
+  constructor() {
+    setTimeout(() => this.ready.set(true), 300);
+  }
 
   login(): void {
     const password = (this.passwordControl.value ?? '').trim();

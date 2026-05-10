@@ -1,13 +1,17 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { AdminService } from '../admin.service';
+import { PageGhostComponent } from '../../skeleton/page-ghost.component';
 
 @Component({
   selector: 'app-team-admin',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, PageGhostComponent],
   template: `
-    <div class="container mx-auto p-6 max-w-5xl">
+    @if (!ready()) {
+      <app-page-ghost />
+    } @else {
+    <div class="container mx-auto p-6 max-w-5xl page-fade-in">
       <div class="flex items-center justify-between mb-4">
         <h1 class="text-2xl font-bold">Power Camp Admin — Team Admin</h1>
         <button type="button" (click)="logout()" class="saga-btn-ghost text-sm underline cursor-pointer">
@@ -26,11 +30,17 @@ import { AdminService } from '../admin.service';
         <p style="color: var(--color-saga-text-muted)">Team Admin tools — coming soon.</p>
       </div>
     </div>
+    }
   `,
 })
 export class TeamAdminComponent {
   private readonly admin = inject(AdminService);
   private readonly router = inject(Router);
+  ready = signal(false);
+
+  constructor() {
+    setTimeout(() => this.ready.set(true), 300);
+  }
 
   logout(): void {
     this.admin.clearToken();

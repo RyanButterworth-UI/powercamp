@@ -4,13 +4,17 @@ import { HttpClient } from '@angular/common/http';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { environment } from '../../environments/environment';
+import { PageGhostComponent } from '../skeleton/page-ghost.component';
 
 @Component({
   selector: 'app-leader-apply',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, PageGhostComponent],
   template: `
-    <div class="container mx-auto p-4 sm:p-6 max-w-2xl">
+    @if (!ready()) {
+      <app-page-ghost />
+    } @else {
+    <div class="container mx-auto p-4 sm:p-6 max-w-2xl page-fade-in">
       <h1 class="text-2xl font-bold mb-1" style="color: var(--color-saga-text-strong)">
         Power Camp Leader Application
       </h1>
@@ -141,6 +145,7 @@ import { environment } from '../../environments/environment';
         </form>
       }
     </div>
+    }
   `,
   styles: ``,
 })
@@ -149,6 +154,11 @@ export class LeaderApplyComponent {
   unlocked = signal(false);
   gateBusy = signal(false);
   gateError = signal<string | null>(null);
+  ready = signal(false);
+
+  constructor() {
+    setTimeout(() => this.ready.set(true), 300);
+  }
 
   form: FormGroup | null = null;
   submitting = signal(false);

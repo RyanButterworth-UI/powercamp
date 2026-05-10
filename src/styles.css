@@ -1043,6 +1043,17 @@ select option,
   background-color: var(--color-saga-surface-2);
 }
 
+/* Gentle fade-in applied to page contents once their per-component
+   ready() signal flips true. Runs once on mount; the .page-ghost
+   spinner shown beforehand handles the loading affordance. */
+.page-fade-in {
+  animation: page-fade-in 280ms ease both;
+}
+@keyframes page-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* Skeleton placeholders — drop-in shimmer stand-in for any value that's
    loading over the network. Same look whether you use <app-skeleton>
    or just slap .skeleton on a div. Width / height are set inline so
