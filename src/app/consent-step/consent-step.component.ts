@@ -38,8 +38,8 @@ const CONSENT_EXTRA_KEYS = [
       >
         <h2 class="text-xl font-bold mb-2">Consent (required for each child)</h2>
         <p class="text-xs mb-4" style="color: var(--color-saga-text-muted)">
-          I, the parent/guardian of {{ camperName() }}, agree to the following.
-          Tap each statement to tick it — all must be ticked before you can submit.
+          As parent/guardian of {{ camperName() }}, please tick each statement
+          to give your consent. All must be ticked before you can submit.
         </p>
 
         <div class="flex flex-col gap-2 mb-6">
@@ -173,13 +173,41 @@ export class ConsentStepComponent {
   StepKey = StepKey;
   protected readonly resetSvc = inject(ResetRegistrationService);
 
+  // Each statement IS the policy — there is no separate document to read.
+  // Wording is original (not lifted verbatim from the 2024 Typeform) and
+  // reframed politely so the consents stand on their own under the POPIA
+  // requirement that consent be specific, informed, and freely given.
   consentItems = [
-    { key: 'consent_general', label: 'General consent — my child may attend Power Camp.' },
-    { key: 'consent_location', label: 'Location consent — I am aware of the venue and the dates.' },
-    { key: 'consent_risk', label: 'Risk consent — I accept the inherent risk of camp activities.' },
-    { key: 'consent_powerCamp', label: 'Organisers consent — I understand the role of the camp organisers.' },
-    { key: 'consent_behaviour', label: 'Behaviour consent — I have read the behaviour policy.' },
-    { key: 'consent_photo', label: 'Photo consent — photos taken at camp may be used in camp media.' },
+    {
+      key: 'consent_general',
+      label:
+        'I give permission for my child to attend Power Camp from 31 July – 2 August 2026 and take part in the activities.',
+    },
+    {
+      key: 'consent_location',
+      label:
+        'I am aware that camp runs at YFC Magaliesburg (Boitumelo & Kotula).',
+    },
+    {
+      key: 'consent_risk',
+      label:
+        'I accept that camp activities carry inherent risk, and my child takes part at their own risk.',
+    },
+    {
+      key: 'consent_powerCamp',
+      label:
+        'I accept that the organisers, leaders and YFC Magaliesburg staff cannot be held liable for any loss, injury or damage, and I will not bring any claim against them arising from my child’s participation.',
+    },
+    {
+      key: 'consent_behaviour',
+      label:
+        'My child agrees to follow reasonable instructions from camp leaders. I understand that, at the organisers’ discretion, a camper who behaves inappropriately may be sent home.',
+    },
+    {
+      key: 'consent_photo',
+      label:
+        'I am happy for photos or videos of my child taken at camp to be shared with other campers and on Power Camp’s social channels.',
+    },
   ];
 
   // Plain methods rather than computed() — the form's get().value calls
