@@ -172,89 +172,103 @@ const COLUMN_GROUPS: ColumnGroup[] = GROUP_ORDER.map((g) => ({
           </div>
         }
 
-        <div class="flex flex-col gap-1 mb-3" data-testid="view-mode">
-          <div class="flex items-center gap-2">
-            <span
-              class="text-xs font-semibold uppercase tracking-wide"
-              style="color: var(--color-saga-text-muted); min-width: 5.5rem;"
-            >VIEW</span>
-            <button
-              type="button"
-              (click)="viewMode.set('mix')"
-              class="column-pill"
-              [class.is-active]="viewMode() === 'mix'"
-              data-testid="view-mode-mix"
-            >Custom</button>
-            <button
-              type="button"
-              (click)="viewMode.set('group')"
-              class="column-pill"
-              [class.is-active]="viewMode() === 'group'"
-              data-testid="view-mode-group"
-            >Group</button>
-          </div>
-          <div
-            class="text-xs italic"
-            style="color: var(--color-saga-text-muted); padding-left: 5.5rem;"
-            data-testid="view-mode-helper"
-          >
-            @if (viewMode() === 'mix') {
-              Pick any combination of columns from any group.
-            } @else {
-              Show all columns from one group at a time.
-            }
-          </div>
-        </div>
-
-        @if (viewMode() === 'mix') {
-          <div class="flex flex-col gap-1.5 mb-3" data-testid="columns-pills">
-            @for (g of columnGroups(); track g.key) {
-              <div
-                class="flex items-center gap-2 flex-wrap"
-                [attr.data-testid]="'col-group-' + g.key"
-              >
-                <span
-                  class="text-xs font-semibold uppercase tracking-wide"
-                  style="color: var(--color-saga-text-muted); min-width: 5.5rem;"
-                >{{ g.label }}</span>
-                @for (col of g.columns; track col.key) {
-                  <button
-                    type="button"
-                    (click)="toggleColumn(col.key)"
-                    class="column-pill"
-                    [class.is-active]="isColumnVisible(col.key)"
-                    [attr.data-testid]="'col-pill-' + col.key"
-                  >{{ col.label }}</button>
-                }
-              </div>
-            }
-            <div class="flex justify-end">
+        <div class="saga-card p-4 mb-4" data-testid="columns-panel">
+          <div class="flex items-start justify-between gap-3 mb-3 flex-wrap">
+            <div>
+              <h3 class="text-sm font-semibold mb-0.5" style="color: var(--color-saga-text-strong)">
+                Columns
+              </h3>
+              <p class="text-xs" style="color: var(--color-saga-text-muted)">
+                Choose which fields appear in the table below.
+              </p>
+            </div>
+            <div class="flex items-center gap-1.5" data-testid="view-mode">
               <button
                 type="button"
-                (click)="resetColumns()"
-                class="text-xs underline cursor-pointer"
-                style="background: none; border: none; color: var(--color-saga-text-muted); padding: 0;"
-                data-testid="columns-reset"
-              >Reset to defaults</button>
+                (click)="viewMode.set('group')"
+                class="column-pill"
+                [class.is-active]="viewMode() === 'group'"
+                data-testid="view-mode-group"
+                title="Show all columns from one section at a time"
+              >Group</button>
+              <button
+                type="button"
+                (click)="viewMode.set('mix')"
+                class="column-pill"
+                [class.is-active]="viewMode() === 'mix'"
+                data-testid="view-mode-mix"
+                title="Pick any combination of columns yourself"
+              >Custom</button>
             </div>
           </div>
-        } @else {
-          <div class="flex items-center gap-2 flex-wrap mb-3" data-testid="group-selector">
-            <span
-              class="text-xs font-semibold uppercase tracking-wide"
-              style="color: var(--color-saga-text-muted); min-width: 5.5rem;"
-            >GROUP</span>
-            @for (g of columnGroups(); track g.key) {
-              <button
-                type="button"
-                (click)="selectedGroup.set(g.key)"
-                class="column-pill"
-                [class.is-active]="selectedGroup() === g.key"
-                [attr.data-testid]="'group-select-' + g.key"
-              >{{ g.label }}</button>
-            }
-          </div>
-        }
+
+          @if (viewMode() === 'group') {
+            <p class="text-xs mb-2" style="color: var(--color-saga-text-muted)">
+              Pick a section — the table will swap to show every column in that section.
+            </p>
+            <div class="flex items-center gap-1.5 flex-wrap" data-testid="group-selector">
+              @for (g of columnGroups(); track g.key) {
+                <button
+                  type="button"
+                  (click)="selectedGroup.set(g.key)"
+                  class="column-pill"
+                  [class.is-active]="selectedGroup() === g.key"
+                  [attr.data-testid]="'group-select-' + g.key"
+                  [title]="groupColumnsList(g.key)"
+                >{{ g.label }}</button>
+              }
+            </div>
+            <p
+              class="text-xs italic mt-2"
+              style="color: var(--color-saga-text-muted)"
+              data-testid="group-columns-summary"
+            >
+              Showing {{ activeGroupColumns().length }} {{ activeGroupColumns().length === 1 ? 'column' : 'columns' }}: {{ activeGroupColumnsLabel() }}
+            </p>
+          } @else {
+            <p class="text-xs mb-2" style="color: var(--color-saga-text-muted)">
+              Tap any column name to show or hide it. The table updates as you click.
+            </p>
+            <div class="flex flex-col gap-1.5" data-testid="columns-pills">
+              @for (g of columnGroups(); track g.key) {
+                <div
+                  class="flex items-center gap-2 flex-wrap"
+                  [attr.data-testid]="'col-group-' + g.key"
+                >
+                  <span
+                    class="text-xs font-semibold uppercase tracking-wide"
+                    style="color: var(--color-saga-text-muted); min-width: 5.5rem;"
+                  >{{ g.label }}</span>
+                  @for (col of g.columns; track col.key) {
+                    <button
+                      type="button"
+                      (click)="toggleColumn(col.key)"
+                      class="column-pill"
+                      [class.is-active]="isColumnVisible(col.key)"
+                      [attr.data-testid]="'col-pill-' + col.key"
+                    >{{ col.label }}</button>
+                  }
+                </div>
+              }
+              <div class="flex items-center justify-between flex-wrap gap-2 mt-1">
+                <span
+                  class="text-xs italic"
+                  style="color: var(--color-saga-text-muted)"
+                  data-testid="custom-columns-summary"
+                >
+                  {{ visibleColumnKeys().length }} of {{ allColumns.length }} columns shown
+                </span>
+                <button
+                  type="button"
+                  (click)="resetColumns()"
+                  class="text-xs underline cursor-pointer"
+                  style="background: none; border: none; color: var(--color-saga-text-muted); padding: 0;"
+                  data-testid="columns-reset"
+                >Reset to defaults</button>
+              </div>
+            </div>
+          }
+        </div>
 
         <input
           type="text"
@@ -469,6 +483,23 @@ export class AdminDashboardComponent {
 
   columnGroups(): ColumnGroup[] {
     return COLUMN_GROUPS;
+  }
+
+  // Columns that the active group exposes — used to render the
+  // "Showing 5 columns: name, grade, age, …" hint under the group picker
+  // so the admin knows what they're about to see before the table reflows.
+  activeGroupColumns(): ColumnDef[] {
+    return COLUMN_GROUPS.find((g) => g.key === this.selectedGroup())?.columns ?? [];
+  }
+
+  activeGroupColumnsLabel(): string {
+    return this.activeGroupColumns().map((c) => c.label).join(', ');
+  }
+
+  // Tooltip text for unselected group pills — same comma-separated list.
+  groupColumnsList(key: ColumnGroupKey): string {
+    const g = COLUMN_GROUPS.find((gg) => gg.key === key);
+    return g ? g.columns.map((c) => c.label).join(', ') : '';
   }
 
   visibleColumns = computed<ColumnDef[]>(() => {
