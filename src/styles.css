@@ -467,6 +467,96 @@ label.bg-white:has(input:checked) span {
   font-weight: 600;
 }
 
+/* Column pills — clean white toggles for choosing which columns appear in
+   the admin Campers table. Off = transparent outline, on = solid white. */
+.column-pill {
+  padding: 0.1875rem 0.625rem;
+  font-size: 0.75rem;
+  line-height: 1.1rem;
+  border-radius: 6px;
+  border: 1px solid var(--color-saga-border);
+  background-color: transparent;
+  color: var(--color-saga-text-muted);
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.column-pill:hover:not(.is-active) {
+  border-color: rgba(255, 255, 255, 0.6);
+  color: var(--color-saga-text);
+}
+
+.column-pill.is-active {
+  background-color: #ffffff;
+  border-color: #ffffff;
+  color: #0a0e16;
+  font-weight: 600;
+}
+
+.column-pill:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* Status pill — flexible badge for booleans / states.
+   Single character renders roughly square (22x22); text content auto-grows.
+   Used across admin tables (consent, leader status, Neil-approval, etc.). */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 0.5rem;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.status-pill.is-ok {
+  background-color: rgba(78, 192, 125, 0.18);
+  color: var(--color-saga-success);
+  border: 1px solid var(--color-saga-success);
+}
+
+.status-pill.is-bad {
+  background-color: rgba(240, 164, 164, 0.14);
+  color: var(--color-saga-danger);
+  border: 1px solid var(--color-saga-danger);
+}
+
+.status-pill.is-pending {
+  background-color: rgba(231, 194, 122, 0.14);
+  color: var(--color-saga-warning);
+  border: 1px solid var(--color-saga-warning);
+}
+
+/* Success / danger button variants — same outline geometry as .saga-btn-secondary
+   so chips sit flush in action columns without looking heavier. Used in the
+   admin Campers table ("Paid") and Leaders table ("Approve" / "Reject"). */
+.saga-btn-success {
+  background-color: transparent;
+  color: var(--color-saga-success);
+  border: 1px solid var(--color-saga-success);
+}
+
+.saga-btn-success:hover:not(:disabled) {
+  background-color: rgba(78, 192, 125, 0.08);
+}
+
+.saga-btn-danger {
+  background-color: transparent;
+  color: var(--color-saga-danger);
+  border: 1px solid var(--color-saga-danger);
+}
+
+.saga-btn-danger:hover:not(:disabled) {
+  background-color: rgba(240, 164, 164, 0.08);
+}
+
 /* Translucent warning button — same translucent pattern as .saga-btn-primary
    but using the warning hue. For destructive-but-optional actions like
    "Reset registration" where danger red would be too aggressive. */
@@ -478,6 +568,48 @@ label.bg-white:has(input:checked) span {
 
 .saga-btn-warning:hover:not(:disabled) {
   background-color: rgba(231, 194, 122, 0.28);
+}
+
+/* Nested table inside a saga-table cell — used in the admin Emergency view to
+   list campers + medical info under each parent without competing visually
+   with the outer table. Widths are hints (auto layout) so long medical info
+   never gets clipped, but the columns still line up across sub-tables. */
+.kids-subtable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.kids-subtable col.col-camper { width: 11rem; }
+.kids-subtable col.col-grade { width: 4rem; }
+.kids-subtable col.col-medical { width: auto; }
+
+.kids-subtable thead th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-saga-text-muted);
+  padding: 0 0.5rem 0.25rem 0;
+  border-bottom: 1px solid var(--color-saga-border);
+}
+
+.kids-subtable tbody td {
+  padding: 0.25rem 0.5rem 0.25rem 0;
+  border-bottom: 1px dashed var(--color-saga-border);
+  vertical-align: top;
+  word-break: break-word;
+}
+
+.kids-subtable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* The Medical column is always rendered in the warning colour so missing
+   medical-aid info, unusual notes, or anything else flagged stands out. */
+.kids-subtable td.medical-cell {
+  color: var(--color-saga-danger);
 }
 
 /* Required-field marker — reused across every registration step so the * is

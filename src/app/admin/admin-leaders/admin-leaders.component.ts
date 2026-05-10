@@ -22,18 +22,19 @@ import { UiService } from '../../ui/ui.service';
         <a routerLink="/admin" class="saga-tab no-underline">Campers</a>
         <span class="saga-tab is-active">Leaders</span>
         <a routerLink="/admin/bulk-email" class="saga-tab no-underline">Bulk email</a>
+        <a routerLink="/admin/team" class="saga-tab no-underline">Team Admin</a>
       </nav>
 
       <div class="flex items-center gap-3 mb-6 flex-wrap">
         <button
           type="button"
           (click)="showAddForm.set(!showAddForm())"
-          class="bg-green-300 text-green-900 px-4 py-2 rounded"
+          class="saga-btn saga-btn-primary"
           data-testid="toggle-add"
         >
           {{ showAddForm() ? 'Close' : '＋ Add a leader directly (Neil only)' }}
         </button>
-        <span class="text-sm text-gray-500">{{ total() }} leaders in the database</span>
+        <span class="text-sm" style="color: var(--color-saga-text-muted)">{{ total() }} leaders in the database</span>
       </div>
 
       @if (showAddForm()) {
@@ -103,21 +104,17 @@ import { UiService } from '../../ui/ui.service';
         <div class="text-red-700" data-testid="load-error">{{ loadError() }}</div>
       } @else {
         @if (years().length > 0) {
-          <div class="border-b border-gray-200 mb-3" data-testid="leader-year-tabs">
+          <div class="mb-3" data-testid="leader-year-tabs" style="border-bottom: 1px solid var(--color-saga-border)">
             <nav class="flex gap-1">
               @for (y of years(); track y) {
                 <button
                   type="button"
                   (click)="selectedYear.set(y)"
-                  [class.border-green-500]="selectedYear() === y"
-                  [class.text-green-700]="selectedYear() === y"
-                  [class.font-semibold]="selectedYear() === y"
-                  [class.border-transparent]="selectedYear() !== y"
-                  [class.text-gray-500]="selectedYear() !== y"
-                  class="px-4 py-2 text-sm border-b-2 hover:text-gray-700"
+                  class="saga-tab"
+                  [class.is-active]="selectedYear() === y"
                 >
                   {{ y }}
-                  <span class="ml-1 text-xs text-gray-400">({{ countByYear()[y] }})</span>
+                  <span class="ml-1 text-xs" style="color: var(--color-saga-text-muted)">({{ countByYear()[y] }})</span>
                 </button>
               }
             </nav>
@@ -162,41 +159,38 @@ import { UiService } from '../../ui/ui.service';
                   </td>
                   <td>
                     <span
-                      [style.color]="
-                        l.status === 'approved' ? 'var(--color-saga-success)'
-                        : l.status === 'rejected' ? 'var(--color-saga-danger)'
-                        : 'var(--color-saga-warning)'
-                      "
-                    >
-                      {{ l.status }}
-                    </span>
+                      class="status-pill"
+                      [class.is-ok]="l.status === 'approved'"
+                      [class.is-bad]="l.status === 'rejected'"
+                      [class.is-pending]="l.status !== 'approved' && l.status !== 'rejected'"
+                    >{{ l.status }}</span>
                   </td>
                   <td>
                     @if (l.approvedByNeil) {
-                      <span style="color: var(--color-saga-success)">✓</span>
+                      <span class="status-pill is-ok" title="Approved by Neil">✓</span>
                     } @else {
-                      <span style="color: var(--color-saga-text-muted)">—</span>
+                      <span class="status-pill is-bad" title="Not approved by Neil">!</span>
                     }
                   </td>
                   <td>
-                    @if (l.status !== 'approved') {
-                      <button
-                        type="button"
-                        (click)="approve(l)"
-                        class="saga-btn saga-btn-secondary !py-1 !px-2 !text-xs mr-1"
-                      >
-                        Approve
-                      </button>
-                    }
-                    @if (l.status !== 'rejected') {
-                      <button
-                        type="button"
-                        (click)="reject(l)"
-                        class="saga-btn saga-btn-secondary !py-1 !px-2 !text-xs"
-                      >
-                        Reject
-                      </button>
-                    }
+                    <span class="inline-flex items-center gap-1.5">
+                      @if (l.status !== 'approved') {
+                        <button
+                          type="button"
+                          (click)="approve(l)"
+                          class="text-xs px-2 py-1 rounded saga-btn saga-btn-success inline-flex items-center justify-center"
+                          style="min-width: 5rem;"
+                        >Approve</button>
+                      }
+                      @if (l.status !== 'rejected') {
+                        <button
+                          type="button"
+                          (click)="reject(l)"
+                          class="text-xs px-2 py-1 rounded saga-btn saga-btn-danger inline-flex items-center justify-center"
+                          style="min-width: 5rem;"
+                        >Reject</button>
+                      }
+                    </span>
                   </td>
                 </tr>
               } @empty {

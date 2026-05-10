@@ -1,9 +1,105 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { AdminService, AdminCamper } from '../admin.service';
 import { environment } from '../../../environments/environment';
 import { UiService } from '../../ui/ui.service';
+
+export type ColumnGroupKey = 'camper' | 'contact' | 'emergency' | 'status' | 'meta';
+
+export interface ColumnDef {
+  key: string;
+  label: string;
+  group: ColumnGroupKey;
+  default: boolean;
+  tdClass?: string;
+  render?: (c: AdminCamper) => string;
+  sortValue?: (c: AdminCamper) => string | number | Date | null;
+}
+
+export interface ColumnGroup {
+  key: ColumnGroupKey;
+  label: string;
+  columns: ColumnDef[];
+}
+
+export interface EmergencyContactGroup {
+  key: string;
+  name: string;
+  contact: string;
+  kids: AdminCamper[];
+}
+
+const COLUMNS_STORAGE_KEY = 'powercamp.admin.columns.v1';
+const VIEW_MODE_STORAGE_KEY = 'powercamp.admin.viewMode.v1';
+const SELECTED_GROUP_STORAGE_KEY = 'powercamp.admin.selectedGroup.v1';
+
+export type ViewMode = 'mix' | 'group';
+
+function searchableHay(c: AdminCamper): string {
+  const parts: string[] = [];
+  for (const v of Object.values(c) as unknown[]) {
+    if (typeof v === 'string') parts.push(v);
+    else if (Array.isArray(v)) parts.push(v.join(' '));
+  }
+  return parts.join(' ').toLowerCase();
+}
+
+function compareValues(a: unknown, b: unknown, dir: 'asc' | 'desc'): number {
+  // Nulls sort last regardless of direction.
+  if (a == null && b == null) return 0;
+  if (a == null) return 1;
+  if (b == null) return -1;
+  let cmp: number;
+  if (a instanceof Date && b instanceof Date) cmp = a.getTime() - b.getTime();
+  else if (typeof a === 'number' && typeof b === 'number') cmp = a - b;
+  else cmp = String(a).localeCompare(String(b), undefined, { numeric: true });
+  return dir === 'asc' ? cmp : -cmp;
+}
+
+const GROUP_ORDER: { key: ColumnGroupKey; label: string }[] = [
+  { key: 'camper', label: 'Camper' },
+  { key: 'contact', label: 'Contact' },
+  { key: 'emergency', label: 'Emergency' },
+  { key: 'status', label: 'Payment / Consent' },
+  { key: 'meta', label: 'Meta' },
+];
+
+function fmtDate(iso: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? iso : d.toISOString().slice(0, 10);
+}
+
+const ALL_COLUMNS: ColumnDef[] = [
+  { key: 'name', label: 'Name', group: 'camper', default: true, sortValue: (c) => `${c.lastName} ${c.firstName}`.toLowerCase() },
+  { key: 'grade', label: 'Grade', group: 'camper', default: true, render: (c) => c.grade ?? '' },
+  { key: 'dob', label: 'DOB', group: 'camper', default: false, render: (c) => c.dob ?? '' },
+  { key: 'gender', label: 'Gender', group: 'camper', default: false, render: (c) => c.gender ?? '' },
+  { key: 'age', label: 'Age', group: 'camper', default: false, render: (c) => c.age ?? '' },
+
+  { key: 'parentEmail', label: 'Parent email', group: 'contact', default: true, sortValue: (c) => c.parentEmail.toLowerCase() },
+  { key: 'parentName', label: 'Parent name', group: 'contact', default: false, render: (c) => c.parentName ?? '' },
+  { key: 'parentPhone', label: 'Parent phone', group: 'contact', default: false, render: (c) => c.parentPhone ?? '', tdClass: 'font-mono text-xs' },
+  { key: 'email', label: 'Camper email', group: 'contact', default: false, render: (c) => c.email ?? '', tdClass: 'font-mono text-xs' },
+  { key: 'camperCell', label: 'Camper cell', group: 'contact', default: false, render: (c) => c.camperCell ?? '', tdClass: 'font-mono text-xs' },
+
+  { key: 'consentEmergencyName', label: 'Emergency name', group: 'emergency', default: false, render: (c) => c.consentEmergencyName ?? '' },
+  { key: 'consentEmergencyContact', label: 'Emergency contact', group: 'emergency', default: false, render: (c) => c.consentEmergencyContact ?? '', tdClass: 'font-mono text-xs' },
+
+  { key: 'consent', label: 'Consent', group: 'status', default: true, sortValue: (c) => c.consentAcceptedAt },
+  { key: 'consentDate', label: 'Consent date', group: 'status', default: false, render: (c) => c.consentDate ?? '' },
+  { key: 'payment', label: 'Payment', group: 'status', default: true, sortValue: (c) => c.paymentReceivedAt },
+
+  { key: 'source', label: 'Source', group: 'meta', default: true, render: (c) => c.source ?? '', tdClass: 'text-xs text-muted' },
+  { key: 'createdAt', label: 'Created', group: 'meta', default: false, render: (c) => fmtDate(c.createdAt), tdClass: 'text-xs text-muted' },
+];
+
+const COLUMN_GROUPS: ColumnGroup[] = GROUP_ORDER.map((g) => ({
+  key: g.key,
+  label: g.label,
+  columns: ALL_COLUMNS.filter((c) => c.group === g.key),
+}));
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -22,6 +118,7 @@ import { UiService } from '../../ui/ui.service';
         <span class="saga-tab is-active">Campers</span>
         <a routerLink="/admin/leaders" class="saga-tab no-underline">Leaders</a>
         <a routerLink="/admin/bulk-email" class="saga-tab no-underline">Bulk email</a>
+        <a routerLink="/admin/team" class="saga-tab no-underline">Team Admin</a>
       </nav>
 
       <div class="flex items-center gap-3 mb-4 flex-wrap">
@@ -48,49 +145,6 @@ import { UiService } from '../../ui/ui.service';
         </span>
       </div>
 
-      <input
-        type="text"
-        [value]="searchQuery()"
-        (input)="searchQuery.set($any($event.target).value)"
-        placeholder="Search by name or parent email…"
-        class="rounded-lg w-full px-3 py-2 mb-3"
-        data-testid="campers-search"
-      />
-
-      <div class="flex flex-col gap-3 mb-4">
-        <div class="flex items-center gap-2 flex-wrap" data-testid="payment-filter">
-          <span class="text-xs font-semibold w-20" style="color: var(--color-saga-text-muted)">PAYMENT</span>
-          @for (opt of paymentOptions; track opt.value) {
-            <button
-              type="button"
-              (click)="paymentFilter.set(opt.value)"
-              class="filter-pill"
-              [class.is-active]="paymentFilter() === opt.value"
-              [attr.data-testid]="'payment-' + opt.value"
-            >{{ opt.label }}</button>
-          }
-        </div>
-        <div class="flex items-center gap-2 flex-wrap" data-testid="consent-filter">
-          <span class="text-xs font-semibold w-20" style="color: var(--color-saga-text-muted)">CONSENT</span>
-          @for (opt of consentOptions; track opt.value) {
-            <button
-              type="button"
-              (click)="consentFilter.set(opt.value)"
-              class="filter-pill"
-              [class.is-active]="consentFilter() === opt.value"
-              [attr.data-testid]="'consent-' + opt.value"
-            >{{ opt.label }}</button>
-          }
-          @if (paymentFilter() !== 'all' || consentFilter() !== 'all') {
-            <button
-              type="button"
-              (click)="clearFilters()"
-              class="text-xs underline cursor-pointer ml-2"
-              style="background: none; border: none; color: var(--color-saga-text-muted); padding: 0;"
-            >Clear filters</button>
-          }
-        </div>
-      </div>
 
       @if (loading()) {
         <div data-testid="loading" style="color: var(--color-saga-text-muted)">Loading campers…</div>
@@ -118,82 +172,267 @@ import { UiService } from '../../ui/ui.service';
           </div>
         }
 
-        <div class="overflow-x-auto">
-          <table class="saga-table text-sm">
+        <div class="flex flex-col gap-1 mb-3" data-testid="view-mode">
+          <div class="flex items-center gap-2">
+            <span
+              class="text-xs font-semibold uppercase tracking-wide"
+              style="color: var(--color-saga-text-muted); min-width: 5.5rem;"
+            >VIEW</span>
+            <button
+              type="button"
+              (click)="viewMode.set('mix')"
+              class="column-pill"
+              [class.is-active]="viewMode() === 'mix'"
+              data-testid="view-mode-mix"
+            >Custom</button>
+            <button
+              type="button"
+              (click)="viewMode.set('group')"
+              class="column-pill"
+              [class.is-active]="viewMode() === 'group'"
+              data-testid="view-mode-group"
+            >Group</button>
+          </div>
+          <div
+            class="text-xs italic"
+            style="color: var(--color-saga-text-muted); padding-left: 5.5rem;"
+            data-testid="view-mode-helper"
+          >
+            @if (viewMode() === 'mix') {
+              Pick any combination of columns from any group.
+            } @else {
+              Show all columns from one group at a time.
+            }
+          </div>
+        </div>
+
+        @if (viewMode() === 'mix') {
+          <div class="flex flex-col gap-1.5 mb-3" data-testid="columns-pills">
+            @for (g of columnGroups(); track g.key) {
+              <div
+                class="flex items-center gap-2 flex-wrap"
+                [attr.data-testid]="'col-group-' + g.key"
+              >
+                <span
+                  class="text-xs font-semibold uppercase tracking-wide"
+                  style="color: var(--color-saga-text-muted); min-width: 5.5rem;"
+                >{{ g.label }}</span>
+                @for (col of g.columns; track col.key) {
+                  <button
+                    type="button"
+                    (click)="toggleColumn(col.key)"
+                    class="column-pill"
+                    [class.is-active]="isColumnVisible(col.key)"
+                    [attr.data-testid]="'col-pill-' + col.key"
+                  >{{ col.label }}</button>
+                }
+              </div>
+            }
+            <div class="flex justify-end">
+              <button
+                type="button"
+                (click)="resetColumns()"
+                class="text-xs underline cursor-pointer"
+                style="background: none; border: none; color: var(--color-saga-text-muted); padding: 0;"
+                data-testid="columns-reset"
+              >Reset to defaults</button>
+            </div>
+          </div>
+        } @else {
+          <div class="flex items-center gap-2 flex-wrap mb-3" data-testid="group-selector">
+            <span
+              class="text-xs font-semibold uppercase tracking-wide"
+              style="color: var(--color-saga-text-muted); min-width: 5.5rem;"
+            >GROUP</span>
+            @for (g of columnGroups(); track g.key) {
+              <button
+                type="button"
+                (click)="selectedGroup.set(g.key)"
+                class="column-pill"
+                [class.is-active]="selectedGroup() === g.key"
+                [attr.data-testid]="'group-select-' + g.key"
+              >{{ g.label }}</button>
+            }
+          </div>
+        }
+
+        <input
+          type="text"
+          [value]="searchQuery()"
+          (input)="searchQuery.set($any($event.target).value)"
+          placeholder="Search any field…"
+          class="rounded-lg w-full px-3 py-2 mb-3"
+          data-testid="campers-search"
+        />
+
+        @if (isEmergencyView()) {
+          <div class="overflow-x-auto" data-testid="campers-table-scroll">
+            <table class="saga-table text-sm" style="min-width: max-content;">
+              <thead>
+                <tr>
+                  <th>Emergency name</th>
+                  <th>Emergency contact</th>
+                  <th>Kids</th>
+                </tr>
+              </thead>
+              <tbody data-testid="emergency-rows">
+                @for (g of emergencyContactGroups(); track g.key) {
+                  <tr [attr.data-testid]="'emergency-row-' + g.key" style="vertical-align: top;">
+                    <td>{{ g.name || '—' }}</td>
+                    <td class="font-mono text-xs">{{ g.contact || '—' }}</td>
+                    <td>
+                      <table class="kids-subtable" data-testid="campers-subtable">
+                        <colgroup>
+                          <col class="col-camper" />
+                          <col class="col-grade" />
+                          <col class="col-medical" />
+                        </colgroup>
+                        <thead>
+                          <tr>
+                            <th>Camper</th>
+                            <th>Grade</th>
+                            <th>Medical</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (k of g.kids; track k.id) {
+                            <tr>
+                              <td>{{ k.firstName }} {{ k.lastName }}</td>
+                              <td>{{ k.grade ?? '—' }}</td>
+                              <td class="medical-cell">
+                                @if (k.consentMedicalAidName) {
+                                  <div>
+                                    {{ k.consentMedicalAidName }}
+                                    <span class="font-mono">· {{ k.consentMedicalAidNumber ?? '—' }}</span>
+                                  </div>
+                                } @else {
+                                  <div class="no-medaid" style="font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;">
+                                    No Medical Aid
+                                  </div>
+                                }
+                                @if (k.medical) {
+                                  <div class="text-xs">{{ k.medical }}</div>
+                                }
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="3" class="text-center py-6" style="color: var(--color-saga-text-muted)">
+                      No emergency contacts in this year.
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+        <div class="overflow-x-auto" data-testid="campers-table-scroll">
+          <table class="saga-table text-sm" style="min-width: max-content;">
             <thead>
-              <tr>
-                <th>Name</th>
-                <th>Parent email</th>
-                <th>Grade</th>
-                <th>Consent</th>
-                <th>Payment</th>
-                <th>Source</th>
+              <tr data-testid="campers-columns-header">
+                @for (col of visibleColumns(); track col.key) {
+                  <th
+                    (click)="toggleSort(col.key)"
+                    class="cursor-pointer select-none"
+                    style="user-select: none;"
+                  >
+                    {{ col.label }}
+                    @if (sortBy() === col.key) {
+                      <span style="color: var(--color-saga-text-muted)">{{ sortDir() === 'asc' ? '↑' : '↓' }}</span>
+                    }
+                  </th>
+                }
               </tr>
             </thead>
             <tbody data-testid="campers-rows">
               @for (c of visibleCampers(); track c.id) {
                 <tr>
-                  <td>{{ c.firstName }} {{ c.lastName }}</td>
-                  <td class="font-mono text-xs">
-                    <span class="inline-flex items-center gap-1.5">
-                      <span>{{ c.parentEmail }}</span>
-                      <button
-                        type="button"
-                        (click)="copyEmail(c.parentEmail)"
-                        [title]="copiedEmail() === c.parentEmail ? 'Copied!' : 'Copy email'"
-                        class="cursor-pointer p-1 rounded hover:bg-white/5"
-                        style="background: none; border: none;"
-                      >
-                        @if (copiedEmail() === c.parentEmail) {
-                          <span style="color: var(--color-saga-success); font-size: 11px;">✓</span>
-                        } @else {
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-saga-text-muted)">
-                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                          </svg>
+                  @for (col of visibleColumns(); track col.key) {
+                    <td [class]="col.tdClass ?? ''">
+                      @switch (col.key) {
+                        @case ('name') { {{ c.firstName }} {{ c.lastName }} }
+                        @case ('parentEmail') {
+                          <span class="inline-flex items-center gap-1.5 font-mono text-xs">
+                            <span>{{ c.parentEmail }}</span>
+                            <button
+                              type="button"
+                              (click)="copyEmail(c.parentEmail)"
+                              [title]="copiedEmail() === c.parentEmail ? 'Copied!' : 'Copy email'"
+                              class="cursor-pointer p-1 rounded hover:bg-white/5"
+                              style="background: none; border: none;"
+                            >
+                              @if (copiedEmail() === c.parentEmail) {
+                                <span style="color: var(--color-saga-success); font-size: 11px;">✓</span>
+                              } @else {
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-saga-text-muted)">
+                                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                </svg>
+                              }
+                            </button>
+                            <button
+                              type="button"
+                              (click)="changeParentEmail(c)"
+                              title="Change parent email (e.g. parent's email changed since last year)"
+                              class="cursor-pointer p-1 rounded hover:bg-white/5"
+                              style="background: none; border: none;"
+                            >
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-saga-text-muted)">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                              </svg>
+                            </button>
+                          </span>
                         }
-                      </button>
-                      <button
-                        type="button"
-                        (click)="changeParentEmail(c)"
-                        title="Change parent email (e.g. parent's email changed since last year)"
-                        class="cursor-pointer p-1 rounded hover:bg-white/5"
-                        style="background: none; border: none;"
-                      >
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-saga-text-muted)">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                        </svg>
-                      </button>
-                    </span>
-                  </td>
-                  <td>{{ c.grade }}</td>
-                  <td>
-                    @if (c.consentAcceptedAt) {
-                      <span style="color: var(--color-saga-success)">✓</span>
-                    } @else {
-                      <span style="color: var(--color-saga-text-muted)">—</span>
-                    }
-                  </td>
-                  <td>
-                    @if (c.paymentReceivedAt) {
-                      <span style="color: var(--color-saga-success)">✓ paid</span>
-                    } @else {
-                      <button
-                        type="button"
-                        (click)="markPaid(c)"
-                        [disabled]="markingPaidFor() === c.id"
-                        class="text-xs px-2 py-1 rounded saga-btn saga-btn-secondary"
-                      >
-                        {{ markingPaidFor() === c.id ? 'Saving…' : 'Mark paid' }}
-                      </button>
-                    }
-                  </td>
-                  <td class="text-xs" style="color: var(--color-saga-text-muted)">{{ c.source }}</td>
+                        @case ('consent') {
+                          @if (c.consentAcceptedAt) {
+                            <span
+                              class="status-pill is-ok"
+                              title="Consented"
+                              [attr.data-testid]="'consent-badge-' + c.id"
+                            >✓</span>
+                          } @else {
+                            <span
+                              class="status-pill is-bad"
+                              title="Outstanding"
+                              [attr.data-testid]="'consent-badge-' + c.id"
+                            >!</span>
+                          }
+                        }
+                        @case ('payment') {
+                          @if (c.paymentReceivedAt) {
+                            <span
+                              class="text-xs px-2 py-1 rounded saga-btn saga-btn-success inline-flex items-center justify-center"
+                              style="min-width: 6rem;"
+                              title="Payment received"
+                              [attr.data-testid]="'payment-paid-' + c.id"
+                            >✓ Paid</span>
+                          } @else {
+                            <button
+                              type="button"
+                              (click)="markPaid(c)"
+                              [disabled]="markingPaidFor() === c.id"
+                              class="text-xs px-2 py-1 rounded saga-btn saga-btn-secondary inline-flex items-center justify-center"
+                              style="min-width: 6rem;"
+                              [attr.data-testid]="'payment-mark-' + c.id"
+                            >
+                              {{ markingPaidFor() === c.id ? 'Saving…' : 'Mark paid' }}
+                            </button>
+                          }
+                        }
+                        @default { {{ col.render ? col.render(c) : '' }} }
+                      }
+                    </td>
+                  }
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="6" class="text-center py-6" style="color: var(--color-saga-text-muted)">
+                  <td [attr.colspan]="visibleColumns().length" class="text-center py-6" style="color: var(--color-saga-text-muted)">
                     No campers in this year.
                   </td>
                 </tr>
@@ -201,6 +440,7 @@ import { UiService } from '../../ui/ui.service';
             </tbody>
           </table>
         </div>
+        }
       }
     </div>
   `,
@@ -218,19 +458,107 @@ export class AdminDashboardComponent {
   searchQuery = signal('');
   campYear = signal<number | null>(null);
   copiedEmail = signal<string | null>(null);
-  paymentFilter = signal<'all' | 'paid' | 'unpaid'>('all');
-  consentFilter = signal<'all' | 'given' | 'missing'>('all');
+  readonly allColumns = ALL_COLUMNS;
+  visibleColumnKeys = signal<string[]>(this.loadVisibleColumnKeys());
 
-  paymentOptions: { value: 'all' | 'paid' | 'unpaid'; label: string }[] = [
-    { value: 'all', label: 'All' },
-    { value: 'paid', label: 'Paid' },
-    { value: 'unpaid', label: 'Unpaid' },
-  ];
-  consentOptions: { value: 'all' | 'given' | 'missing'; label: string }[] = [
-    { value: 'all', label: 'All' },
-    { value: 'given', label: 'Given' },
-    { value: 'missing', label: 'Missing' },
-  ];
+  viewMode = signal<ViewMode>(this.loadViewMode());
+  selectedGroup = signal<ColumnGroupKey>(this.loadSelectedGroup());
+
+  sortBy = signal<string | null>(null);
+  sortDir = signal<'asc' | 'desc'>('asc');
+
+  columnGroups(): ColumnGroup[] {
+    return COLUMN_GROUPS;
+  }
+
+  visibleColumns = computed<ColumnDef[]>(() => {
+    if (this.viewMode() === 'group') {
+      const g = COLUMN_GROUPS.find((gg) => gg.key === this.selectedGroup());
+      return g ? g.columns : [];
+    }
+    const allowed = new Set(this.allColumns.map((c) => c.key));
+    const order = new Map(this.allColumns.map((c, i) => [c.key, i]));
+    return this.visibleColumnKeys()
+      .filter((k) => allowed.has(k))
+      .sort((a, b) => (order.get(a) ?? 0) - (order.get(b) ?? 0))
+      .map((k) => this.allColumns.find((c) => c.key === k)!);
+  });
+
+  toggleSort(key: string): void {
+    if (this.sortBy() !== key) {
+      this.sortBy.set(key);
+      this.sortDir.set('asc');
+      return;
+    }
+    if (this.sortDir() === 'asc') {
+      this.sortDir.set('desc');
+      return;
+    }
+    this.sortBy.set(null);
+    this.sortDir.set('asc');
+  }
+
+  isColumnVisible(key: string): boolean {
+    return this.visibleColumnKeys().includes(key);
+  }
+
+  toggleColumn(key: string): void {
+    const next = this.isColumnVisible(key)
+      ? this.visibleColumnKeys().filter((k) => k !== key)
+      : [...this.visibleColumnKeys(), key];
+    this.visibleColumnKeys.set(next);
+    this.persistVisibleColumnKeys(next);
+  }
+
+  resetColumns(): void {
+    const next = this.defaultKeysForGroup(this.selectedGroup());
+    this.visibleColumnKeys.set(next);
+    this.persistVisibleColumnKeys(next);
+  }
+
+  private defaultKeysForGroup(g: ColumnGroupKey): string[] {
+    const grp = COLUMN_GROUPS.find((gg) => gg.key === g);
+    return (grp ?? COLUMN_GROUPS[0]).columns.map((c) => c.key);
+  }
+
+  private loadVisibleColumnKeys(): string[] {
+    const fallback = this.defaultKeysForGroup(this.loadSelectedGroup());
+    if (typeof localStorage === 'undefined') return fallback;
+    try {
+      const raw = localStorage.getItem(COLUMNS_STORAGE_KEY);
+      if (!raw) return fallback;
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed) || !parsed.every((x) => typeof x === 'string')) {
+        return fallback;
+      }
+      const known = new Set(ALL_COLUMNS.map((c) => c.key));
+      return parsed.filter((k) => known.has(k));
+    } catch {
+      return fallback;
+    }
+  }
+
+  private persistVisibleColumnKeys(keys: string[]): void {
+    if (typeof localStorage === 'undefined') return;
+    try {
+      localStorage.setItem(COLUMNS_STORAGE_KEY, JSON.stringify(keys));
+    } catch {
+      // Quota / private mode — ignore.
+    }
+  }
+
+  private loadViewMode(): ViewMode {
+    if (typeof localStorage === 'undefined') return 'mix';
+    const v = localStorage.getItem(VIEW_MODE_STORAGE_KEY);
+    return v === 'group' ? 'group' : 'mix';
+  }
+
+  private loadSelectedGroup(): ColumnGroupKey {
+    if (typeof localStorage === 'undefined') return 'camper';
+    const v = localStorage.getItem(SELECTED_GROUP_STORAGE_KEY);
+    const known = GROUP_ORDER.map((g) => g.key);
+    return (known as string[]).includes(v ?? '') ? (v as ColumnGroupKey) : 'camper';
+  }
 
   // Years with campers, plus CAMP_YEAR even if it has no rows yet, sorted
   // desc — so the active 2026 tab is always present even before submissions.
@@ -249,35 +577,65 @@ export class AdminDashboardComponent {
     return out;
   });
 
+  isEmergencyView(): boolean {
+    return this.viewMode() === 'group' && this.selectedGroup() === 'emergency';
+  }
+
+  emergencyContactGroups = computed<EmergencyContactGroup[]>(() => {
+    const map = new Map<string, EmergencyContactGroup>();
+    for (const c of this.visibleCampers()) {
+      const name = c.consentEmergencyName ?? '';
+      const contact = c.consentEmergencyContact ?? '';
+      const key = `${name.toLowerCase()}|${contact.toLowerCase()}`;
+      let g = map.get(key);
+      if (!g) {
+        g = { key, name, contact, kids: [] };
+        map.set(key, g);
+      }
+      g.kids.push(c);
+    }
+    return Array.from(map.values()).sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+    );
+  });
+
   visibleCampers = computed(() => {
     const y = this.selectedYear();
     const q = this.searchQuery().trim().toLowerCase();
-    const pay = this.paymentFilter();
-    const con = this.consentFilter();
     let rows = y === null ? this.campers() : this.campers().filter((c) => c.year === y);
     if (q) {
-      rows = rows.filter((c) => {
-        const hay = `${c.firstName} ${c.lastName} ${c.parentEmail} ${c.email ?? ''}`.toLowerCase();
-        return hay.includes(q);
-      });
+      rows = rows.filter((c) => searchableHay(c).includes(q));
     }
-    if (pay === 'paid') rows = rows.filter((c) => !!c.paymentReceivedAt);
-    else if (pay === 'unpaid') rows = rows.filter((c) => !c.paymentReceivedAt);
-    if (con === 'given') rows = rows.filter((c) => !!c.consentAcceptedAt);
-    else if (con === 'missing') rows = rows.filter((c) => !c.consentAcceptedAt);
+    const sBy = this.sortBy();
+    if (sBy) {
+      const col = ALL_COLUMNS.find((cc) => cc.key === sBy);
+      if (col) {
+        const valueOf = col.sortValue ?? ((c: AdminCamper) => (col.render ? col.render(c) : ''));
+        const dir = this.sortDir();
+        rows = [...rows].sort((a, b) => compareValues(valueOf(a), valueOf(b), dir));
+      }
+    }
     return rows;
   });
-
-  clearFilters(): void {
-    this.paymentFilter.set('all');
-    this.consentFilter.set('all');
-  }
 
   private readonly admin = inject(AdminService);
   private readonly router = inject(Router);
   private readonly ui = inject(UiService);
 
   constructor() {
+    effect(() => {
+      const v = this.viewMode();
+      if (typeof localStorage !== 'undefined') {
+        try { localStorage.setItem(VIEW_MODE_STORAGE_KEY, v); } catch { /* ignore */ }
+      }
+    });
+    effect(() => {
+      const g = this.selectedGroup();
+      if (typeof localStorage !== 'undefined') {
+        try { localStorage.setItem(SELECTED_GROUP_STORAGE_KEY, g); } catch { /* ignore */ }
+      }
+    });
+
     // Pull CAMP_YEAR first so it's part of the year tabs even when no rows
     // exist yet for that year. Failure is non-fatal — fall back to the
     // years derived from rows.
