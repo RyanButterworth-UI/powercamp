@@ -32,7 +32,6 @@ export interface EmergencyContactGroup {
 
 const COLUMNS_STORAGE_KEY = 'powercamp.admin.columns.v1';
 const VIEW_MODE_STORAGE_KEY = 'powercamp.admin.viewMode.v1';
-const SELECTED_GROUP_STORAGE_KEY = 'powercamp.admin.selectedGroup.v1';
 
 export type ViewMode = 'mix' | 'group';
 
@@ -476,7 +475,11 @@ export class AdminDashboardComponent {
   visibleColumnKeys = signal<string[]>(this.loadVisibleColumnKeys());
 
   viewMode = signal<ViewMode>(this.loadViewMode());
-  selectedGroup = signal<ColumnGroupKey>(this.loadSelectedGroup());
+  // Always start on the Camper group when the page loads — the section
+  // we previously persisted (Payment / Consent / etc.) was rarely the
+  // one an admin actually wants to land on, and switching away takes one
+  // click. Camper is the safest "what does this row mean" default.
+  selectedGroup = signal<ColumnGroupKey>('camper');
 
   sortBy = signal<string | null>(null);
   sortDir = signal<'asc' | 'desc'>('asc');
@@ -553,7 +556,7 @@ export class AdminDashboardComponent {
   }
 
   private loadVisibleColumnKeys(): string[] {
-    const fallback = this.defaultKeysForGroup(this.loadSelectedGroup());
+    const fallback = this.defaultKeysForGroup('camper');
     if (typeof localStorage === 'undefined') return fallback;
     try {
       const raw = localStorage.getItem(COLUMNS_STORAGE_KEY);
@@ -582,13 +585,6 @@ export class AdminDashboardComponent {
     if (typeof localStorage === 'undefined') return 'mix';
     const v = localStorage.getItem(VIEW_MODE_STORAGE_KEY);
     return v === 'group' ? 'group' : 'mix';
-  }
-
-  private loadSelectedGroup(): ColumnGroupKey {
-    if (typeof localStorage === 'undefined') return 'camper';
-    const v = localStorage.getItem(SELECTED_GROUP_STORAGE_KEY);
-    const known = GROUP_ORDER.map((g) => g.key);
-    return (known as string[]).includes(v ?? '') ? (v as ColumnGroupKey) : 'camper';
   }
 
   // Years with campers, plus CAMP_YEAR even if it has no rows yet, sorted
@@ -660,13 +656,6 @@ export class AdminDashboardComponent {
         try { localStorage.setItem(VIEW_MODE_STORAGE_KEY, v); } catch { /* ignore */ }
       }
     });
-    effect(() => {
-      const g = this.selectedGroup();
-      if (typeof localStorage !== 'undefined') {
-        try { localStorage.setItem(SELECTED_GROUP_STORAGE_KEY, g); } catch { /* ignore */ }
-      }
-    });
-
     // Pull CAMP_YEAR first so it's part of the year tabs even when no rows
     // exist yet for that year. Failure is non-fatal — fall back to the
     // years derived from rows.
