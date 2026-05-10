@@ -5,7 +5,7 @@ import { desc, eq, isNull } from 'drizzle-orm';
 import * as XLSX from 'xlsx';
 import { db } from '../db/client';
 import { campers, leaders } from '../db/schema';
-import { signAdminToken } from '../services/auth';
+import { signAdminToken, signLeaderInviteToken } from '../services/auth';
 import { env } from '../env';
 import { requireAdmin } from '../middleware/require-admin';
 import { appendToSheet } from '../services/sheets';
@@ -15,6 +15,8 @@ import {
   blocksToPlainText,
   sendBulkEmail,
   EmailBlock,
+  sendLeaderInvite,
+  sendInviteSentReceipt,
 } from '../services/email';
 import {
   filterToSubscribed,
@@ -243,6 +245,47 @@ adminRouter.post('/admin/leaders/:id/approve', requireAdmin, async (req, res) =>
   } catch (err) {
     console.error('approve error:', err);
     res.status(500).json({ error: 'Failed to approve' });
+  }
+});
+
+// Issues a single-use 7-day invite token for an approved leader and emails
+// it to them as a magic-link to /leader-register. Neil also gets a copy of
+// the receipt so he has a record that the invite went out.
+adminRouter.post('/admin/leaders/:id/invite', requireAdmin, async (req, res) => {
+  if (!isNeilOk(req.body)) {
+    return res.status(401).json({ error: 'Wrong Neil password' });
+  }
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'Invalid leader id' });
+  }
+  try {
+    const [leader] = await db.select().from(leaders).where(eq(leaders.id, id));
+    if (!leader || leader.deletedAt) {
+      return res.status(404).json({ error: 'Leader not found' });
+    }
+    if (leader.status !== 'approved') {
+      return res.status(400).json({ error: 'Leader must be approved before they can be invited' });
+    }
+
+    const token = signLeaderInviteToken(leader.id);
+    const url = `${env.APP_BASE_URL.replace(/\/$/, '')}/leader-register?token=${encodeURIComponent(token)}`;
+
+    // Send the leader's invite first — that's the one that matters; the
+    // Neil receipt is fire-and-forget. If the leader's send fails the
+    // admin sees the error and can retry.
+    await sendLeaderInvite(leader.email, leader.firstName, url);
+
+    sendInviteSentReceipt(env.NEIL_EMAIL ?? env.GMAIL_USER, {
+      firstName: leader.firstName,
+      lastName: leader.lastName,
+      email: leader.email,
+    }).catch((err) => console.error('Invite-sent receipt failed:', err));
+
+    res.json({ id: leader.id, sentTo: leader.email });
+  } catch (err) {
+    console.error('leader invite error:', err);
+    res.status(500).json({ error: 'Failed to send invite' });
   }
 });
 

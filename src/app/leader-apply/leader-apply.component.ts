@@ -6,6 +6,14 @@ import { Router } from '@angular/router';
 import { environment } from '../../environments/environment';
 import { PageGhostComponent } from '../skeleton/page-ghost.component';
 
+// Three-stage flow:
+//   1. screening — two yes/no questions that gate the application form.
+//      If either answer is no, we never POST anywhere; the applicant just
+//      sees the "we regret to inform you…" copy inline.
+//   2. form — the actual application. Backend only sees this stage.
+//   3. submitted — confirmation; Neil reviews in /admin/leaders.
+type Stage = 'screening' | 'rejected' | 'form' | 'submitted';
+
 @Component({
   selector: 'app-leader-apply',
   standalone: true,
@@ -19,37 +27,83 @@ import { PageGhostComponent } from '../skeleton/page-ghost.component';
         Power Camp Leader Application
       </h1>
       <p class="text-sm mb-6" style="color: var(--color-saga-text-muted)">
-        Want to lead at Power Camp 2026? You'll need the leader portal password from your camp
-        coordinator first.
+        Want to lead at Power Camp 2026? Two quick questions first, then a short application
+        form. Neil reviews every application personally.
       </p>
 
-      @if (!unlocked()) {
-        <div class="saga-card p-4 mb-4" data-testid="gate">
-          <label class="block text-sm font-medium mb-2" style="color: var(--color-saga-text)">
-            Leader portal password
-          </label>
-          <input
-            type="password"
-            [(ngModel)]="passwordInput"
-            (keyup.enter)="checkPassword()"
-            [ngModelOptions]="{ standalone: true }"
-            class="w-full px-3 py-2 mb-3"
-          />
-          @if (gateError()) {
-            <div class="text-sm mb-2" data-testid="gate-error" style="color: var(--color-saga-danger)">
-              {{ gateError() }}
+      @if (stage() === 'screening') {
+        <div class="saga-card p-5" data-testid="screening">
+          <fieldset class="mb-5">
+            <legend class="font-semibold text-sm mb-2" style="color: var(--color-saga-text-strong)">
+              Have you been out of school for more than a year?
+            </legend>
+            <div class="flex gap-2 flex-wrap">
+              <button
+                type="button"
+                (click)="setOutOfSchool(true)"
+                class="screen-pill"
+                [class.is-active]="outOfSchool() === true"
+                data-testid="out-of-school-yes"
+              >Yes</button>
+              <button
+                type="button"
+                (click)="setOutOfSchool(false)"
+                class="screen-pill"
+                [class.is-active]="outOfSchool() === false"
+                data-testid="out-of-school-no"
+              >No</button>
             </div>
+          </fieldset>
+
+          @if (outOfSchool() !== null) {
+            <fieldset>
+              <legend class="font-semibold text-sm mb-2" style="color: var(--color-saga-text-strong)">
+                Are you part of a local church and actively involved in ministry?
+              </legend>
+              <div class="flex gap-2 flex-wrap">
+                <button
+                  type="button"
+                  (click)="setChurchInvolved(true)"
+                  class="screen-pill"
+                  [class.is-active]="churchInvolved() === true"
+                  data-testid="church-yes"
+                >Yes</button>
+                <button
+                  type="button"
+                  (click)="setChurchInvolved(false)"
+                  class="screen-pill"
+                  [class.is-active]="churchInvolved() === false"
+                  data-testid="church-no"
+                >No</button>
+              </div>
+            </fieldset>
           }
-          <button
-            type="button"
-            (click)="checkPassword()"
-            [disabled]="gateBusy() || !passwordInput.trim()"
-            class="saga-btn saga-btn-primary"
-          >
-            {{ gateBusy() ? 'Checking…' : 'Continue' }}
-          </button>
         </div>
-      } @else if (submittedAt()) {
+      } @else if (stage() === 'rejected') {
+        <div
+          class="saga-card p-4"
+          data-testid="rejected"
+          style="border-color: var(--color-saga-warning); background-color: var(--color-saga-warning-soft);"
+        >
+          <h2 class="font-semibold mb-1" style="color: var(--color-saga-warning)">
+            We regret to inform you…
+          </h2>
+          <p class="text-sm mb-3" style="color: var(--color-saga-text)">
+            You don't quite meet our leader requirements at the moment, but we'd love to hear
+            from you anyway. Drop us a line at
+            <a href="mailto:powercamplife@gmail.com" style="color: var(--color-saga-action)">powercamplife&#64;gmail.com</a>
+            and we can chat.
+          </p>
+          <div class="flex gap-3 flex-wrap">
+            <button type="button" (click)="resetScreening()" class="saga-btn saga-btn-secondary">
+              Change my answer
+            </button>
+            <button type="button" (click)="goHome()" class="saga-btn saga-btn-primary">
+              Back to Home
+            </button>
+          </div>
+        </div>
+      } @else if (stage() === 'submitted') {
         <div
           class="saga-card p-4"
           data-testid="submitted"
@@ -59,8 +113,8 @@ import { PageGhostComponent } from '../skeleton/page-ghost.component';
             Application received
           </h2>
           <p class="text-sm mb-3" style="color: var(--color-saga-text)">
-            Thanks! Your application has been recorded. Neil will review and approve leaders
-            personally — you'll hear back from the camp coordinator.
+            Thanks! Your application has been recorded and Neil has been notified. Once approved
+            you'll receive an email with a link to finish your registration.
           </p>
           <button type="button" (click)="goHome()" class="saga-btn saga-btn-primary">
             Done
@@ -147,23 +201,38 @@ import { PageGhostComponent } from '../skeleton/page-ghost.component';
     </div>
     }
   `,
-  styles: ``,
+  styles: [`
+    .screen-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.45rem 1.1rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border-radius: 9999px;
+      border: 1px solid var(--color-saga-border);
+      background: transparent;
+      color: var(--color-saga-text);
+      cursor: pointer;
+      transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+    }
+    .screen-pill:hover { border-color: var(--color-saga-border-strong); }
+    .screen-pill.is-active {
+      background-color: var(--color-saga-action-soft);
+      border-color: var(--color-saga-action);
+      color: var(--color-saga-text-strong);
+    }
+  `],
 })
 export class LeaderApplyComponent {
-  passwordInput = '';
-  unlocked = signal(false);
-  gateBusy = signal(false);
-  gateError = signal<string | null>(null);
   ready = signal(false);
-
-  constructor() {
-    setTimeout(() => this.ready.set(true), 300);
-  }
+  stage = signal<Stage>('screening');
+  outOfSchool = signal<boolean | null>(null);
+  churchInvolved = signal<boolean | null>(null);
 
   form: FormGroup | null = null;
   submitting = signal(false);
   submitError = signal<string | null>(null);
-  submittedAt = signal<string | null>(null);
   missingFields = signal<string[]>([]);
 
   // Friendly labels for the form's required controls — used to render
@@ -179,24 +248,39 @@ export class LeaderApplyComponent {
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
 
-  checkPassword(): void {
-    const pw = this.passwordInput.trim();
-    if (!pw) return;
-    this.gateBusy.set(true);
-    this.gateError.set(null);
-    this.http
-      .post<{ ok: boolean }>(`${environment.baseApi}/leaders/check-password`, { password: pw })
-      .subscribe({
-        next: () => {
-          this.gateBusy.set(false);
-          this.unlocked.set(true);
-          this.buildForm();
-        },
-        error: (err) => {
-          this.gateBusy.set(false);
-          this.gateError.set(err?.status === 401 ? 'Wrong password.' : 'Could not check the password. Try again.');
-        },
-      });
+  constructor() {
+    setTimeout(() => this.ready.set(true), 300);
+    this.buildForm();
+  }
+
+  setOutOfSchool(v: boolean): void {
+    this.outOfSchool.set(v);
+    this.evaluateScreening();
+  }
+
+  setChurchInvolved(v: boolean): void {
+    this.churchInvolved.set(v);
+    this.evaluateScreening();
+  }
+
+  resetScreening(): void {
+    this.outOfSchool.set(null);
+    this.churchInvolved.set(null);
+    this.stage.set('screening');
+  }
+
+  // Both yes → form. Either no → rejected. One unanswered → keep on
+  // screening so the second question shows.
+  private evaluateScreening(): void {
+    const a = this.outOfSchool();
+    const b = this.churchInvolved();
+    if (a === false || b === false) {
+      this.stage.set('rejected');
+      return;
+    }
+    if (a === true && b === true) {
+      this.stage.set('form');
+    }
   }
 
   submit(): void {
@@ -220,7 +304,7 @@ export class LeaderApplyComponent {
       .subscribe({
         next: () => {
           this.submitting.set(false);
-          this.submittedAt.set(new Date().toISOString());
+          this.stage.set('submitted');
         },
         error: () => {
           this.submitting.set(false);

@@ -1,6 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AdminLeader, AdminService } from '../admin.service';
 import { UiService } from '../../ui/ui.service';
@@ -9,7 +8,7 @@ import { SkeletonComponent } from '../../skeleton/skeleton.component';
 @Component({
   selector: 'app-admin-leaders',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, SkeletonComponent],
+  imports: [CommonModule, RouterLink, SkeletonComponent],
   template: `
     <div class="container mx-auto p-6 max-w-5xl">
       <div class="flex items-center justify-between mb-4">
@@ -23,81 +22,18 @@ import { SkeletonComponent } from '../../skeleton/skeleton.component';
         <a routerLink="/admin" class="saga-tab no-underline">Campers</a>
         <span class="saga-tab is-active">Leaders</span>
         <a routerLink="/admin/bulk-email" class="saga-tab no-underline">Bulk email</a>
+        <a routerLink="/admin/teams" class="saga-tab no-underline">Teams</a>
+        <a routerLink="/admin/bunks" class="saga-tab no-underline">Bunks</a>
         <a routerLink="/admin/team" class="saga-tab no-underline">Team Admin</a>
       </nav>
 
       <div class="flex items-center gap-3 mb-6 flex-wrap">
-        <button
-          type="button"
-          (click)="showAddForm.set(!showAddForm())"
-          class="saga-btn saga-btn-primary"
-          data-testid="toggle-add"
-        >
-          {{ showAddForm() ? 'Close' : 'Add a leader directly (Neil only)' }}
-        </button>
-        <span class="text-sm" style="color: var(--color-saga-text-muted)">{{ total() }} leaders in the database</span>
+        <span class="text-sm" style="color: var(--color-saga-text-muted)">
+          {{ total() }} leaders in the database — applications come in via the public
+          <a routerLink="/leader-apply" style="color: var(--color-saga-action)">leader-apply</a>
+          form.
+        </span>
       </div>
-
-      @if (showAddForm()) {
-        <form [formGroup]="addForm" (ngSubmit)="directAdd()" class="border rounded p-4 mb-6 bg-gray-50">
-          <h2 class="font-semibold mb-3">Direct add (auto-approved)</h2>
-          <div class="grid grid-cols-2 gap-3">
-            <label class="flex flex-col text-sm">First Name *
-              <input formControlName="firstName" class="border rounded px-2 py-1" />
-            </label>
-            <label class="flex flex-col text-sm">Last Name *
-              <input formControlName="lastName" class="border rounded px-2 py-1" />
-            </label>
-            <label class="flex flex-col text-sm col-span-2">Email *
-              <input formControlName="email" class="border rounded px-2 py-1" type="email" />
-            </label>
-            <label class="flex flex-col text-sm">Cell
-              <input formControlName="cell" class="border rounded px-2 py-1" />
-            </label>
-            <label class="flex flex-col text-sm">Gender
-              <input formControlName="gender" class="border rounded px-2 py-1" />
-            </label>
-            <label class="flex flex-col text-sm">Church
-              <input formControlName="church" class="border rounded px-2 py-1" />
-            </label>
-            <label class="flex flex-col text-sm">T-shirt
-              <input formControlName="tshirt" class="border rounded px-2 py-1" />
-            </label>
-            <label class="flex flex-col text-sm col-span-2">Notes
-              <input formControlName="applicationNotes" class="border rounded px-2 py-1" />
-            </label>
-            <label class="flex flex-col text-sm col-span-2">Neil's password *
-              <input
-                formControlName="neilPassword"
-                type="password"
-                class="border rounded px-2 py-1"
-                placeholder="Required to add a leader directly"
-              />
-            </label>
-          </div>
-
-          @if (addError()) {
-            <div class="mt-3 text-sm text-red-700" data-testid="add-error">{{ addError() }}</div>
-          }
-
-          <div class="flex justify-end gap-2 mt-4">
-            <button
-              type="button"
-              (click)="showAddForm.set(false)"
-              class="px-4 py-2 rounded border border-gray-300 text-gray-600"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              [disabled]="addForm.invalid || addBusy()"
-              class="px-6 py-2 rounded bg-green-300 text-green-900 disabled:bg-gray-200 disabled:text-gray-400"
-            >
-              {{ addBusy() ? 'Adding…' : 'Add leader' }}
-            </button>
-          </div>
-        </form>
-      }
 
       @if (loading()) {
         <!-- Skeleton table — 6 placeholder rows + a year-tab row above so
@@ -184,7 +120,7 @@ import { SkeletonComponent } from '../../skeleton/skeleton.component';
                     }
                   </td>
                   <td>
-                    <span class="inline-flex items-center gap-1.5">
+                    <span class="inline-flex items-center gap-1.5 flex-wrap">
                       @if (l.status !== 'approved') {
                         <button
                           type="button"
@@ -192,6 +128,16 @@ import { SkeletonComponent } from '../../skeleton/skeleton.component';
                           class="text-xs px-2 py-1 rounded saga-btn saga-btn-success inline-flex items-center justify-center"
                           style="min-width: 5rem;"
                         >Approve</button>
+                      }
+                      @if (l.status === 'approved') {
+                        <button
+                          type="button"
+                          (click)="invite(l)"
+                          [disabled]="invitingFor() === l.id"
+                          class="text-xs px-2 py-1 rounded saga-btn saga-btn-primary inline-flex items-center justify-center"
+                          style="min-width: 5rem;"
+                          title="Send a magic-link invite so the leader can finish their registration"
+                        >{{ invitingFor() === l.id ? 'Sending…' : 'Invite' }}</button>
                       }
                       @if (l.status !== 'rejected') {
                         <button
@@ -226,11 +172,8 @@ export class AdminLeadersComponent {
   loadError = signal<string | null>(null);
   selectedYear = signal<number | null>(null);
 
-  showAddForm = signal(false);
-  addForm: FormGroup;
-  addBusy = signal(false);
-  addError = signal<string | null>(null);
   copiedEmail = signal<string | null>(null);
+  invitingFor = signal<number | null>(null);
 
   years = computed(() => {
     const set = new Set(this.leaders().map((l) => l.year));
@@ -251,22 +194,9 @@ export class AdminLeadersComponent {
 
   private readonly admin = inject(AdminService);
   private readonly router = inject(Router);
-  private readonly fb = inject(FormBuilder);
   private readonly ui = inject(UiService);
 
   constructor() {
-    this.addForm = this.fb.group({
-      firstName: ['', Validators.required],
-      lastName: ['', Validators.required],
-      email: ['', [Validators.required, Validators.email]],
-      cell: [''],
-      gender: [''],
-      church: [''],
-      tshirt: [''],
-      applicationNotes: [''],
-      neilPassword: ['', Validators.required],
-    });
-
     this.refresh();
   }
 
@@ -330,21 +260,26 @@ export class AdminLeadersComponent {
     });
   }
 
-  directAdd(): void {
-    if (this.addForm.invalid) return;
-    const { neilPassword, ...leader } = this.addForm.getRawValue();
-    this.addBusy.set(true);
-    this.addError.set(null);
-    this.admin.directAddLeader(neilPassword, leader).subscribe({
-      next: () => {
-        this.addBusy.set(false);
-        this.addForm.reset();
-        this.showAddForm.set(false);
-        this.refresh();
+  async invite(l: AdminLeader): Promise<void> {
+    const pw = await this.ui.prompt({
+      text: `Send registration invite to ${l.firstName} ${l.lastName} <${l.email}>?\nNeil's password is required.`,
+      inputType: 'password',
+      placeholder: "Neil's password",
+      confirmLabel: 'Send invite',
+    });
+    if (!pw) return;
+    this.invitingFor.set(l.id);
+    this.admin.inviteLeader(l.id, pw).subscribe({
+      next: (res) => {
+        this.invitingFor.set(null);
+        this.ui.toast(`Invite sent to ${res.sentTo}.`, 'success', 3500);
       },
       error: (err) => {
-        this.addBusy.set(false);
-        this.addError.set(err?.status === 401 ? 'Wrong Neil password.' : 'Failed to add leader.');
+        this.invitingFor.set(null);
+        this.ui.toast(
+          err?.status === 401 ? 'Wrong Neil password.' : 'Failed to send invite.',
+          'error'
+        );
       },
     });
   }

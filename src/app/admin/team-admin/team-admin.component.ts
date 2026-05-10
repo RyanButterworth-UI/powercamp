@@ -23,6 +23,8 @@ import { PageGhostComponent } from '../../skeleton/page-ghost.component';
         <a routerLink="/admin" class="saga-tab no-underline">Campers</a>
         <a routerLink="/admin/leaders" class="saga-tab no-underline">Leaders</a>
         <a routerLink="/admin/bulk-email" class="saga-tab no-underline">Bulk email</a>
+        <a routerLink="/admin/teams" class="saga-tab no-underline">Teams</a>
+        <a routerLink="/admin/bunks" class="saga-tab no-underline">Bunks</a>
         <span class="saga-tab is-active">Team Admin</span>
       </nav>
 

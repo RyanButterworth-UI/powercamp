@@ -7,8 +7,6 @@ import { FriendsComponent } from '../friends/friends.component';
 import { IntroComponent } from '../intro/intro.component';
 import { LookupComponent } from '../lookup/lookup.component';
 import { ConsentStepComponent } from '../consent-step/consent-step.component';
-import { LeaderApplicationComponent } from '../leader-application/leader-application.component';
-import { LeaderInfoComponent } from '../leader-info/leader-info.component';
 import { MedicalComponent } from '../medical/medical.component';
 import { OtherInfoComponent } from '../other-info/other-info.component';
 import { ParentComponent } from '../parent/parent.component';
@@ -32,8 +30,6 @@ import { ResetRegistrationService } from '../reset-registration.service';
     IntroComponent,
     LookupComponent,
     ConsentStepComponent,
-    LeaderApplicationComponent,
-    LeaderInfoComponent,
     MedicalComponent,
     OtherInfoComponent,
     ParentComponent,
@@ -103,12 +99,6 @@ import { ResetRegistrationService } from '../reset-registration.service';
                     (goToStep)="fadeToStep($event)"
                   ></app-intro>
                 }
-                @if (currentStep() === StepKey.LeaderApplication && stepVisible()) {
-                  <app-leader-application
-                    [stepVisible]="stepVisible()"
-                    (goToStep)="fadeToStep($event)"
-                  ></app-leader-application>
-                }
                 @if (currentStep() === StepKey.CamperInfo && stepVisible()) {
                   <app-camper-info
                     [stepVisible]="stepVisible()"
@@ -165,12 +155,6 @@ import { ResetRegistrationService } from '../reset-registration.service';
                     (triggerSubmission)="onSubmit()"
                   ></app-consent-step>
                 }
-                @if (currentStep() === StepKey.LeaderQuestion && stepVisible()) {
-                  <app-leader-info
-                    [stepVisible]="stepVisible()"
-                    (goToStep)="fadeToStep($event)"
-                  ></app-leader-info>
-                }
               </div>
             </form>
             </div>
@@ -194,8 +178,8 @@ export class FormComponent {
   ready = signal(false);
 
   // Steps shown in the top stepper. Limited to the camper-registration path
-  // (Lookup / Intro / Details / LeaderApplication are pre-flow branches and
-  // don't belong in the progress strip).
+  // (Lookup / Intro are pre-flow branches and don't belong in the
+  // progress strip).
   private readonly camperStepDefs: { key: StepKey; label: string }[] = [
     { key: StepKey.CamperInfo, label: 'Camper' },
     { key: StepKey.CamperAdditionalInfo, label: 'Details' },
@@ -250,13 +234,11 @@ export class FormComponent {
   private readonly STORAGE_KEY = 'powercamp.form.draft';
 
   // Steps where a Restart pill should appear in the global nav. Excludes the
-  // initial Lookup, the Intro marketing screen, and the Leader-application
-  // branch screen — all of which sit before the user has typed anything they
-  // could lose.
+  // initial Lookup and the Intro marketing screen — both sit before the
+  // user has typed anything they could lose.
   private readonly resetHiddenSteps = new Set<number>([
     StepKey.Lookup,
     StepKey.Intro,
-    StepKey.LeaderApplication,
   ]);
 
   constructor(private readonly fb: FormBuilder) {

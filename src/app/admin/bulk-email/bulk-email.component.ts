@@ -28,6 +28,8 @@ type Filter = 'all' | 'paid' | 'unpaid' | 'consent' | 'no-consent';
         <a routerLink="/admin" class="saga-tab no-underline">Campers</a>
         <a routerLink="/admin/leaders" class="saga-tab no-underline">Leaders</a>
         <span class="saga-tab is-active">Bulk email</span>
+        <a routerLink="/admin/teams" class="saga-tab no-underline">Teams</a>
+        <a routerLink="/admin/bunks" class="saga-tab no-underline">Bunks</a>
         <a routerLink="/admin/team" class="saga-tab no-underline">Team Admin</a>
       </nav>
 

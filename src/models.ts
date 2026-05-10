@@ -29,8 +29,6 @@ export enum StepKey {
   Church = 9,
   OtherInfo = 10,
   CheckData = 11,
-  LeaderApplication = 12,
-  LeaderQuestion = 13,
   CamperConsent = 14,
 }
 
