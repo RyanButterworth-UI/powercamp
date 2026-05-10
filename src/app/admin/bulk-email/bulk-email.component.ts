@@ -137,10 +137,10 @@ type Filter = 'all' | 'paid' | 'unpaid' | 'consent' | 'no-consent';
           }
 
           <div class="flex flex-wrap gap-2 mb-3">
-            <button type="button" (click)="addBlock('heading')" class="saga-btn saga-btn-secondary !py-1 !px-2 !text-xs">+ Heading</button>
-            <button type="button" (click)="addBlock('paragraph')" class="saga-btn saga-btn-secondary !py-1 !px-2 !text-xs">+ Paragraph</button>
-            <button type="button" (click)="addBlock('button')" class="saga-btn saga-btn-secondary !py-1 !px-2 !text-xs">+ Button</button>
-            <button type="button" (click)="addBlock('divider')" class="saga-btn saga-btn-secondary !py-1 !px-2 !text-xs">+ Divider</button>
+            <button type="button" (click)="addBlock('heading')" class="saga-btn saga-btn-secondary !py-1 !px-2 !text-xs">Heading</button>
+            <button type="button" (click)="addBlock('paragraph')" class="saga-btn saga-btn-secondary !py-1 !px-2 !text-xs">Paragraph</button>
+            <button type="button" (click)="addBlock('button')" class="saga-btn saga-btn-secondary !py-1 !px-2 !text-xs">Button</button>
+            <button type="button" (click)="addBlock('divider')" class="saga-btn saga-btn-secondary !py-1 !px-2 !text-xs">Divider</button>
           </div>
 
           <div class="space-y-3">
