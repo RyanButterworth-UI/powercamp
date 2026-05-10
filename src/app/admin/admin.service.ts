@@ -42,6 +42,28 @@ export interface AdminCamper {
   updatedAt: string | null;
 }
 
+export interface Team {
+  id: number;
+  year: number;
+  name: string;
+  color: string | null;
+  captainLeaderId: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface TeamAssignment { camperId: number; teamId: number | null; }
+
+export interface Bunk {
+  id: number;
+  year: number;
+  name: string;
+  gender: 'Male' | 'Female';
+  leaderId: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface BunkAssignment { camperId: number; bunkId: number | null; }
+
 @Injectable({ providedIn: 'root' })
 export class AdminService {
   private readonly http = inject(HttpClient);
@@ -112,6 +134,84 @@ export class AdminService {
     return this.http.post<{ id: number; status: string }>(
       `${environment.baseApi}/admin/leaders/${id}/reject`,
       { neilPassword },
+      { headers: this.authHeaders() }
+    );
+  }
+
+  inviteLeader(id: number, neilPassword: string): Observable<{ id: number; sentTo: string }> {
+    return this.http.post<{ id: number; sentTo: string }>(
+      `${environment.baseApi}/admin/leaders/${id}/invite`,
+      { neilPassword },
+      { headers: this.authHeaders() }
+    );
+  }
+
+  // ----- Teams -----
+  listTeams(): Observable<{ teams: Team[]; assignments: TeamAssignment[] }> {
+    return this.http.get<{ teams: Team[]; assignments: TeamAssignment[] }>(
+      `${environment.baseApi}/admin/teams`,
+      { headers: this.authHeaders() }
+    );
+  }
+  createTeam(body: { name: string; color?: string | null; captainLeaderId?: number | null }): Observable<{ team: Team }> {
+    return this.http.post<{ team: Team }>(
+      `${environment.baseApi}/admin/teams`,
+      body,
+      { headers: this.authHeaders() }
+    );
+  }
+  updateTeam(id: number, body: { name?: string; color?: string | null; captainLeaderId?: number | null }): Observable<{ team: Team }> {
+    return this.http.post<{ team: Team }>(
+      `${environment.baseApi}/admin/teams/${id}`,
+      body,
+      { headers: this.authHeaders() }
+    );
+  }
+  deleteTeam(id: number): Observable<{ ok: boolean }> {
+    return this.http.delete<{ ok: boolean }>(
+      `${environment.baseApi}/admin/teams/${id}`,
+      { headers: this.authHeaders() }
+    );
+  }
+  saveTeamAssignments(assignments: TeamAssignment[]): Observable<{ ok: boolean; count: number }> {
+    return this.http.post<{ ok: boolean; count: number }>(
+      `${environment.baseApi}/admin/teams/assignments`,
+      { assignments },
+      { headers: this.authHeaders() }
+    );
+  }
+
+  // ----- Bunks -----
+  listBunks(): Observable<{ bunks: Bunk[]; assignments: BunkAssignment[] }> {
+    return this.http.get<{ bunks: Bunk[]; assignments: BunkAssignment[] }>(
+      `${environment.baseApi}/admin/bunks`,
+      { headers: this.authHeaders() }
+    );
+  }
+  createBunk(body: { name: string; gender: 'Male' | 'Female'; leaderId?: number | null }): Observable<{ bunk: Bunk }> {
+    return this.http.post<{ bunk: Bunk }>(
+      `${environment.baseApi}/admin/bunks`,
+      body,
+      { headers: this.authHeaders() }
+    );
+  }
+  updateBunk(id: number, body: { name?: string; gender?: 'Male' | 'Female'; leaderId?: number | null }): Observable<{ bunk: Bunk }> {
+    return this.http.post<{ bunk: Bunk }>(
+      `${environment.baseApi}/admin/bunks/${id}`,
+      body,
+      { headers: this.authHeaders() }
+    );
+  }
+  deleteBunk(id: number): Observable<{ ok: boolean }> {
+    return this.http.delete<{ ok: boolean }>(
+      `${environment.baseApi}/admin/bunks/${id}`,
+      { headers: this.authHeaders() }
+    );
+  }
+  saveBunkAssignments(assignments: BunkAssignment[]): Observable<{ ok: boolean; count: number }> {
+    return this.http.post<{ ok: boolean; count: number }>(
+      `${environment.baseApi}/admin/bunks/assignments`,
+      { assignments },
       { headers: this.authHeaders() }
     );
   }

@@ -118,6 +118,8 @@ const COLUMN_GROUPS: ColumnGroup[] = GROUP_ORDER.map((g) => ({
         <span class="saga-tab is-active">Campers</span>
         <a routerLink="/admin/leaders" class="saga-tab no-underline">Leaders</a>
         <a routerLink="/admin/bulk-email" class="saga-tab no-underline">Bulk email</a>
+        <a routerLink="/admin/teams" class="saga-tab no-underline">Teams</a>
+        <a routerLink="/admin/bunks" class="saga-tab no-underline">Bunks</a>
         <a routerLink="/admin/team" class="saga-tab no-underline">Team Admin</a>
       </nav>
 

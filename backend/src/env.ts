@@ -25,6 +25,11 @@ const schema = z.object({
     .string()
     .default('http://localhost:4200,https://powercamp-registration.onrender.com')
     .transform((s) => s.split(',').map((o) => o.trim()).filter(Boolean)),
+  // Where leader-application notifications and invite-sent receipts are
+  // delivered. Falls back to GMAIL_USER (the sender mailbox) if not set,
+  // so a fresh deploy without NEIL_EMAIL still routes notifications to a
+  // real inbox the camp owns rather than dropping them.
+  NEIL_EMAIL: z.string().email().optional(),
   PORT: z
     .string()
     .default('3000')

@@ -51,7 +51,7 @@ import { StepKey } from '../../models';
       <div class="flex flex-col sm:flex-row w-full gap-3 mt-4">
         <button
           type="button"
-          (click)="goToStep.emit(StepKey.LeaderApplication)"
+          (click)="goToStep.emit(StepKey.CamperInfo)"
           class="saga-btn saga-btn-primary"
         >
           Start Registration

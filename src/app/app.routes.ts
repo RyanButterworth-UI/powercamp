@@ -67,9 +67,26 @@ export const routes: Routes = [
     canActivate: [adminGuard],
   },
   {
+    path: 'admin/teams',
+    loadComponent: () =>
+      import('./admin/teams/teams.component').then((m) => m.TeamsComponent),
+    canActivate: [adminGuard],
+  },
+  {
+    path: 'admin/bunks',
+    loadComponent: () =>
+      import('./admin/bunks/bunks.component').then((m) => m.BunksComponent),
+    canActivate: [adminGuard],
+  },
+  {
     path: 'leader-apply',
     loadComponent: () =>
       import('./leader-apply/leader-apply.component').then((m) => m.LeaderApplyComponent),
+  },
+  {
+    path: 'leader-register',
+    loadComponent: () =>
+      import('./leader-register/leader-register.component').then((m) => m.LeaderRegisterComponent),
   },
   {
     path: '**',

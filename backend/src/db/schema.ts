@@ -104,6 +104,81 @@ export const leaders = pgTable(
 export type Leader = typeof leaders.$inferSelect;
 export type NewLeader = typeof leaders.$inferInsert;
 
+// Teams — four mixed-age, mixed-gender teams that compete at camp.
+// Drag-and-drop in the admin shuffles campers between teams; the
+// auto-suggest feature uses the friends array on campers to keep
+// pre-existing pairs together where it can while still spreading
+// ages evenly.
+export const teams = pgTable('teams', {
+  id: serial('id').primaryKey(),
+  year: integer('year').notNull(),
+  name: text('name').notNull(),
+  // Hex colour the admin UI tints the team's column with. Optional;
+  // a small palette in the UI generates one when the admin doesn't.
+  color: text('color'),
+  // Optional captain — points at a leader. Nullable so the admin can
+  // create a team before deciding who's leading it.
+  captainLeaderId: integer('captain_leader_id'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => [
+  index('teams_year_idx').on(t.year),
+]);
+
+export type Team = typeof teams.$inferSelect;
+export type NewTeam = typeof teams.$inferInsert;
+
+// One row per camper-per-year; reassigning to a different team updates
+// this row rather than creating a new one. The composite index on
+// (year, camperId) keeps lookups fast without enforcing uniqueness at
+// the schema level — that constraint is enforced in the assignment
+// endpoint with an upsert.
+export const teamAssignments = pgTable('team_assignments', {
+  id: serial('id').primaryKey(),
+  year: integer('year').notNull(),
+  camperId: integer('camper_id').notNull(),
+  teamId: integer('team_id').notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => [
+  index('team_assignments_year_camper_idx').on(t.year, t.camperId),
+  index('team_assignments_team_idx').on(t.teamId),
+]);
+
+export type TeamAssignment = typeof teamAssignments.$inferSelect;
+export type NewTeamAssignment = typeof teamAssignments.$inferInsert;
+
+// Bunks — sleeping arrangements. Single-gender per safeguarding policy.
+// Each bunk is led by exactly one leader (also single-gender — enforced
+// at the assignment endpoint by matching gender to bunk gender).
+export const bunks = pgTable('bunks', {
+  id: serial('id').primaryKey(),
+  year: integer('year').notNull(),
+  name: text('name').notNull(),
+  gender: text('gender').notNull(), // 'Male' | 'Female'
+  leaderId: integer('leader_id'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => [
+  index('bunks_year_idx').on(t.year),
+]);
+
+export type Bunk = typeof bunks.$inferSelect;
+export type NewBunk = typeof bunks.$inferInsert;
+
+export const bunkAssignments = pgTable('bunk_assignments', {
+  id: serial('id').primaryKey(),
+  year: integer('year').notNull(),
+  camperId: integer('camper_id').notNull(),
+  bunkId: integer('bunk_id').notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => [
+  index('bunk_assignments_year_camper_idx').on(t.year, t.camperId),
+  index('bunk_assignments_bunk_idx').on(t.bunkId),
+]);
+
+export type BunkAssignment = typeof bunkAssignments.$inferSelect;
+export type NewBunkAssignment = typeof bunkAssignments.$inferInsert;
+
 export const subscriptions = pgTable(
   'subscriptions',
   {
