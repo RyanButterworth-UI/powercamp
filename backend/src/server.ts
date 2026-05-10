@@ -12,6 +12,7 @@ import { updateRouter } from './routes/update';
 import { adminRouter } from './routes/admin';
 import { leadersRouter } from './routes/leaders';
 import { unsubscribeRouter } from './routes/unsubscribe';
+import { statsRouter } from './routes/stats';
 
 const app = express();
 
@@ -42,6 +43,7 @@ app.use(updateRouter);
 app.use(adminRouter);
 app.use(leadersRouter);
 app.use(unsubscribeRouter);
+app.use(statsRouter);
 
 const distDir = path.resolve(__dirname, '../dist/powercamp/browser');
 app.use(express.static(distDir));
