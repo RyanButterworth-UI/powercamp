@@ -53,3 +53,8 @@ backend/.env.local
 /assets/
 *.xlsx
 *.xls
+
+# Playwright artefacts
+/playwright-report
+/test-results
+/playwright/.cache
