@@ -37,59 +37,77 @@ const CONSENT_EXTRA_KEYS = [
         [class.opacity-100]="stepVisible()"
       >
         <h2 class="text-xl font-bold mb-2">Consent (required for each child)</h2>
-        <p class="text-sm mb-5" style="color: var(--color-saga-text-muted)">
+        <p class="text-xs mb-4" style="color: var(--color-saga-text-muted)">
           I, the parent/guardian of {{ camperName() }}, agree to the following.
-          Each consent must be ticked before you can submit.
+          Tap each statement to tick it — all must be ticked before you can submit.
         </p>
 
-        <div class="space-y-2 mb-6">
+        <div class="flex flex-col gap-2 mb-6">
           @for (c of consentItems; track c.key) {
-            <label class="flex items-center gap-3 text-sm cursor-pointer" style="color: var(--color-saga-text)">
-              <input type="checkbox" [formControlName]="c.key" class="h-4 w-4" />
-              <span>{{ c.label }}</span>
+            <label class="consent-card">
+              <input type="checkbox" [formControlName]="c.key" />
+              <span class="consent-card-check" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 13l4 4L19 7" />
+                </svg>
+              </span>
+              <span class="consent-card-text">{{ c.label }}</span>
             </label>
           }
         </div>
 
-        <div class="flex justify-end mb-2">
+        <div class="flex items-center justify-between gap-2 mb-2 flex-wrap">
+          <span class="text-xs font-semibold uppercase tracking-wide" style="color: var(--color-saga-text-muted)">
+            Emergency &amp; medical aid
+          </span>
           <button
             type="button"
             (click)="useParentAsEmergencyContact()"
-            class="text-xs underline cursor-pointer"
-            style="background: none; border: none; color: var(--color-saga-text-muted); padding: 0;"
+            class="saga-btn saga-btn-secondary !py-1 !px-2.5 !text-xs"
             data-testid="same-as-parent"
           >
             Use parent's name &amp; number
           </button>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-          <label class="flex flex-col text-sm">
-            <span class="mb-1">Emergency contact name <span class="required-star">*</span></span>
-            <input formControlName="consent_emergencyName" class="rounded-lg w-full px-3 py-2" />
+          <label class="flex flex-col text-xs font-medium" style="color: var(--color-saga-text)">
+            <span class="mb-1.5">Emergency contact name <span class="required-star">*</span></span>
+            <input
+              formControlName="consent_emergencyName"
+              class="block w-full rounded-md bg-white px-3 py-1.5 text-sm text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-blue-600"
+            />
           </label>
-          <label class="flex flex-col text-sm">
-            <span class="mb-1">Emergency contact number <span class="required-star">*</span></span>
-            <input formControlName="consent_emergencyContact" type="tel" class="rounded-lg w-full px-3 py-2" />
+          <label class="flex flex-col text-xs font-medium" style="color: var(--color-saga-text)">
+            <span class="mb-1.5">Emergency contact number <span class="required-star">*</span></span>
+            <input
+              formControlName="consent_emergencyContact"
+              type="tel"
+              class="block w-full rounded-md bg-white px-3 py-1.5 text-sm text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-blue-600"
+            />
           </label>
-          <label class="flex flex-col text-sm">
-            <span class="mb-1">Medical aid name <span class="required-star">*</span></span>
+          <label class="flex flex-col text-xs font-medium" style="color: var(--color-saga-text)">
+            <span class="mb-1.5">Medical aid name <span class="required-star">*</span></span>
             <input
               formControlName="consent_medicalAidName"
-              class="rounded-lg w-full px-3 py-2"
+              class="block w-full rounded-md bg-white px-3 py-1.5 text-sm text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-blue-600"
               placeholder="NONE if not on medical aid"
             />
           </label>
-          <label class="flex flex-col text-sm">
-            <span class="mb-1">Medical aid number <span class="required-star">*</span></span>
+          <label class="flex flex-col text-xs font-medium" style="color: var(--color-saga-text)">
+            <span class="mb-1.5">Medical aid number <span class="required-star">*</span></span>
             <input
               formControlName="consent_medicalAidNumber"
-              class="rounded-lg w-full px-3 py-2"
+              class="block w-full rounded-md bg-white px-3 py-1.5 text-sm text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-blue-600"
               placeholder="NONE if not on medical aid"
             />
           </label>
-          <label class="flex flex-col text-sm sm:col-span-2">
-            <span class="mb-1">Date of completion <span class="required-star">*</span></span>
-            <input formControlName="consent_date" type="date" class="rounded-lg px-3 py-2" />
+          <label class="flex flex-col text-xs font-medium sm:col-span-2" style="color: var(--color-saga-text)">
+            <span class="mb-1.5">Date of completion <span class="required-star">*</span></span>
+            <input
+              formControlName="consent_date"
+              type="date"
+              class="block w-full rounded-md bg-white px-3 py-1.5 text-sm text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-blue-600 sm:max-w-xs"
+            />
           </label>
         </div>
 

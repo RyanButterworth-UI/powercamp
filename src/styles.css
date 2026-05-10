@@ -612,6 +612,123 @@ label.bg-white:has(input:checked) span {
   color: var(--color-saga-danger);
 }
 
+/* Consent card — full-row clickable container for each consent statement.
+   Hides the native checkbox and swaps in a custom indicator that lights
+   up green when ticked. Tap target spans the whole card (mobile-friendly).
+   Geometry mirrors the radio-card pattern used on Gender/Age/Grade so the
+   Consent step stays consistent with the rest of the registration flow. */
+.consent-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--color-saga-border);
+  border-radius: 8px;
+  background-color: var(--color-saga-surface);
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.consent-card:hover {
+  border-color: var(--color-saga-border-strong);
+}
+
+.consent-card > input[type='checkbox'] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.consent-card-check {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  border: 1px solid var(--color-saga-border-strong);
+  border-radius: 4px;
+  background-color: var(--color-saga-surface-2);
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.consent-card-check svg {
+  width: 14px;
+  height: 14px;
+  color: #0a0e16;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.consent-card-text {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-saga-text);
+}
+
+.consent-card:has(input:checked) {
+  background-color: var(--color-saga-action-soft);
+  border-color: var(--color-saga-action);
+}
+
+.consent-card:has(input:checked) .consent-card-check {
+  background-color: var(--color-saga-action);
+  border-color: var(--color-saga-action);
+}
+
+.consent-card:has(input:checked) .consent-card-check svg {
+  opacity: 1;
+}
+
+.consent-card:has(input:focus-visible) {
+  outline: 2px solid var(--color-saga-focus);
+  outline-offset: 2px;
+}
+
+/* Two-column label / value list used on the registration Summary screen
+   (and reusable for any "review what you entered" surface). The label
+   column is fixed at 5rem so multiple cards line up; the value column
+   takes the rest. self-start on dt keeps the label aligned with the
+   first line of multi-line values (e.g. notes, friend lists). */
+.summary-heading {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-saga-text-muted);
+  margin-bottom: 0.75rem;
+}
+
+.summary-list {
+  display: grid;
+  grid-template-columns: 5rem 1fr;
+  column-gap: 0.75rem;
+  row-gap: 0.5rem;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.summary-list dt {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-saga-text-muted);
+  align-self: start;
+  padding-top: 0.125rem;
+}
+
+.summary-list dd {
+  color: var(--color-saga-text);
+  margin: 0;
+}
+
 /* Required-field marker — reused across every registration step so the * is
    visually consistent (size, weight, colour). */
 .required-star {

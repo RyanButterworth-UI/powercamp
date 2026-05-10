@@ -8,56 +8,61 @@ import { ResetRegistrationService } from '../reset-registration.service';
   imports: [],
   template: `
     <div class="customer-wrapper">
-      <h2 class="text-xl font-bold mb-4 text-[color:var(--color-saga-text-strong)]">
+      <h2 class="text-xl font-bold mb-4" style="color: var(--color-saga-text-strong)">
         Camper & Parent Summary
       </h2>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <!-- Camper Details -->
-        <div class="border rounded-lg p-4 shadow bg-white">
-          <h3 class="text-lg font-semibold mb-2 text-[color:var(--color-saga-text)]">
-            Camper Details
-          </h3>
-          <p>
-            <strong>Name:</strong> {{ form.get('firstName')?.value }}
-            {{ form.get('lastName')?.value }}
-          </p>
-          <p>
-            <strong>Cell:</strong> {{ form.get('camperCell')?.value || 'N/A' }}
-          </p>
-          <p><strong>Email:</strong> {{ form.get('email')?.value || 'N/A' }}</p>
-          <p><strong>Gender:</strong> {{ form.get('gender')?.value }}</p>
-          <p><strong>Age:</strong> {{ form.get('age')?.value }}</p>
-          <p><strong>Grade:</strong> {{ form.get('grade')?.value }}</p>
-          <p><strong>Date of Birth:</strong> {{ form.get('dob')?.value }}</p>
-          <p><strong>Church:</strong> {{ form.get('church')?.value }}</p>
-          <p><strong>T-shirt Size:</strong> {{ form.get('tshirt')?.value }}</p>
-          <p>
-            <strong>Medical Info:</strong>
-            {{ form.get('medical')?.value || 'None' }}
-          </p>
-          <div>
-            <strong>Friends:</strong>
-            <ul class="list-disc ml-5">
-              @for (friend of form.get('friends')?.value; track $index) {
-                <li>{{ friend }}</li>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="saga-card p-4">
+          <h3 class="summary-heading">Camper Details</h3>
+          <dl class="summary-list">
+            <dt>Name</dt>
+            <dd>{{ form.get('firstName')?.value }} {{ form.get('lastName')?.value }}</dd>
+            <dt>Cell</dt>
+            <dd>{{ form.get('camperCell')?.value || 'N/A' }}</dd>
+            <dt>Email</dt>
+            <dd class="break-all">{{ form.get('email')?.value || 'N/A' }}</dd>
+            <dt>Gender</dt>
+            <dd>{{ form.get('gender')?.value || 'N/A' }}</dd>
+            <dt>Age</dt>
+            <dd>{{ form.get('age')?.value || 'N/A' }}</dd>
+            <dt>Grade</dt>
+            <dd>{{ form.get('grade')?.value || 'N/A' }}</dd>
+            <dt>DOB</dt>
+            <dd>{{ form.get('dob')?.value || 'N/A' }}</dd>
+            <dt>Church</dt>
+            <dd>{{ form.get('church')?.value || 'N/A' }}</dd>
+            <dt>T-shirt</dt>
+            <dd>{{ form.get('tshirt')?.value || 'N/A' }}</dd>
+            <dt>Medical</dt>
+            <dd>{{ form.get('medical')?.value || 'None' }}</dd>
+            <dt>Friends</dt>
+            <dd>
+              @if (friends().length > 0) {
+                <ul class="list-disc ml-4 space-y-0.5">
+                  @for (friend of friends(); track $index) {
+                    <li>{{ friend }}</li>
+                  }
+                </ul>
+              } @else {
+                <span style="color: var(--color-saga-text-muted)">None</span>
               }
-            </ul>
-          </div>
-          <p>
-            <strong>General Info:</strong>
-            {{ form.get('generalInfo')?.value || 'N/A' }}
-          </p>
+            </dd>
+            <dt>Notes</dt>
+            <dd>{{ form.get('generalInfo')?.value || 'N/A' }}</dd>
+          </dl>
         </div>
 
-        <!-- Parent Details -->
-        <div class="border rounded-lg p-4 shadow bg-white">
-          <h3 class="text-lg font-semibold mb-2 text-[color:var(--color-saga-text)]">
-            Parent / Guardian Details
-          </h3>
-          <p><strong>Name:</strong> {{ form.get('parentName')?.value }}</p>
-          <p><strong>Phone:</strong> {{ form.get('parentPhone')?.value }}</p>
-          <p><strong>Email:</strong> {{ form.get('parentEmail')?.value }}</p>
+        <div class="saga-card p-4">
+          <h3 class="summary-heading">Parent / Guardian</h3>
+          <dl class="summary-list">
+            <dt>Name</dt>
+            <dd>{{ form.get('parentName')?.value || 'N/A' }}</dd>
+            <dt>Phone</dt>
+            <dd>{{ form.get('parentPhone')?.value || 'N/A' }}</dd>
+            <dt>Email</dt>
+            <dd class="break-all">{{ form.get('parentEmail')?.value || 'N/A' }}</dd>
+          </dl>
         </div>
       </div>
 
@@ -93,6 +98,16 @@ export class SummaryComponent {
   triggerSubmission = output();
   StepKey = StepKey;
   protected readonly resetSvc = inject(ResetRegistrationService);
+
+  // Plain method (not computed): the underlying FormArray's value isn't a
+  // signal, so a computed wouldn't re-evaluate as the user types. Angular CD
+  // re-runs this on every form input.
+  friends(): string[] {
+    const raw = this.form.get('friends')?.value as unknown;
+    if (!Array.isArray(raw)) return [];
+    return raw.map((s) => String(s ?? '').trim()).filter((s) => s.length > 0);
+  }
+
   constructor(private rootFormGroup: FormGroupDirective) {
     this.form = this.rootFormGroup.control;
   }
