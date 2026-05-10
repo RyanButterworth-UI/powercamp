@@ -85,22 +85,38 @@ const CONSENT_EXTRA_KEYS = [
               class="block w-full rounded-md bg-white px-3 py-1.5 text-sm text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-blue-600"
             />
           </label>
-          <label class="flex flex-col text-xs font-medium" style="color: var(--color-saga-text)">
-            <span class="mb-1.5">Medical aid name <span class="required-star">*</span></span>
-            <input
-              formControlName="consent_medicalAidName"
-              class="block w-full rounded-md bg-white px-3 py-1.5 text-sm text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-blue-600"
-              placeholder="NONE if not on medical aid"
-            />
-          </label>
-          <label class="flex flex-col text-xs font-medium" style="color: var(--color-saga-text)">
-            <span class="mb-1.5">Medical aid number <span class="required-star">*</span></span>
-            <input
-              formControlName="consent_medicalAidNumber"
-              class="block w-full rounded-md bg-white px-3 py-1.5 text-sm text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-blue-600"
-              placeholder="NONE if not on medical aid"
-            />
-          </label>
+          <div class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label class="consent-card sm:col-span-2">
+              <input
+                type="checkbox"
+                [checked]="noMedicalAid()"
+                (change)="toggleNoMedicalAid($any($event.target).checked)"
+                data-testid="no-medical-aid"
+              />
+              <span class="consent-card-check" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 13l4 4L19 7" />
+                </svg>
+              </span>
+              <span class="consent-card-text">We're not on medical aid</span>
+            </label>
+            @if (!noMedicalAid()) {
+              <label class="flex flex-col text-xs font-medium" style="color: var(--color-saga-text)">
+                <span class="mb-1.5">Medical aid name <span class="required-star">*</span></span>
+                <input
+                  formControlName="consent_medicalAidName"
+                  class="block w-full rounded-md bg-white px-3 py-1.5 text-sm text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-blue-600"
+                />
+              </label>
+              <label class="flex flex-col text-xs font-medium" style="color: var(--color-saga-text)">
+                <span class="mb-1.5">Medical aid number <span class="required-star">*</span></span>
+                <input
+                  formControlName="consent_medicalAidNumber"
+                  class="block w-full rounded-md bg-white px-3 py-1.5 text-sm text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-blue-600"
+                />
+              </label>
+            }
+          </div>
           <label class="flex flex-col text-xs font-medium sm:col-span-2" style="color: var(--color-saga-text)">
             <span class="mb-1.5">Date of completion <span class="required-star">*</span></span>
             <input
@@ -181,6 +197,24 @@ export class ConsentStepComponent {
     const bools = CONSENT_BOOL_KEYS.every((k) => this.form.get(k)?.value === true);
     const extras = CONSENT_EXTRA_KEYS.every((k) => !!this.form.get(k)?.value?.toString().trim());
     return bools && extras;
+  }
+
+  // "Not on medical aid" is derived from the form rather than tracked as
+  // its own field — if both medical-aid strings are exactly "NONE" we
+  // treat the toggle as on. Saves us threading another field through the
+  // form definition / draft persistence / backend payload.
+  noMedicalAid(): boolean {
+    return (
+      this.form.get('consent_medicalAidName')?.value === 'NONE' &&
+      this.form.get('consent_medicalAidNumber')?.value === 'NONE'
+    );
+  }
+
+  toggleNoMedicalAid(checked: boolean): void {
+    this.form.patchValue({
+      consent_medicalAidName: checked ? 'NONE' : '',
+      consent_medicalAidNumber: checked ? 'NONE' : '',
+    });
   }
 
   // Convenience: copy parentName / parentPhone into the emergency contact
