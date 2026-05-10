@@ -30,7 +30,6 @@ type Filter = 'all' | 'paid' | 'unpaid' | 'consent' | 'no-consent';
         <span class="saga-tab is-active">Bulk email</span>
         <a routerLink="/admin/teams" class="saga-tab no-underline">Teams</a>
         <a routerLink="/admin/bunks" class="saga-tab no-underline">Bunks</a>
-        <a routerLink="/admin/team" class="saga-tab no-underline">Team Admin</a>
       </nav>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">

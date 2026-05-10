@@ -37,7 +37,6 @@ interface BunkColumn {
         <a routerLink="/admin/bulk-email" class="saga-tab no-underline">Bulk email</a>
         <a routerLink="/admin/teams" class="saga-tab no-underline">Teams</a>
         <span class="saga-tab is-active">Bunks</span>
-        <a routerLink="/admin/team" class="saga-tab no-underline">Team Admin</a>
       </nav>
 
       @if (loading()) {
@@ -74,7 +73,7 @@ interface BunkColumn {
               [class.is-female]="col.gender === 'Female'"
             >
               <div class="flex items-center justify-between gap-2 mb-2">
-                <div>
+                <div class="flex-1 min-w-0">
                   <h3 class="font-semibold text-sm" style="color: var(--color-saga-text-strong)">
                     {{ col.name }}
                     @if (col.gender) {
@@ -84,32 +83,84 @@ interface BunkColumn {
                     }
                   </h3>
                   @if (col.leader) {
-                    <div class="text-[11px]" style="color: var(--color-saga-text-muted)">
-                      Leader: {{ col.leader.firstName }} {{ col.leader.lastName }}
+                    <div class="flex items-center gap-2 text-[11px] mt-0.5" style="color: var(--color-saga-text-muted)">
+                      <span>Leader: {{ col.leader.firstName }} {{ col.leader.lastName }}</span>
+                      <button
+                        type="button"
+                        (click)="togglePicker(col.id!)"
+                        class="underline cursor-pointer"
+                        style="background: none; border: none; color: var(--color-saga-text-muted); padding: 0;"
+                      >Change</button>
                     </div>
                   } @else if (col.id !== null) {
-                    <button type="button" (click)="assignLeader(col.id!, col.gender!)" class="text-[11px] underline cursor-pointer" style="background: none; border: none; color: var(--color-saga-text-muted); padding: 0;">
-                      Assign leader
-                    </button>
+                    <button
+                      type="button"
+                      (click)="togglePicker(col.id!)"
+                      class="text-[11px] underline cursor-pointer mt-0.5"
+                      style="background: none; border: none; color: var(--color-saga-text-muted); padding: 0;"
+                    >Assign leader</button>
                   }
                 </div>
                 <span class="text-xs" style="color: var(--color-saga-text-muted)">{{ col.campers.length }}</span>
               </div>
+
+              @if (col.id !== null && pickerFor() === col.id) {
+                <fieldset class="mb-2 p-2 rounded" style="border: 1px solid var(--color-saga-border); background: var(--color-saga-surface-2);">
+                  <legend class="px-1 text-[11px] uppercase tracking-wide" style="color: var(--color-saga-text-muted)">
+                    Pick a {{ col.gender }} leader
+                  </legend>
+                  <div class="flex flex-col gap-1.5 max-h-48 overflow-y-auto">
+                    @for (l of leadersForGender(col.gender!); track l.id) {
+                      <label class="leader-radio">
+                        <input
+                          type="radio"
+                          [name]="'bunk-leader-' + col.id"
+                          [checked]="col.leader?.id === l.id"
+                          (change)="setLeader(col.id!, l.id)"
+                        />
+                        <span class="text-sm">{{ l.firstName }} {{ l.lastName }}</span>
+                      </label>
+                    } @empty {
+                      <span class="text-xs italic" style="color: var(--color-saga-text-muted)">
+                        No approved {{ col.gender }} leaders. Approve some on the Leaders tab first.
+                      </span>
+                    }
+                  </div>
+                  @if (col.leader) {
+                    <button
+                      type="button"
+                      (click)="clearLeader(col.id!)"
+                      class="text-[11px] underline cursor-pointer mt-2"
+                      style="background: none; border: none; color: var(--color-saga-danger); padding: 0;"
+                    >Remove leader</button>
+                  }
+                </fieldset>
+              }
               <div
                 cdkDropList
                 [cdkDropListData]="col"
                 [cdkDropListConnectedTo]="dropListIds()"
                 [id]="dropListId(col.id)"
-                [cdkDropListEnterPredicate]="enterPredicate(col)"
                 (cdkDropListDropped)="onDrop($event)"
                 class="bunk-droplist"
               >
                 @for (c of col.campers; track c.id) {
-                  <div cdkDrag class="camper-pill">
-                    <span class="text-sm font-medium">{{ c.firstName }} {{ c.lastName }}</span>
-                    <span class="text-[11px]" style="color: var(--color-saga-text-muted)">
-                      {{ c.age || '—' }} · {{ c.grade || '—' }} · {{ c.gender || '—' }}
-                    </span>
+                  <div cdkDrag [cdkDragData]="c" class="camper-pill">
+                    <div class="flex flex-col">
+                      <span class="text-sm font-medium">{{ c.firstName }} {{ c.lastName }}</span>
+                      <span class="text-[11px]" style="color: var(--color-saga-text-muted)">
+                        {{ c.age || '—' }} · {{ c.grade || '—' }} · {{ c.gender || '—' }}
+                      </span>
+                    </div>
+                    @if (col.id !== null) {
+                      <button
+                        type="button"
+                        (click)="removeFromBunk(c, col)"
+                        title="Remove from this bunk"
+                        aria-label="Remove from this bunk"
+                        class="camper-remove"
+                      >&times;</button>
+                    }
                   </div>
                 } @empty {
                   <div class="text-xs italic py-3" style="color: var(--color-saga-text-muted)">
@@ -164,6 +215,37 @@ interface BunkColumn {
       cursor: grab;
       user-select: none;
     }
+    .camper-remove {
+      flex: 0 0 auto;
+      width: 22px;
+      height: 22px;
+      border-radius: 9999px;
+      background: transparent;
+      border: 1px solid var(--color-saga-border);
+      color: var(--color-saga-text-muted);
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .camper-remove:hover {
+      color: var(--color-saga-danger);
+      border-color: var(--color-saga-danger);
+    }
+    .leader-radio {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.25rem 0.375rem;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .leader-radio:hover {
+      background: var(--color-saga-surface);
+    }
+    .leader-radio input { accent-color: var(--color-saga-action); }
     .camper-pill:active { cursor: grabbing; }
     .cdk-drag-preview { box-shadow: 0 8px 18px rgba(0,0,0,0.4); }
     .cdk-drag-placeholder { opacity: 0.35; }
@@ -178,6 +260,9 @@ export class BunksComponent {
   columns = signal<BunkColumn[]>([]);
   saving = signal(false);
   dirty = signal(false);
+  // Which bunk currently has its inline leader-picker expanded.
+  // null = no picker is open. Toggling clicks the same bunk closed.
+  pickerFor = signal<number | null>(null);
 
   private readonly admin = inject(AdminService);
   private readonly router = inject(Router);
@@ -259,30 +344,47 @@ export class BunksComponent {
   }
   dropListIds = computed(() => this.columns().map((c) => this.dropListId(c.id)));
 
-  // CDK predicate runs as the cursor enters the drop list. Returning
-  // false rejects the drop; the camper-pill bounces back with no
-  // mutation. Keeps the safeguarding rule (matching gender) airtight.
-  enterPredicate(target: BunkColumn) {
-    return (item: { data?: AdminCamper }) => {
-      if (target.gender === null) return true; // Unassigned accepts everyone
-      const camper = (item as unknown as { data: AdminCamper }).data ?? null;
-      // CDK doesn't always populate item.data on the predicate — fall
-      // back to allowing the drop and letting the server reject if
-      // genders mismatch (rare since the UI prevents it visually).
-      if (!camper || !camper.gender) return true;
-      return camper.gender === target.gender;
-    };
-  }
-
   onDrop(event: CdkDragDrop<BunkColumn>): void {
     const previous = event.previousContainer.data;
     const current = event.container.data;
+
+    // Same-column reorder is always fine.
     if (previous === current) {
       moveItemInArray(current.campers, event.previousIndex, event.currentIndex);
-    } else {
-      transferArrayItem(previous.campers, current.campers, event.previousIndex, event.currentIndex);
+      this.columns.set([...this.columns()]);
+      this.dirty.set(true);
+      return;
     }
+
+    // Cross-column move — gate on gender BEFORE mutating arrays. Single-
+    // gender bunks are a safeguarding rule; surface a real modal so the
+    // admin sees the rejection rather than wondering why the pill snapped
+    // back. The Unassigned column (gender === null) accepts everyone.
+    const camper = previous.campers[event.previousIndex];
+    if (current.gender !== null && camper.gender && camper.gender !== current.gender) {
+      this.ui.confirm(
+        `${camper.firstName} ${camper.lastName} (${camper.gender}) can't go in a ${current.gender} bunk.`,
+        'OK',
+        ''
+      );
+      return;
+    }
+
+    transferArrayItem(previous.campers, current.campers, event.previousIndex, event.currentIndex);
     this.columns.set([...this.columns()]);
+    this.dirty.set(true);
+  }
+
+  // Removes the camper from this bunk and drops them in the Unassigned
+  // pool. No server call yet — saved with the rest on Save.
+  removeFromBunk(c: AdminCamper, fromCol: BunkColumn): void {
+    if (fromCol.id === null) return;
+    const cols = this.columns();
+    const unassigned = cols.find((x) => x.id === null);
+    if (!unassigned) return;
+    fromCol.campers = fromCol.campers.filter((x) => x.id !== c.id);
+    unassigned.campers = [...unassigned.campers, c];
+    this.columns.set([...cols]);
     this.dirty.set(true);
   }
 
@@ -318,32 +420,35 @@ export class BunksComponent {
     });
   }
 
-  async assignLeader(bunkId: number, gender: 'Male' | 'Female'): Promise<void> {
-    const candidates = this.leaders().filter(
-      (l) => !l.gender || l.gender === gender
-    );
-    if (candidates.length === 0) {
-      this.ui.toast(`No approved ${gender} leaders to assign.`, 'info');
-      return;
-    }
-    const pick = await this.ui.prompt({
-      text: `Pick a leader id for this bunk (must be a ${gender} approved leader):\n\n` +
-        candidates.map((l) => `${l.id}: ${l.firstName} ${l.lastName}`).join('\n'),
-      placeholder: 'Leader id',
-      confirmLabel: 'Assign',
-    });
-    if (!pick) return;
-    const id = Number.parseInt(pick.trim(), 10);
-    if (!Number.isInteger(id) || id <= 0) {
-      this.ui.toast('Invalid leader id.', 'error');
-      return;
-    }
-    this.admin.updateBunk(bunkId, { leaderId: id }).subscribe({
+  togglePicker(bunkId: number): void {
+    this.pickerFor.set(this.pickerFor() === bunkId ? null : bunkId);
+  }
+
+  // Approved leaders matching this bunk's gender. Leaders with no gender
+  // recorded fall through (rare — most have it from the application form).
+  leadersForGender(gender: 'Male' | 'Female') {
+    return this.leaders().filter((l) => !l.gender || l.gender === gender);
+  }
+
+  setLeader(bunkId: number, leaderId: number): void {
+    this.admin.updateBunk(bunkId, { leaderId }).subscribe({
       next: () => {
         this.ui.toast('Leader assigned.', 'success');
+        this.pickerFor.set(null);
         this.refresh();
       },
       error: () => this.ui.toast('Failed to assign leader.', 'error'),
+    });
+  }
+
+  clearLeader(bunkId: number): void {
+    this.admin.updateBunk(bunkId, { leaderId: null }).subscribe({
+      next: () => {
+        this.ui.toast('Leader cleared.', 'info');
+        this.pickerFor.set(null);
+        this.refresh();
+      },
+      error: () => this.ui.toast('Failed to clear leader.', 'error'),
     });
   }
 

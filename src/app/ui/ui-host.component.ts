@@ -70,11 +70,13 @@ import { UiService } from './ui.service';
         <div class="saga-card p-6 max-w-md w-full">
           <p class="text-sm mb-5" style="color: var(--color-saga-text)">{{ req.text }}</p>
           <div class="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
-            <button
-              type="button"
-              (click)="ui.resolveConfirm(false)"
-              class="saga-btn saga-btn-secondary"
-            >{{ req.cancelLabel }}</button>
+            @if (req.cancelLabel) {
+              <button
+                type="button"
+                (click)="ui.resolveConfirm(false)"
+                class="saga-btn saga-btn-secondary"
+              >{{ req.cancelLabel }}</button>
+            }
             <button
               type="button"
               (click)="ui.resolveConfirm(true)"
