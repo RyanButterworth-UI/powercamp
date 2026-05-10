@@ -1,4 +1,4 @@
-import nodemailer, { Transporter } from 'nodemailer';
+import nodemailer, { Transporter, SendMailOptions } from 'nodemailer';
 import { env } from '../env';
 
 let cached: Transporter | null = null;
@@ -12,9 +12,39 @@ function transporter(): Transporter {
   return cached;
 }
 
+// RFC 2606 reserved test domains + the TLDs reserved for testing
+// (.test / .example / .invalid / .localhost). Any address ending in one of
+// these is a stub from seed:random or a developer's manual test — we MUST
+// NOT actually send mail to them. Real bounces from example.com mailboxes
+// would put our Gmail sender reputation in the bin within a few hundred
+// messages and could get the account suspended.
+const TEST_EMAIL_PATTERN =
+  /@(?:[\w-]+\.)*(?:example\.com|example\.org|example\.net|example|test|invalid|localhost)$/i;
+
+function isTestEmail(addr: unknown): boolean {
+  return typeof addr === 'string' && TEST_EMAIL_PATTERN.test(addr.trim());
+}
+
+// Drop-in replacement for transporter().sendMail() that respects the
+// reserved-domain guard above. Skips the whole send when `to` is a test
+// address; strips `cc` when only the cc is a test address.
+async function safeSendMail(opts: SendMailOptions): Promise<void> {
+  if (isTestEmail(opts.to)) {
+    console.log(
+      `[email] SKIP (reserved test address): to=${opts.to} subject="${opts.subject}"`
+    );
+    return;
+  }
+  if (opts.cc && isTestEmail(opts.cc)) {
+    console.log(`[email] strip cc (reserved test address): cc=${opts.cc}`);
+    opts = { ...opts, cc: undefined };
+  }
+  await transporter().sendMail(opts);
+}
+
 export async function sendMagicLink(to: string, firstName: string, url: string): Promise<void> {
   const fromName = env.FROM_NAME ?? 'Power Camp';
-  await transporter().sendMail({
+  await safeSendMail({
     from: `"${fromName}" <${env.GMAIL_USER}>`,
     to,
     subject: 'Power Camp 2026 — your sign-in link',
@@ -101,7 +131,7 @@ export async function sendRegistrationReceived(
   // Send to parent_email; CC the camper's own email when we have one and it's
   // different so the camper sees the confirmation too.
   const ccList = cc && cc.trim().toLowerCase() !== to.trim().toLowerCase() ? cc : undefined;
-  await transporter().sendMail({
+  await safeSendMail({
     from: `"${fromName}" <${env.GMAIL_USER}>`,
     to,
     cc: ccList,
@@ -168,7 +198,7 @@ export async function sendPaymentConfirmed(
 ): Promise<void> {
   const fromName = env.FROM_NAME ?? 'Power Camp';
   const ccList = cc && cc.trim().toLowerCase() !== to.trim().toLowerCase() ? cc : undefined;
-  await transporter().sendMail({
+  await safeSendMail({
     from: `"${fromName}" <${env.GMAIL_USER}>`,
     to,
     cc: ccList,
@@ -303,7 +333,7 @@ export async function sendBulkEmail(
   for (const to of recipients) {
     try {
       const { html, text } = renderFor(to);
-      await transporter().sendMail({
+      await safeSendMail({
         from: `"${fromName}" <${env.GMAIL_USER}>`,
         to,
         subject,
