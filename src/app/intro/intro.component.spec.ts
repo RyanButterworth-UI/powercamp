@@ -30,14 +30,14 @@ describe('IntroComponent', () => {
     expect(text).toContain('2 August 2026');
   });
 
-  it('emits goToStep(LeaderApplication) when Start Registration is clicked', () => {
+  it('emits goToStep(CamperInfo) when Start Registration is clicked', () => {
     let emitted: number | undefined;
     component.goToStep.subscribe((s: number) => (emitted = s));
 
     const btn = fixture.nativeElement.querySelector('button');
     btn.click();
 
-    expect(emitted).toBe(StepKey.LeaderApplication);
+    expect(emitted).toBe(StepKey.CamperInfo);
   });
 
   it('shows the camp dates / location / cost (merged from the old Details step)', () => {
