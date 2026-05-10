@@ -61,12 +61,6 @@ export const routes: Routes = [
     canActivate: [adminGuard],
   },
   {
-    path: 'admin/team',
-    loadComponent: () =>
-      import('./admin/team-admin/team-admin.component').then((m) => m.TeamAdminComponent),
-    canActivate: [adminGuard],
-  },
-  {
     path: 'admin/teams',
     loadComponent: () =>
       import('./admin/teams/teams.component').then((m) => m.TeamsComponent),

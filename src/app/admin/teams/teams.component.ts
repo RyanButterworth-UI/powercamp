@@ -2,7 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { CdkDragDrop, DragDropModule, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
-import { AdminService, AdminCamper, Team, TeamAssignment } from '../admin.service';
+import { AdminService, AdminCamper, AdminLeader, Team, TeamAssignment } from '../admin.service';
 import { UiService } from '../../ui/ui.service';
 import { PageGhostComponent } from '../../skeleton/page-ghost.component';
 import { SkeletonComponent } from '../../skeleton/skeleton.component';
@@ -14,6 +14,9 @@ interface TeamColumn {
   id: number | null; // null = the "Unassigned" pool
   name: string;
   color: string | null;
+  // Resolved leader for the captainLeaderId on the team. null when the
+  // team hasn't picked one yet (or this is the Unassigned column).
+  captain: AdminLeader | null;
   campers: AdminCamper[];
 }
 
@@ -41,7 +44,6 @@ const TEAM_PALETTE = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#e
         <a routerLink="/admin/bulk-email" class="saga-tab no-underline">Bulk email</a>
         <span class="saga-tab is-active">Teams</span>
         <a routerLink="/admin/bunks" class="saga-tab no-underline">Bunks</a>
-        <a routerLink="/admin/team" class="saga-tab no-underline">Team Admin</a>
       </nav>
 
       @if (loading()) {
@@ -90,22 +92,77 @@ const TEAM_PALETTE = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#e
               class="team-column"
               [style.borderTopColor]="col.color || 'var(--color-saga-border-strong)'"
             >
-              <div class="flex items-center justify-between gap-2 mb-2">
-                <div class="flex items-center gap-2">
-                  <span
-                    class="inline-block rounded-full"
-                    [style.backgroundColor]="col.color || 'var(--color-saga-border-strong)'"
-                    style="width: 10px; height: 10px;"
-                    [class.invisible]="col.id === null"
-                  ></span>
-                  <h3 class="font-semibold text-sm" style="color: var(--color-saga-text-strong)">
-                    {{ col.name }}
-                  </h3>
+              <div class="flex items-start justify-between gap-2 mb-2">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span
+                      class="inline-block rounded-full"
+                      [style.backgroundColor]="col.color || 'var(--color-saga-border-strong)'"
+                      style="width: 10px; height: 10px;"
+                      [class.invisible]="col.id === null"
+                    ></span>
+                    <h3 class="font-semibold text-sm" style="color: var(--color-saga-text-strong)">
+                      {{ col.name }}
+                    </h3>
+                  </div>
+                  @if (col.id !== null) {
+                    @if (col.captain) {
+                      <div class="flex items-center gap-2 text-[11px] mt-0.5" style="color: var(--color-saga-text-muted)">
+                        <span>Captain: {{ col.captain.firstName }} {{ col.captain.lastName }}</span>
+                        <button
+                          type="button"
+                          (click)="togglePicker(col.id!)"
+                          class="underline cursor-pointer"
+                          style="background: none; border: none; color: var(--color-saga-text-muted); padding: 0;"
+                        >Change</button>
+                      </div>
+                    } @else {
+                      <button
+                        type="button"
+                        (click)="togglePicker(col.id!)"
+                        class="text-[11px] underline cursor-pointer mt-0.5"
+                        style="background: none; border: none; color: var(--color-saga-text-muted); padding: 0;"
+                      >Assign captain</button>
+                    }
+                  }
                 </div>
                 <span class="text-xs" style="color: var(--color-saga-text-muted)">
                   {{ col.campers.length }}
                 </span>
               </div>
+
+              @if (col.id !== null && pickerFor() === col.id) {
+                <fieldset class="mb-2 p-2 rounded" style="border: 1px solid var(--color-saga-border); background: var(--color-saga-surface-2);">
+                  <legend class="px-1 text-[11px] uppercase tracking-wide" style="color: var(--color-saga-text-muted)">
+                    Pick a captain
+                  </legend>
+                  <div class="flex flex-col gap-1.5 max-h-48 overflow-y-auto">
+                    @for (l of leaders(); track l.id) {
+                      <label class="leader-radio">
+                        <input
+                          type="radio"
+                          [name]="'team-captain-' + col.id"
+                          [checked]="col.captain?.id === l.id"
+                          (change)="setCaptain(col.id!, l.id)"
+                        />
+                        <span class="text-sm">{{ l.firstName }} {{ l.lastName }}</span>
+                      </label>
+                    } @empty {
+                      <span class="text-xs italic" style="color: var(--color-saga-text-muted)">
+                        No approved leaders. Approve some on the Leaders tab first.
+                      </span>
+                    }
+                  </div>
+                  @if (col.captain) {
+                    <button
+                      type="button"
+                      (click)="clearCaptain(col.id!)"
+                      class="text-[11px] underline cursor-pointer mt-2"
+                      style="background: none; border: none; color: var(--color-saga-danger); padding: 0;"
+                    >Remove captain</button>
+                  }
+                </fieldset>
+              }
               <div
                 cdkDropList
                 [cdkDropListData]="col"
@@ -115,11 +172,22 @@ const TEAM_PALETTE = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#e
                 class="team-droplist"
               >
                 @for (c of col.campers; track c.id) {
-                  <div cdkDrag class="camper-pill">
-                    <span class="text-sm font-medium">{{ c.firstName }} {{ c.lastName }}</span>
-                    <span class="text-[11px]" style="color: var(--color-saga-text-muted)">
-                      {{ c.age || '—' }} · {{ c.grade || '—' }} · {{ c.gender || '—' }}
-                    </span>
+                  <div cdkDrag [cdkDragData]="c" class="camper-pill">
+                    <div class="flex flex-col">
+                      <span class="text-sm font-medium">{{ c.firstName }} {{ c.lastName }}</span>
+                      <span class="text-[11px]" style="color: var(--color-saga-text-muted)">
+                        {{ c.age || '—' }} · {{ c.grade || '—' }} · {{ c.gender || '—' }}
+                      </span>
+                    </div>
+                    @if (col.id !== null) {
+                      <button
+                        type="button"
+                        (click)="removeFromTeam(c, col)"
+                        title="Remove from this team"
+                        aria-label="Remove from this team"
+                        class="camper-remove"
+                      >&times;</button>
+                    }
                   </div>
                 } @empty {
                   <div class="text-xs italic py-3" style="color: var(--color-saga-text-muted)">
@@ -172,6 +240,25 @@ const TEAM_PALETTE = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#e
       cursor: grab;
       user-select: none;
     }
+    .camper-remove {
+      flex: 0 0 auto;
+      width: 22px;
+      height: 22px;
+      border-radius: 9999px;
+      background: transparent;
+      border: 1px solid var(--color-saga-border);
+      color: var(--color-saga-text-muted);
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .camper-remove:hover {
+      color: var(--color-saga-danger);
+      border-color: var(--color-saga-danger);
+    }
     .camper-pill:active { cursor: grabbing; }
     .cdk-drag-preview {
       box-shadow: 0 8px 18px rgba(0,0,0,0.4);
@@ -197,6 +284,12 @@ export class TeamsComponent {
   // True whenever the on-screen columns differ from the last saved
   // assignment snapshot. Drives the Save button's enabled state.
   dirty = signal(false);
+  // Approved leaders eligible to captain a team (any gender — teams are
+  // mixed-gender). Loaded alongside campers + teams in refresh().
+  leaders = signal<AdminLeader[]>([]);
+  // Which team currently has its inline captain-picker expanded.
+  // null = no picker is open. Toggling clicks the same team closed.
+  pickerFor = signal<number | null>(null);
 
   private readonly admin = inject(AdminService);
   private readonly router = inject(Router);
@@ -212,15 +305,20 @@ export class TeamsComponent {
     Promise.all([
       this.admin.list().toPromise(),
       this.admin.listTeams().toPromise(),
+      this.admin.listLeaders().toPromise(),
     ])
-      .then(([camperRes, teamRes]) => {
-        if (!camperRes || !teamRes) return;
+      .then(([camperRes, teamRes, leaderRes]) => {
+        if (!camperRes || !teamRes || !leaderRes) return;
         // Filter to current camp year for both: only assigning campers for the active cohort.
         const currentYear = Math.max(...teamRes.teams.map((t) => t.year), 0);
         const camperRows = camperRes.campers.filter((c) => c.year === currentYear || teamRes.teams.length === 0);
+        const leaderRows = leaderRes.leaders.filter(
+          (l) => (l.year === currentYear || teamRes.teams.length === 0) && l.status === 'approved'
+        );
         this.campers.set(camperRows);
         this.teams.set(teamRes.teams);
-        this.buildColumns(camperRows, teamRes.teams, teamRes.assignments);
+        this.leaders.set(leaderRows);
+        this.buildColumns(camperRows, teamRes.teams, leaderRows, teamRes.assignments);
         this.dirty.set(false);
         this.loading.set(false);
       })
@@ -235,10 +333,16 @@ export class TeamsComponent {
       });
   }
 
-  private buildColumns(allCampers: AdminCamper[], teams: Team[], assignments: TeamAssignment[]): void {
+  private buildColumns(
+    allCampers: AdminCamper[],
+    teams: Team[],
+    leaders: AdminLeader[],
+    assignments: TeamAssignment[]
+  ): void {
     const teamCampers = new Map<number, AdminCamper[]>();
     for (const t of teams) teamCampers.set(t.id, []);
     const assignedById = new Map(assignments.map((a) => [a.camperId, a.teamId] as const));
+    const leaderById = new Map(leaders.map((l) => [l.id, l] as const));
     const unassigned: AdminCamper[] = [];
     for (const c of allCampers) {
       const tid = assignedById.get(c.id);
@@ -249,15 +353,42 @@ export class TeamsComponent {
       }
     }
     const cols: TeamColumn[] = [
-      { id: null, name: 'Unassigned', color: null, campers: unassigned },
+      { id: null, name: 'Unassigned', color: null, captain: null, campers: unassigned },
       ...teams.map((t) => ({
         id: t.id,
         name: t.name,
         color: t.color,
+        captain: t.captainLeaderId ? leaderById.get(t.captainLeaderId) ?? null : null,
         campers: teamCampers.get(t.id) ?? [],
       })),
     ];
     this.columns.set(cols);
+  }
+
+  togglePicker(teamId: number): void {
+    this.pickerFor.set(this.pickerFor() === teamId ? null : teamId);
+  }
+
+  setCaptain(teamId: number, leaderId: number): void {
+    this.admin.updateTeam(teamId, { captainLeaderId: leaderId }).subscribe({
+      next: () => {
+        this.ui.toast('Captain assigned.', 'success');
+        this.pickerFor.set(null);
+        this.refresh();
+      },
+      error: () => this.ui.toast('Failed to assign captain.', 'error'),
+    });
+  }
+
+  clearCaptain(teamId: number): void {
+    this.admin.updateTeam(teamId, { captainLeaderId: null }).subscribe({
+      next: () => {
+        this.ui.toast('Captain cleared.', 'info');
+        this.pickerFor.set(null);
+        this.refresh();
+      },
+      error: () => this.ui.toast('Failed to clear captain.', 'error'),
+    });
   }
 
   // Stable drop list IDs so CDK can wire the connected-to graph.
@@ -277,6 +408,19 @@ export class TeamsComponent {
     }
     // Refresh signal reference so Angular re-renders.
     this.columns.set([...this.columns()]);
+    this.dirty.set(true);
+  }
+
+  // Pulls the camper out of this team and back into the Unassigned pool.
+  // Mirrors the drag-and-drop transfer; persisted on Save.
+  removeFromTeam(c: AdminCamper, fromCol: TeamColumn): void {
+    if (fromCol.id === null) return;
+    const cols = this.columns();
+    const unassigned = cols.find((x) => x.id === null);
+    if (!unassigned) return;
+    fromCol.campers = fromCol.campers.filter((x) => x.id !== c.id);
+    unassigned.campers = [...unassigned.campers, c];
+    this.columns.set([...cols]);
     this.dirty.set(true);
   }
 
