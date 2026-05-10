@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormGroup,
@@ -6,6 +6,7 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { StepKey } from '../../models';
+import { ResetRegistrationService } from '../reset-registration.service';
 
 const CONSENT_BOOL_KEYS = [
   'consent_general',
@@ -36,59 +37,93 @@ const CONSENT_EXTRA_KEYS = [
         [class.opacity-100]="stepVisible()"
       >
         <h2 class="text-xl font-bold mb-2">Consent (required for each child)</h2>
-        <p class="text-sm mb-5" style="color: var(--color-saga-text-muted)">
-          I, the parent/guardian of {{ camperName() }}, agree to the following.
-          Each consent must be ticked before you can submit.
+        <p class="text-xs mb-4" style="color: var(--color-saga-text-muted)">
+          As parent/guardian of {{ camperName() }}, please tick each statement
+          to give your consent. All must be ticked before you can submit.
         </p>
 
-        <div class="space-y-2 mb-6">
+        <div class="flex flex-col gap-2 mb-6">
           @for (c of consentItems; track c.key) {
-            <label class="flex items-center gap-3 text-sm cursor-pointer" style="color: var(--color-saga-text)">
-              <input type="checkbox" [formControlName]="c.key" class="h-4 w-4" />
-              <span>{{ c.label }}</span>
+            <label class="consent-card">
+              <input type="checkbox" [formControlName]="c.key" />
+              <span class="consent-card-check" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 13l4 4L19 7" />
+                </svg>
+              </span>
+              <span class="consent-card-text">{{ c.label }}</span>
             </label>
           }
         </div>
 
-        <div class="flex justify-end mb-2">
+        <div class="flex items-center justify-between gap-2 mb-2 flex-wrap">
+          <span class="text-xs font-semibold uppercase tracking-wide" style="color: var(--color-saga-text-muted)">
+            Emergency &amp; medical aid
+          </span>
           <button
             type="button"
             (click)="useParentAsEmergencyContact()"
-            class="text-xs underline cursor-pointer"
-            style="background: none; border: none; color: var(--color-saga-text-muted); padding: 0;"
+            class="saga-btn saga-btn-secondary !py-1 !px-2.5 !text-xs"
             data-testid="same-as-parent"
           >
             Use parent's name &amp; number
           </button>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-          <label class="flex flex-col text-sm">
-            <span class="mb-1">Emergency contact name <span class="text-red-700">*</span></span>
-            <input formControlName="consent_emergencyName" class="rounded-lg w-full px-3 py-2" />
-          </label>
-          <label class="flex flex-col text-sm">
-            <span class="mb-1">Emergency contact number <span class="text-red-700">*</span></span>
-            <input formControlName="consent_emergencyContact" type="tel" class="rounded-lg w-full px-3 py-2" />
-          </label>
-          <label class="flex flex-col text-sm">
-            <span class="mb-1">Medical aid name <span class="text-red-700">*</span></span>
+          <label class="flex flex-col text-xs font-medium" style="color: var(--color-saga-text)">
+            <span class="mb-1.5">Emergency contact name <span class="required-star">*</span></span>
             <input
-              formControlName="consent_medicalAidName"
-              class="rounded-lg w-full px-3 py-2"
-              placeholder="NONE if not on medical aid"
+              formControlName="consent_emergencyName"
+              class="block w-full rounded-md bg-white px-3 py-1.5 text-sm text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-blue-600"
             />
           </label>
-          <label class="flex flex-col text-sm">
-            <span class="mb-1">Medical aid number <span class="text-red-700">*</span></span>
+          <label class="flex flex-col text-xs font-medium" style="color: var(--color-saga-text)">
+            <span class="mb-1.5">Emergency contact number <span class="required-star">*</span></span>
             <input
-              formControlName="consent_medicalAidNumber"
-              class="rounded-lg w-full px-3 py-2"
-              placeholder="NONE if not on medical aid"
+              formControlName="consent_emergencyContact"
+              type="tel"
+              class="block w-full rounded-md bg-white px-3 py-1.5 text-sm text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-blue-600"
             />
           </label>
-          <label class="flex flex-col text-sm sm:col-span-2">
-            <span class="mb-1">Date of completion <span class="text-red-700">*</span></span>
-            <input formControlName="consent_date" type="date" class="rounded-lg px-3 py-2" />
+          <div class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label class="consent-card sm:col-span-2">
+              <input
+                type="checkbox"
+                [checked]="noMedicalAid()"
+                (change)="toggleNoMedicalAid($any($event.target).checked)"
+                data-testid="no-medical-aid"
+              />
+              <span class="consent-card-check" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 13l4 4L19 7" />
+                </svg>
+              </span>
+              <span class="consent-card-text">We're not on medical aid</span>
+            </label>
+            @if (!noMedicalAid()) {
+              <label class="flex flex-col text-xs font-medium" style="color: var(--color-saga-text)">
+                <span class="mb-1.5">Medical aid name <span class="required-star">*</span></span>
+                <input
+                  formControlName="consent_medicalAidName"
+                  class="block w-full rounded-md bg-white px-3 py-1.5 text-sm text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-blue-600"
+                />
+              </label>
+              <label class="flex flex-col text-xs font-medium" style="color: var(--color-saga-text)">
+                <span class="mb-1.5">Medical aid number <span class="required-star">*</span></span>
+                <input
+                  formControlName="consent_medicalAidNumber"
+                  class="block w-full rounded-md bg-white px-3 py-1.5 text-sm text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-blue-600"
+                />
+              </label>
+            }
+          </div>
+          <label class="flex flex-col text-xs font-medium sm:col-span-2" style="color: var(--color-saga-text)">
+            <span class="mb-1.5">Date of completion <span class="required-star">*</span></span>
+            <input
+              formControlName="consent_date"
+              type="date"
+              class="block w-full rounded-md bg-white px-3 py-1.5 text-sm text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-blue-600 sm:max-w-xs"
+            />
           </label>
         </div>
 
@@ -103,7 +138,7 @@ const CONSENT_EXTRA_KEYS = [
           through, regardless of subscription state.
         </div>
 
-        <div class="flex flex-col sm:flex-row gap-3 justify-end">
+        <div class="flex gap-3 mt-4 items-center flex-wrap">
           <button
             type="button"
             (click)="goToStep.emit(StepKey.CheckData)"
@@ -119,6 +154,11 @@ const CONSENT_EXTRA_KEYS = [
           >
             Confirm
           </button>
+          <button
+            type="button"
+            (click)="resetSvc.request()"
+            class="saga-btn saga-btn-warning"
+          >Restart</button>
         </div>
       </div>
     </form>
@@ -131,14 +171,43 @@ export class ConsentStepComponent {
   goToStep = output<StepKey>();
   triggerSubmission = output<void>();
   StepKey = StepKey;
+  protected readonly resetSvc = inject(ResetRegistrationService);
 
+  // Each statement IS the policy — there is no separate document to read.
+  // Wording is original (not lifted verbatim from the 2024 Typeform) and
+  // reframed politely so the consents stand on their own under the POPIA
+  // requirement that consent be specific, informed, and freely given.
   consentItems = [
-    { key: 'consent_general', label: 'General consent — my child may attend Power Camp.' },
-    { key: 'consent_location', label: 'Location consent — I am aware of the venue and the dates.' },
-    { key: 'consent_risk', label: 'Risk consent — I accept the inherent risk of camp activities.' },
-    { key: 'consent_powerCamp', label: 'Organisers consent — I understand the role of the camp organisers.' },
-    { key: 'consent_behaviour', label: 'Behaviour consent — I have read the behaviour policy.' },
-    { key: 'consent_photo', label: 'Photo consent — photos taken at camp may be used in camp media.' },
+    {
+      key: 'consent_general',
+      label:
+        'I give permission for my child to attend Power Camp from 31 July – 2 August 2026 and take part in the activities.',
+    },
+    {
+      key: 'consent_location',
+      label:
+        'I am aware that camp runs at YFC Magaliesburg (Boitumelo & Kotula).',
+    },
+    {
+      key: 'consent_risk',
+      label:
+        'I accept that camp activities carry inherent risk, and my child takes part at their own risk.',
+    },
+    {
+      key: 'consent_powerCamp',
+      label:
+        'I accept that the organisers, leaders and YFC Magaliesburg staff cannot be held liable for any loss, injury or damage, and I will not bring any claim against them arising from my child’s participation.',
+    },
+    {
+      key: 'consent_behaviour',
+      label:
+        'My child agrees to follow reasonable instructions from camp leaders. I understand that, at the organisers’ discretion, a camper who behaves inappropriately may be sent home.',
+    },
+    {
+      key: 'consent_photo',
+      label:
+        'I am happy for photos or videos of my child taken at camp to be shared with other campers and on Power Camp’s social channels.',
+    },
   ];
 
   // Plain methods rather than computed() — the form's get().value calls
@@ -156,6 +225,24 @@ export class ConsentStepComponent {
     const bools = CONSENT_BOOL_KEYS.every((k) => this.form.get(k)?.value === true);
     const extras = CONSENT_EXTRA_KEYS.every((k) => !!this.form.get(k)?.value?.toString().trim());
     return bools && extras;
+  }
+
+  // "Not on medical aid" is derived from the form rather than tracked as
+  // its own field — if both medical-aid strings are exactly "NONE" we
+  // treat the toggle as on. Saves us threading another field through the
+  // form definition / draft persistence / backend payload.
+  noMedicalAid(): boolean {
+    return (
+      this.form.get('consent_medicalAidName')?.value === 'NONE' &&
+      this.form.get('consent_medicalAidNumber')?.value === 'NONE'
+    );
+  }
+
+  toggleNoMedicalAid(checked: boolean): void {
+    this.form.patchValue({
+      consent_medicalAidName: checked ? 'NONE' : '',
+      consent_medicalAidNumber: checked ? 'NONE' : '',
+    });
   }
 
   // Convenience: copy parentName / parentPhone into the emergency contact

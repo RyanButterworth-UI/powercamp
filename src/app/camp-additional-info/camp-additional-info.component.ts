@@ -1,14 +1,17 @@
-import { Component, input, output, signal } from '@angular/core';
+import { Component, inject, input, output, signal } from '@angular/core';
 import {
+  FormControl,
   FormGroup,
   FormGroupDirective,
   ReactiveFormsModule,
 } from '@angular/forms';
 import { StepKey } from '../../models';
+import { ResetRegistrationService } from '../reset-registration.service';
+import { DatePickerComponent } from '../date-picker/date-picker.component';
 
 @Component({
   selector: 'app-camp-additional-info',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, DatePickerComponent],
   template: `
     <form [formGroup]="form">
       <div
@@ -22,11 +25,11 @@ import { StepKey } from '../../models';
             more details
           </p>
           <p class="mb-6 text-xs font-extrabold text-gray-800">
-            All fields marked <span class="text-red-700">*</span> are required.
+            All fields marked <span class="required-star">*</span> are required.
           </p>
           <fieldset aria-label="Camper Gender">
             <label class="block text-sm/2 font-medium text-gray-900">
-              Gender <span class="text-red-700">*</span>
+              Gender <span class="required-star">*</span>
             </label>
             <div class="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-2 mb-4">
               <label
@@ -63,7 +66,7 @@ import { StepKey } from '../../models';
           </fieldset>
           <fieldset aria-label="Camper Age">
             <label class="block text-sm/2 font-medium text-gray-900">
-              Age <span class="text-red-700">*</span>
+              Age <span class="required-star">*</span>
             </label>
             <div class="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6 mb-4">
               @for (age of ageOptions(); track age) {
@@ -87,21 +90,19 @@ import { StepKey } from '../../models';
           </fieldset>
 
           <label class="block text-sm/2 font-medium text-gray-900 mb-2">
-            Date of Birth <span class="text-red-700">*</span>
+            Date of Birth <span class="required-star">*</span>
           </label>
-          <input
-            type="date"
-            formControlName="dob"
-            (click)="openDatePicker($event)"
-            (focus)="openDatePicker($event)"
-            class="w-full rounded-lg mb-4 px-3 py-2"
-            style="cursor: pointer;"
-            min="2002-01-01"
-            [max]="todayIso"
-          />
+          <div class="mb-4">
+            <app-date-picker
+              [control]="dobControl"
+              [min]="'2002-01-01'"
+              [max]="todayIso"
+              [yearsRange]="dobYears"
+            ></app-date-picker>
+          </div>
           <fieldset aria-label="Camper Grade">
             <label class="block text-sm/2 font-medium text-gray-900">
-              Grade <span class="text-red-700">*</span>
+              Grade <span class="required-star">*</span>
             </label>
             <div class="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6 mb-4">
               @for (grade of grades(); track grade) {
@@ -129,10 +130,10 @@ import { StepKey } from '../../models';
             Still need: {{ missingLabels().join(', ') }}
           </p>
         }
-        <div class="flex gap-6 mt-4">
+        <div class="flex gap-3 mt-4 items-center flex-wrap">
           <button
             type="button"
-            (click)="goToStep.emit(StepKey.Details)"
+            (click)="goToStep.emit(StepKey.CamperInfo)"
             class="saga-btn saga-btn-secondary"
           >
             Back
@@ -145,6 +146,11 @@ import { StepKey } from '../../models';
           >
             Next
           </button>
+          <button
+            type="button"
+            (click)="resetSvc.request()"
+            class="saga-btn saga-btn-warning"
+          >Restart</button>
         </div>
       </div>
     </form>
@@ -156,6 +162,7 @@ export class CampAdditionalInfoComponent {
   stepVisible = input.required<boolean>();
   goToStep = output<StepKey>();
   StepKey = StepKey;
+  protected readonly resetSvc = inject(ResetRegistrationService);
   grades = signal(['8', '9', '10', '11', '12', 'Leader']);
   // String values so the form's age field stays a string — the backend zod
   // schema rejects numbers and Excel-style numeric ages broke earlier
@@ -171,6 +178,12 @@ export class CampAdditionalInfoComponent {
   // computed would only run once at init and never reflect typed input.
   firstName(): string { return this.form.get('firstName')?.value || ''; }
   todayIso = new Date().toISOString().split('T')[0];
+
+  get dobControl(): FormControl {
+    return this.form.get('dob') as FormControl;
+  }
+  // Picker year list — covers grade 8–12 campers (oldest possible ~2003).
+  readonly dobYears = { from: 2002, to: new Date().getFullYear() };
 
   private readonly LABELS: Record<string, string> = {
     gender: 'Gender',
@@ -189,17 +202,4 @@ export class CampAdditionalInfoComponent {
       .map((f) => this.LABELS[f] ?? f);
   }
 
-  // Some browsers (Safari, especially mobile) don't pop the native date
-  // picker until the icon is clicked. showPicker() forces the calendar
-  // open as soon as the field receives focus or a click.
-  openDatePicker(e: Event): void {
-    const el = e.target as HTMLInputElement & { showPicker?: () => void };
-    if (typeof el.showPicker === 'function') {
-      try {
-        el.showPicker();
-      } catch {
-        // Some browsers throw when the input is disabled — silent ignore.
-      }
-    }
-  }
 }

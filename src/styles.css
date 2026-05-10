@@ -17,10 +17,16 @@
   --color-saga-primary: #3D71D9;
   --color-saga-primary-hover: #5A86DE;
   --color-saga-primary-soft: rgba(61, 113, 217, 0.18);
+  /* Action hue — same saturation/brightness as the primary blue but green. Used
+     for primary call-to-action buttons (Next, Start registration, Submit, …). */
+  --color-saga-action: #36C871;
+  --color-saga-action-hover: #4DD583;
+  --color-saga-action-soft: rgba(54, 200, 113, 0.18);
   --color-saga-success: #4ec07d;
   --color-saga-danger: #f0a4a4;
   --color-saga-danger-soft: rgba(240, 164, 164, 0.12);
   --color-saga-warning: #e7c27a;
+  --color-saga-warning-soft: rgba(231, 194, 122, 0.18);
   --color-saga-focus: rgba(61, 113, 217, 0.45);
 
   --font-saga: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -386,12 +392,14 @@ label.bg-white:has(input:checked) span {
 }
 
 .saga-btn-primary {
-  background-color: var(--color-saga-primary);
+  background-color: var(--color-saga-action-soft);
   color: var(--color-saga-text-strong);
+  border: 1px solid var(--color-saga-action);
 }
 
 .saga-btn-primary:hover:not(:disabled) {
-  background-color: var(--color-saga-primary-hover);
+  background-color: rgba(54, 200, 113, 0.28);
+  border-color: var(--color-saga-action-hover);
 }
 
 .saga-btn-secondary {
@@ -459,6 +467,553 @@ label.bg-white:has(input:checked) span {
   font-weight: 600;
 }
 
+/* Column pills — clean white toggles for choosing which columns appear in
+   the admin Campers table. Off = transparent outline, on = solid white. */
+.column-pill {
+  padding: 0.1875rem 0.625rem;
+  font-size: 0.75rem;
+  line-height: 1.1rem;
+  border-radius: 6px;
+  border: 1px solid var(--color-saga-border);
+  background-color: transparent;
+  color: var(--color-saga-text-muted);
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.column-pill:hover:not(.is-active) {
+  border-color: rgba(255, 255, 255, 0.6);
+  color: var(--color-saga-text);
+}
+
+.column-pill.is-active {
+  background-color: #ffffff;
+  border-color: #ffffff;
+  color: #0a0e16;
+  font-weight: 600;
+}
+
+.column-pill:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* Status pill — flexible badge for booleans / states.
+   Single character renders roughly square (22x22); text content auto-grows.
+   Used across admin tables (consent, leader status, Neil-approval, etc.). */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 0.5rem;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.status-pill.is-ok {
+  background-color: rgba(78, 192, 125, 0.18);
+  color: var(--color-saga-success);
+  border: 1px solid var(--color-saga-success);
+}
+
+.status-pill.is-bad {
+  background-color: rgba(240, 164, 164, 0.14);
+  color: var(--color-saga-danger);
+  border: 1px solid var(--color-saga-danger);
+}
+
+.status-pill.is-pending {
+  background-color: rgba(231, 194, 122, 0.14);
+  color: var(--color-saga-warning);
+  border: 1px solid var(--color-saga-warning);
+}
+
+/* Success / danger button variants — same outline geometry as .saga-btn-secondary
+   so chips sit flush in action columns without looking heavier. Used in the
+   admin Campers table ("Paid") and Leaders table ("Approve" / "Reject"). */
+.saga-btn-success {
+  background-color: transparent;
+  color: var(--color-saga-success);
+  border: 1px solid var(--color-saga-success);
+}
+
+.saga-btn-success:hover:not(:disabled) {
+  background-color: rgba(78, 192, 125, 0.08);
+}
+
+.saga-btn-danger {
+  background-color: transparent;
+  color: var(--color-saga-danger);
+  border: 1px solid var(--color-saga-danger);
+}
+
+.saga-btn-danger:hover:not(:disabled) {
+  background-color: rgba(240, 164, 164, 0.08);
+}
+
+/* Translucent warning button — same translucent pattern as .saga-btn-primary
+   but using the warning hue. For destructive-but-optional actions like
+   "Reset registration" where danger red would be too aggressive. */
+.saga-btn-warning {
+  background-color: var(--color-saga-warning-soft);
+  color: var(--color-saga-warning);
+  border: 1px solid var(--color-saga-warning);
+}
+
+.saga-btn-warning:hover:not(:disabled) {
+  background-color: rgba(231, 194, 122, 0.28);
+}
+
+/* Nested table inside a saga-table cell — used in the admin Emergency view to
+   list campers + medical info under each parent without competing visually
+   with the outer table. Widths are hints (auto layout) so long medical info
+   never gets clipped, but the columns still line up across sub-tables. */
+.kids-subtable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.kids-subtable col.col-camper { width: 11rem; }
+.kids-subtable col.col-grade { width: 4rem; }
+.kids-subtable col.col-medical { width: auto; }
+
+.kids-subtable thead th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-saga-text-muted);
+  padding: 0 0.5rem 0.25rem 0;
+  border-bottom: 1px solid var(--color-saga-border);
+}
+
+.kids-subtable tbody td {
+  padding: 0.25rem 0.5rem 0.25rem 0;
+  border-bottom: 1px dashed var(--color-saga-border);
+  vertical-align: top;
+  word-break: break-word;
+}
+
+.kids-subtable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* The Medical column is always rendered in the warning colour so missing
+   medical-aid info, unusual notes, or anything else flagged stands out. */
+.kids-subtable td.medical-cell {
+  color: var(--color-saga-danger);
+}
+
+/* Consent card — full-row clickable container for each consent statement.
+   Hides the native checkbox and swaps in a custom indicator that lights
+   up green when ticked. Tap target spans the whole card (mobile-friendly).
+   Geometry mirrors the radio-card pattern used on Gender/Age/Grade so the
+   Consent step stays consistent with the rest of the registration flow. */
+.consent-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--color-saga-border);
+  border-radius: 8px;
+  background-color: var(--color-saga-surface);
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.consent-card:hover {
+  border-color: var(--color-saga-border-strong);
+}
+
+.consent-card > input[type='checkbox'] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.consent-card-check {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  border: 1px solid var(--color-saga-border-strong);
+  border-radius: 4px;
+  background-color: var(--color-saga-surface-2);
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.consent-card-check svg {
+  width: 14px;
+  height: 14px;
+  color: #0a0e16;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.consent-card-text {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-saga-text);
+}
+
+.consent-card:has(input:checked) {
+  background-color: var(--color-saga-action-soft);
+  border-color: var(--color-saga-action);
+}
+
+.consent-card:has(input:checked) .consent-card-check {
+  background-color: var(--color-saga-action);
+  border-color: var(--color-saga-action);
+}
+
+.consent-card:has(input:checked) .consent-card-check svg {
+  opacity: 1;
+}
+
+.consent-card:has(input:focus-visible) {
+  outline: 2px solid var(--color-saga-focus);
+  outline-offset: 2px;
+}
+
+/* Two-column label / value list used on the registration Summary screen
+   (and reusable for any "review what you entered" surface). The label
+   column is fixed at 5rem so multiple cards line up; the value column
+   takes the rest. self-start on dt keeps the label aligned with the
+   first line of multi-line values (e.g. notes, friend lists). */
+.summary-heading {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-saga-text-muted);
+  margin-bottom: 0.75rem;
+}
+
+.summary-list {
+  display: grid;
+  grid-template-columns: 5rem 1fr;
+  column-gap: 0.75rem;
+  row-gap: 0.5rem;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.summary-list dt {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-saga-text-muted);
+  align-self: start;
+  padding-top: 0.125rem;
+}
+
+.summary-list dd {
+  color: var(--color-saga-text);
+  margin: 0;
+}
+
+/* Required-field marker — reused across every registration step so the * is
+   visually consistent (size, weight, colour). */
+.required-star {
+  color: var(--color-saga-danger);
+  font-weight: 700;
+  margin-left: 0.125rem;
+}
+
+/* Base reset for every native <select> in the app — strips the OS default
+   chrome and replaces it with the dark surface + chevron used everywhere
+   else. The opened options dropdown is still browser-native (we can't style
+   that) but the closed state matches the rest of the design.
+   .saga-select is kept as an alias for explicit opt-in markup. */
+select,
+.saga-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  /* Tells the browser to render the OS-native popped-open options menu in
+     dark mode. We can't style that menu with CSS — only color-scheme nudges
+     it — so this is the cheapest way to keep the dropdown from glaring
+     white on a dark page. */
+  color-scheme: dark;
+  background-color: var(--color-saga-surface);
+  color: var(--color-saga-text);
+  border: 1px solid var(--color-saga-border);
+  border-radius: 8px;
+  padding: 0.5rem 2.25rem 0.5rem 0.75rem;
+  font-size: 14px;
+  line-height: 1.25;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23ccccdc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-position: right 0.625rem center;
+  background-repeat: no-repeat;
+  background-size: 12px;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+select:hover,
+.saga-select:hover {
+  border-color: var(--color-saga-border-strong);
+}
+
+select:focus,
+.saga-select:focus {
+  outline: none;
+  border-color: var(--color-saga-action);
+  box-shadow: 0 0 0 2px var(--color-saga-action-soft);
+}
+
+select option,
+.saga-select option {
+  background-color: var(--color-saga-surface);
+  color: var(--color-saga-text);
+}
+
+/* Custom dropdown built on a button + popover listbox. Used by SagaSelectComponent
+   on screens ≥ sm where the native <select> popped menu doesn't honour the
+   dark theme well. The closed trigger reuses the .saga-select rules above —
+   these styles cover the open state. */
+.saga-select-wrap {
+  position: relative;
+  width: 100%;
+  display: block;
+}
+
+.saga-select-wrap > .saga-select {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.saga-select-wrap > .saga-select.is-open {
+  border-color: var(--color-saga-action);
+  box-shadow: 0 0 0 2px var(--color-saga-action-soft);
+}
+
+.saga-select-wrap > .saga-select .is-placeholder {
+  color: var(--color-saga-text-muted);
+}
+
+.saga-select-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  /* Above the sticky site-nav (z:30), the page chrome, and the form fields
+     (which sometimes have their own focus rings). 100 keeps us comfortably
+     under any future modal overlay (which lives at 1000+). */
+  z-index: 100;
+  max-height: 280px;
+  overflow-y: auto;
+  background-color: var(--color-saga-surface-2);
+  border: 1px solid var(--color-saga-border);
+  border-radius: 8px;
+  padding: 0.25rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  animation: saga-select-pop 120ms ease-out;
+}
+
+@keyframes saga-select-pop {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.saga-select-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  padding: 0.5rem 0.625rem;
+  color: var(--color-saga-text);
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 80ms ease;
+}
+
+.saga-select-option:hover,
+.saga-select-option:focus-visible {
+  background-color: var(--color-saga-surface);
+  outline: none;
+}
+
+.saga-select-option.is-selected {
+  background-color: var(--color-saga-action-soft);
+  color: var(--color-saga-text-strong);
+  font-weight: 600;
+}
+
+.saga-select-search {
+  display: block;
+  width: 100%;
+  padding: 0.45rem 0.625rem;
+  margin-bottom: 0.25rem;
+  background-color: var(--color-saga-surface);
+  border: 1px solid var(--color-saga-border);
+  border-radius: 6px;
+  color: var(--color-saga-text);
+  font-size: 13px;
+}
+
+.saga-select-search:focus {
+  outline: none;
+  border-color: var(--color-saga-action);
+  box-shadow: 0 0 0 2px var(--color-saga-action-soft);
+}
+
+.saga-select-empty {
+  padding: 0.625rem 0.625rem;
+  font-size: 13px;
+  color: var(--color-saga-text-muted);
+  font-style: italic;
+}
+
+/* Olympic-coloured pills for the camp values (Purity / Obedience / Worship /
+   Endurance / Righteousness) on the Intro screen. Same translucent silhouette
+   as .saga-btn-primary so the visual language stays consistent — only the
+   hue changes per pill. */
+.olympic-pill {
+  display: inline-block;
+  padding: 0.1875rem 0.625rem;
+  border-radius: 9999px;
+  border: 1px solid currentColor;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+
+/* Stop iOS Safari from auto-zooming when the user focuses a text field —
+   it triggers any time the input font-size is below 16px. We force 16px on
+   mobile widths only, so desktop layouts keep their tighter typography. */
+@media (max-width: 640px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Registration stepper — sits above the form on every camper-path step.
+   Mobile-first: horizontally scrollable with snap so a parent can swipe
+   through the steps; tap targets are at least 44px tall (Apple HIG min). */
+.stepper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 0.5rem 0;
+  /* position:relative anchors child offsetLeft measurements to this element so
+     the auto-centre scroll math in FormStepperComponent points at the right
+     ancestor. */
+  position: relative;
+}
+.stepper::-webkit-scrollbar { display: none; }
+
+.stepper-track {
+  display: flex;
+  gap: 0.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0 0.5rem;
+  scroll-snap-type: x mandatory;
+}
+
+.stepper-item {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+
+.stepper-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  border: 1px solid var(--color-saga-border);
+  border-radius: 9999px;
+  color: var(--color-saga-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.stepper-step:hover {
+  border-color: var(--color-saga-border-strong);
+  color: var(--color-saga-text);
+}
+
+.stepper-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: var(--color-saga-surface-2);
+  color: var(--color-saga-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+
+.stepper-step.is-done .stepper-num {
+  background: var(--color-saga-success);
+  color: #0a0e16;
+}
+
+.stepper-step.is-done {
+  color: var(--color-saga-text);
+  border-color: var(--color-saga-success);
+}
+
+.stepper-step.is-current {
+  background: var(--color-saga-action-soft);
+  border-color: var(--color-saga-action);
+  color: var(--color-saga-text-strong);
+  font-weight: 600;
+}
+
+.stepper-step.is-current .stepper-num {
+  background: var(--color-saga-action);
+  color: #0a0e16;
+}
+
+.stepper-step.is-locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.stepper-step.is-locked:hover {
+  border-color: var(--color-saga-border);
+  color: var(--color-saga-text-muted);
+}
+
+/* On very narrow phones (<360px) the labels start to crowd — hide them on
+   non-current steps so just the numbered dots remain visible. */
+@media (max-width: 380px) {
+  .stepper-step:not(.is-current) .stepper-label {
+    display: none;
+  }
+}
+
 /* Tables on dark surfaces. */
 .saga-table {
   width: 100%;
@@ -490,5 +1045,8 @@ label.bg-white:has(input:checked) span {
 
 /* Animated transition wrapper kept from before (existing usage). */
 .customer-wrapper {
-  @apply h-full p-5 overflow-auto flex flex-col justify-between transition-all duration-700 ease-in-out;
+  /* overflow-visible (rather than overflow-auto) so positioned popovers like
+     the saga-select dropdown can extend past the wrapper edges. The page
+     itself handles scroll for long forms. */
+  @apply h-full p-5 flex flex-col justify-between transition-opacity duration-500 ease-in-out;
 }

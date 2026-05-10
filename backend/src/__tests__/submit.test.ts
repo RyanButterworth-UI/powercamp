@@ -151,6 +151,58 @@ describe('POST /submit', () => {
     expect(insertMock).not.toHaveBeenCalled();
   });
 
+  it('accepts the exact payload the polished form sends — no-medical-aid toggle on, default empty FormArray friends', async () => {
+    // Mirrors form.component.ts onSubmit() output after:
+    //  • the no-medical-aid toggle was ticked (medicalAidName/Number = "NONE"),
+    //  • the user added zero friends (FormArray seeded with [''] not []),
+    //  • optional fields left blank (medical, generalInfo, camperCell, email).
+    const formLikeBody = {
+      camper: {
+        firstName: 'Test',
+        lastName: 'Camper',
+        camperCell: '',
+        gender: 'F',
+        email: '',
+        age: '14',
+        grade: '9',
+        friends: [''],
+        medical: '',
+        parentName: 'Mum',
+        parentPhone: '0827654321',
+        parentEmail: 'mum@example.com',
+        church: 'Hope',
+        tshirt: 'M',
+        generalInfo: '',
+        dob: '2010-04-01',
+      },
+      consent: {
+        general: 'accept',
+        location: 'accept',
+        risk: 'accept',
+        powerCamp: 'accept',
+        behaviour: 'accept',
+        photo: 'accept',
+        emergencyName: 'Mum',
+        emergencyContact: '0827654321',
+        medicalAidName: 'NONE',
+        medicalAidNumber: 'NONE',
+        date: '2026-05-10',
+      },
+    };
+
+    const res = await request(buildApp()).post('/submit').send(formLikeBody);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ id: 42 });
+    expect(insertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        firstName: 'Test',
+        consentMedicalAidName: 'NONE',
+        consentMedicalAidNumber: 'NONE',
+      })
+    );
+  });
+
   it('rejects bodies missing required consent fields with 400', async () => {
     const res = await request(buildApp())
       .post('/submit')

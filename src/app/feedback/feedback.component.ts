@@ -43,7 +43,7 @@ import { environment } from '../../environments/environment';
                   <img src='./assets/Pc2025.png' alt="" class="p-4">
                   <p class="block text-sm/4 font-medium text-gray-900 mb-3">Thank you for attending Power Camp 2025!
                     Please take the time to fill out the feedback form. We use this info to plan for next year.</p>
-                  <p class="block text-sm/4 font-medium text-gray-900 mb-3"><span class="text-red-700">*</span> We had
+                  <p class="block text-sm/4 font-medium text-gray-900 mb-3"><span class="required-star">*</span> We had
                     some technical glitches this year and
                     this has already been noted.</p>
                   <p class="block text-sm/4 font-medium text-gray-900 mb-3">Dates for next year: Due to planning and
@@ -74,7 +74,7 @@ import { environment } from '../../environments/environment';
                     </p>
                     <label class="block text-xs/6 font-medium text-gray-900 my-2">
                      Please enter the FULL name of the camper
-                      <span class="text-red-700">*</span>
+                      <span class="required-star">*</span>
                     </label>
                     <input
                       formControlName="camperName"
@@ -85,7 +85,7 @@ import { environment } from '../../environments/environment';
                   </div>
                   <div class="my-4">
                     <p class="block text-sm/2 font-medium text-gray-900 mb-3">
-                      Organisation Of Camp <span class="text-red-700">*</span>
+                      Organisation Of Camp <span class="required-star">*</span>
                     </p>
                     <p class="block text-sm/2 font-medium text-gray-500 mb-3">
                       Did Camp run well?
@@ -114,7 +114,7 @@ import { environment } from '../../environments/environment';
                   </div>
                   <div class="my-4">
                     <p class="block text-sm/2 font-medium text-gray-900 mb-3">
-                      Spirtual Input <span class="text-red-700">*</span>
+                      Spirtual Input <span class="required-star">*</span>
                     </p>
                     <p class="block text-sm/2 font-medium text-gray-500 mb-3">
                       How did you find the speaker and devotions?
@@ -144,7 +144,7 @@ import { environment } from '../../environments/environment';
                   </div>
                   <div class="my-4">
                     <p class="block text-sm/2 font-medium text-gray-900 mb-3">
-                      Activities <span class="text-red-700">*</span>
+                      Activities <span class="required-star">*</span>
                     </p>
                     <p class="block text-sm/2 font-medium text-gray-500 mb-3">
                       Did you have the best time ever?
@@ -174,7 +174,7 @@ import { environment } from '../../environments/environment';
                   </div>
                   <div class="my-4">
                     <p class="block text-sm/2 font-medium text-gray-900 mb-3">
-                      Meals/Campsite <span class="text-red-700">*</span>
+                      Meals/Campsite <span class="required-star">*</span>
                     </p>
                     <p class="block text-sm/2 font-medium text-gray-500 mb-3">
                       This applies to YFC's facilites

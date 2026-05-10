@@ -1,4 +1,4 @@
-import { Component, input, output, signal } from '@angular/core';
+import { Component, inject, input, output, signal } from '@angular/core';
 import {
   FormControl,
   FormGroup,
@@ -7,10 +7,12 @@ import {
 } from '@angular/forms';
 import { StepKey } from '../../models';
 import { CHURCHES, CHURCH_OTHER } from '../data/churches';
+import { ResetRegistrationService } from '../reset-registration.service';
+import { SagaSelectComponent, SagaSelectOption } from '../saga-select/saga-select.component';
 
 @Component({
   selector: 'app-t-shirt',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, SagaSelectComponent],
   template: `
     <form [formGroup]="form">
       <div
@@ -20,7 +22,7 @@ import { CHURCHES, CHURCH_OTHER } from '../data/churches';
       >
         <div>
           <label class="block mb-2 font-medium"
-            >T-shirt Size <span class="text-red-700">*</span></label
+            >T-shirt Size <span class="required-star">*</span></label
           >
           <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 mb-4">
             @for (size of ['small', 'medium', 'large', 'xlarge']; track size) {
@@ -46,21 +48,19 @@ import { CHURCHES, CHURCH_OTHER } from '../data/churches';
           </div>
           <div>
             <label class="my-2 text-sm block">
-              Which church do you attend? <span class="text-red-700">*</span>
+              Which church do you attend? <span class="required-star">*</span>
             </label>
             <p class="text-xs mb-2" style="color: var(--color-saga-text-muted)">
-              Pick from the list — or choose "Other" if yours isn't there yet.
+              Type to search the list. Not there? Pick <span style="color: var(--color-saga-text-strong); font-weight: 600;">Other (type your own)</span> at the bottom.
             </p>
-            <select
-              [formControl]="churchSelect"
-              class="rounded-lg w-full px-3 py-2 my-2"
-            >
-              <option value="">Select your church…</option>
-              @for (c of churches; track c) {
-                <option [value]="c">{{ c }}</option>
-              }
-              <option [value]="OTHER">Other (type your own)</option>
-            </select>
+            <div class="my-2">
+              <app-saga-select
+                [control]="churchSelect"
+                [options]="churchOptions"
+                placeholder="Select your church…"
+                [enableSearch]="true"
+              ></app-saga-select>
+            </div>
 
             @if (otherSelected()) {
               <input
@@ -77,7 +77,7 @@ import { CHURCHES, CHURCH_OTHER } from '../data/churches';
             Still need: {{ missingLabels().join(', ') }}
           </p>
         }
-        <div class="flex gap-6 mt-4">
+        <div class="flex gap-3 mt-4 items-center flex-wrap">
           <button
             type="button"
             (click)="goToStep.emit(StepKey.ParentInfo)"
@@ -93,6 +93,11 @@ import { CHURCHES, CHURCH_OTHER } from '../data/churches';
           >
             Next
           </button>
+          <button
+            type="button"
+            (click)="resetSvc.request()"
+            class="saga-btn saga-btn-warning"
+          >Restart</button>
         </div>
       </div>
     </form>
@@ -105,6 +110,7 @@ export class TShirtComponent {
   goToStep = output<StepKey>();
   StepKey = StepKey;
   camperFields = ['tshirt', 'church'];
+  protected readonly resetSvc = inject(ResetRegistrationService);
 
   private readonly LABELS: Record<string, string> = {
     tshirt: 'T-shirt size',
@@ -119,6 +125,10 @@ export class TShirtComponent {
 
   readonly churches = CHURCHES;
   readonly OTHER = CHURCH_OTHER;
+  readonly churchOptions: SagaSelectOption[] = [
+    ...CHURCHES.map((c) => ({ value: c, label: c })),
+    { value: CHURCH_OTHER, label: 'Other (type your own)' },
+  ];
   otherSelected = signal(false);
   // The dropdown is driven by its own FormControl rather than [value] —
   // [value] on a <select> doesn't reliably move the selected option after

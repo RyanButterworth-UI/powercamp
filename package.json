@@ -11,8 +11,11 @@
     "test:ci": "jest --runInBand",
     "build:prod": "ng build --configuration production",
     "run:network": "ng serve --host 0.0.0.0 --port 4200 --configuration development",
-    "render-build": "npm run build:prod && cd backend && npm install",
+    "render-build": "npm install && npm run build:prod && cd backend && npm install",
     "render-start": "cd backend && npm start"
+  },
+  "engines": {
+    "node": "20.x"
   },
   "private": true,
   "dependencies": {

@@ -10,13 +10,36 @@ export interface AdminCamper {
   year: number;
   firstName: string;
   lastName: string;
-  email: string | null;
-  parentEmail: string;
-  parentName: string | null;
+  dob: string | null;
+  gender: string | null;
+  age: string | null;
   grade: string | null;
+  email: string | null;
+  camperCell: string | null;
+  medical: string | null;
+  tshirt: string | null;
+  church: string | null;
+  generalInfo: string | null;
+  friends: string[] | null;
+  parentName: string | null;
+  parentPhone: string | null;
+  parentEmail: string;
+  source: string | null;
+  consentGeneral: string | null;
+  consentLocation: string | null;
+  consentRisk: string | null;
+  consentPowerCamp: string | null;
+  consentBehaviour: string | null;
+  consentPhoto: string | null;
+  consentEmergencyName: string | null;
+  consentEmergencyContact: string | null;
+  consentMedicalAidName: string | null;
+  consentMedicalAidNumber: string | null;
+  consentDate: string | null;
   consentAcceptedAt: string | null;
   paymentReceivedAt: string | null;
-  source: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
 }
 
 @Injectable({ providedIn: 'root' })

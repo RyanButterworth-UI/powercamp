@@ -1,0 +1,55 @@
+# Render Blueprint — declarative service config.
+# Docs: https://render.com/docs/blueprint-spec
+#
+# When you create the service via "New + → Blueprint" in the Render
+# dashboard, Render reads this file and provisions everything below.
+# Subsequent edits to this file (after the service is connected) will
+# trigger updates on the next deploy.
+
+services:
+  - type: web
+    name: powercamp
+    runtime: node
+    plan: free            # bump to "starter" once you outgrow free-tier cold starts
+    region: frankfurt     # closest Render region to South Africa; change if needed
+    branch: main          # the git branch Render auto-deploys
+    autoDeploy: true
+    buildCommand: npm run render-build
+    startCommand: npm run render-start
+    healthCheckPath: /healthz
+    envVars:
+      # ---- Secrets: set these in the Render dashboard, NOT in this file. ----
+      # `sync: false` tells Render "this var exists, but its value is managed in
+      # the dashboard" — it won't be overwritten by future blueprint syncs.
+      - key: DATABASE_URL
+        sync: false
+      - key: GOOGLE_SHEET_ID
+        sync: false
+      - key: GOOGLE_SERVICE_ACCOUNT_EMAIL
+        sync: false
+      - key: GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: ADMIN_PASSWORD_HASH
+        sync: false
+      - key: LEADER_PASSWORD_HASH
+        sync: false
+      - key: GMAIL_USER
+        sync: false
+      - key: GMAIL_APP_PASSWORD
+        sync: false
+
+      # ---- Non-secret config: safe to commit. ----
+      - key: CAMP_YEAR
+        value: "2026"
+      - key: FROM_NAME
+        value: Power Camp
+      - key: NODE_VERSION
+        value: "20"
+      # APP_BASE_URL and ALLOWED_ORIGINS depend on your final Render URL.
+      # Update these once you know the service URL (or your custom domain).
+      - key: APP_BASE_URL
+        value: https://powercamp.onrender.com
+      - key: ALLOWED_ORIGINS
+        value: https://powercamp.onrender.com
