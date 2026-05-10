@@ -137,7 +137,7 @@ const COLUMN_GROUPS: ColumnGroup[] = GROUP_ORDER.map((g) => ({
           class="saga-btn saga-btn-secondary no-underline"
           data-testid="open-sheet"
         >
-          Open in Google Sheets ↗
+          Open in Google Sheets
         </a>
         <span class="text-sm" style="color: var(--color-saga-text-muted)">
           {{ total() }} total · {{ visibleCampers().length }} shown
@@ -424,7 +424,7 @@ const COLUMN_GROUPS: ColumnGroup[] = GROUP_ORDER.map((g) => ({
                               style="min-width: 6rem;"
                               title="Payment received"
                               [attr.data-testid]="'payment-paid-' + c.id"
-                            >✓ Paid</span>
+                            >Paid</span>
                           } @else {
                             <button
                               type="button"

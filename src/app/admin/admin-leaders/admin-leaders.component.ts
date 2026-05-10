@@ -32,7 +32,7 @@ import { UiService } from '../../ui/ui.service';
           class="saga-btn saga-btn-primary"
           data-testid="toggle-add"
         >
-          {{ showAddForm() ? 'Close' : '＋ Add a leader directly (Neil only)' }}
+          {{ showAddForm() ? 'Close' : 'Add a leader directly (Neil only)' }}
         </button>
         <span class="text-sm" style="color: var(--color-saga-text-muted)">{{ total() }} leaders in the database</span>
       </div>
