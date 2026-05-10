@@ -25,6 +25,13 @@ app.use(
 
 app.use(express.json());
 
+// Health check — used by Render to verify the service is up.
+// Must be registered before the static-file and SPA fallback handlers
+// so it isn't swallowed by the catch-all '*' route.
+app.get('/healthz', (_req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 app.use(submitRouter);
 app.use(consentRouter);
 app.use(feedbackRouter);
