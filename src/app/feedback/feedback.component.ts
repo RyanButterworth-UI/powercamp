@@ -7,15 +7,19 @@ import {
 } from '@angular/forms';
 import { NgClass } from '@angular/common';
 import { SuccessDialogComponent } from '../success-dialog/success-dialog.component';
+import { PageGhostComponent } from '../skeleton/page-ghost.component';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'app-feedback',
-  imports: [ReactiveFormsModule, NgClass, SuccessDialogComponent],
+  imports: [ReactiveFormsModule, NgClass, SuccessDialogComponent, PageGhostComponent],
   template: `
+    @if (!ready()) {
+      <app-page-ghost height="60vh" />
+    } @else {
     <div
-      class="container mx-auto bg:white lg:bg-slate-100 my-0 min-h-dvh font-inter flex lg:justify-center lg:items-center"
+      class="container mx-auto bg:white lg:bg-slate-100 my-0 min-h-dvh font-inter flex lg:justify-center lg:items-center page-fade-in"
     >
       <div class="w-full lg:w-1/2 h-full flex flex-col">
         <div class="w-full mx-auto h-full flex flex-col">
@@ -323,6 +327,7 @@ import { environment } from '../../environments/environment';
         </div>
       </div>
     </div>
+    }
   `,
   styles: ``,
 })
@@ -336,6 +341,7 @@ export class FeedbackComponent implements OnInit {
   submittedCamperName = signal('Dear Camper');
   submissionStatus = signal<'success' | 'error'>('success');
   isSubmitting = signal(false);
+  ready = signal(false);
 
   nextStep() {
     this.currentStep.set(this.currentStep() + 1);
@@ -358,6 +364,7 @@ export class FeedbackComponent implements OnInit {
   }
 
   ngOnInit() {
+    setTimeout(() => this.ready.set(true), 300);
     this.feedback = this.fb.group({
       camperName: ['', Validators.required],
       campOrganization: ['', Validators.required],

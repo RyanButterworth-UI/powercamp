@@ -1,10 +1,15 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
+import { PageGhostComponent } from '../skeleton/page-ghost.component';
 
 @Component({
   selector: 'app-kit-list',
   standalone: true,
+  imports: [PageGhostComponent],
   template: `
-    <div class="container mx-auto p-6 max-w-4xl">
+    @if (!ready()) {
+      <app-page-ghost />
+    } @else {
+    <div class="container mx-auto p-6 max-w-4xl page-fade-in">
       <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
         <div>
           <h1 class="text-2xl font-bold mb-1">Power Camp 2026 Kit List</h1>
@@ -59,7 +64,14 @@ import { Component } from '@angular/core';
         Tap Download for an offline copy you can keep with your packing.
       </p>
     </div>
+    }
   `,
   styles: ``,
 })
-export class KitListComponent {}
+export class KitListComponent {
+  ready = signal(false);
+
+  constructor() {
+    setTimeout(() => this.ready.set(true), 300);
+  }
+}

@@ -3,16 +3,17 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { environment } from '../../environments/environment';
+import { PageGhostComponent } from '../skeleton/page-ghost.component';
 
 @Component({
   selector: 'app-unsubscribe',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, PageGhostComponent],
   template: `
     <div class="container mx-auto p-6 max-w-xl">
       <div class="saga-card p-6">
         @if (loading()) {
-          <p class="text-sm" style="color: var(--color-saga-text-muted)">Working on it…</p>
+          <app-page-ghost height="20vh" />
         } @else if (error()) {
           <h1 class="text-lg font-semibold mb-2">Hmm, that link didn't work</h1>
           <p class="text-sm" style="color: var(--color-saga-text-muted)">{{ error() }}</p>

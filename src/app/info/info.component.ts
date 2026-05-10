@@ -1,12 +1,16 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { PageGhostComponent } from '../skeleton/page-ghost.component';
 
 @Component({
   selector: 'app-info',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, PageGhostComponent],
   template: `
-    <div class="container mx-auto p-6 max-w-3xl">
+    @if (!ready()) {
+      <app-page-ghost />
+    } @else {
+    <div class="container mx-auto p-6 max-w-3xl page-fade-in">
       <h1 class="text-3xl font-bold mb-1">About Power Camp</h1>
       <p class="text-sm uppercase tracking-wide mb-6" style="color: var(--color-saga-primary-hover)">
         Purity · Obedience · Worship · Endurance · Righteousness
@@ -59,7 +63,14 @@ import { RouterLink } from '@angular/router';
         </a>
       </div>
     </div>
+    }
   `,
   styles: ``,
 })
-export class InfoComponent {}
+export class InfoComponent {
+  ready = signal(false);
+
+  constructor() {
+    setTimeout(() => this.ready.set(true), 300);
+  }
+}
