@@ -184,9 +184,14 @@ interface VerifiedCamper {
             </p>
             <div class="flex flex-col gap-2">
               @for (c of consentItems; track c.key) {
-                <label class="flex items-center gap-3 text-sm">
-                  <input type="checkbox" [formControlName]="c.key" class="h-4 w-4 shrink-0 m-0" />
-                  <span class="leading-5">{{ c.label }}</span>
+                <label class="consent-card">
+                  <input type="checkbox" [formControlName]="c.key" />
+                  <span class="consent-card-check" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M5 13l4 4L19 7" />
+                    </svg>
+                  </span>
+                  <span class="consent-card-text">{{ c.label }}</span>
                 </label>
               }
             </div>
@@ -212,15 +217,19 @@ interface VerifiedCamper {
               </label>
               <!-- "Not on medical aid" toggle — mirrors the camper consent
                    step. Hides + zeroes the medical-aid inputs when on. -->
-              <label class="flex items-center gap-2 text-sm sm:col-span-2 cursor-pointer mt-1">
+              <label class="consent-card sm:col-span-2">
                 <input
                   type="checkbox"
                   [checked]="noMedicalAid()"
                   (change)="toggleNoMedicalAid($any($event.target).checked)"
                   data-testid="no-medical-aid"
-                  class="h-4 w-4"
                 />
-                <span>We're not on medical aid</span>
+                <span class="consent-card-check" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 13l4 4L19 7" />
+                  </svg>
+                </span>
+                <span class="consent-card-text">We're not on medical aid</span>
               </label>
               @if (!noMedicalAid()) {
                 <label class="flex flex-col gap-1.5 text-sm">Medical aid name *
