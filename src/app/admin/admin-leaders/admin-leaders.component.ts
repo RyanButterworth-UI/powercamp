@@ -121,20 +121,20 @@ import { SkeletonComponent } from '../../skeleton/skeleton.component';
                   </td>
                   <td>
                     @if (l.paymentReceivedAt) {
-                      <button
-                        type="button"
+                      <span
                         class="text-xs px-2 py-1 rounded saga-btn saga-btn-success inline-flex items-center justify-center"
-                        style="min-width: 5rem;"
-                        disabled
-                        title="Paid"
-                      >Paid</button>
+                        style="min-width: 6rem;"
+                        title="Payment received"
+                        [attr.data-testid]="'payment-paid-' + l.id"
+                      >Paid</span>
                     } @else {
                       <button
                         type="button"
                         (click)="markPaid(l)"
                         [disabled]="markingPaidFor() === l.id"
                         class="text-xs px-2 py-1 rounded saga-btn saga-btn-secondary inline-flex items-center justify-center"
-                        style="min-width: 5rem;"
+                        style="min-width: 6rem;"
+                        [attr.data-testid]="'payment-mark-' + l.id"
                       >{{ markingPaidFor() === l.id ? 'Saving…' : 'Mark paid' }}</button>
                     }
                   </td>
@@ -280,18 +280,33 @@ export class AdminLeadersComponent {
     });
   }
 
-  markPaid(l: AdminLeader): void {
-    if (this.markingPaidFor() !== null) return;
+  async markPaid(l: AdminLeader): Promise<void> {
+    const ok = await this.ui.confirm(
+      `Mark ${l.firstName} ${l.lastName} as paid? This sends a confirmation email to ${l.email}.`,
+      'Mark paid',
+      'Cancel'
+    );
+    if (!ok) return;
+
     this.markingPaidFor.set(l.id);
     this.admin.markLeaderPaid(l.id).subscribe({
-      next: () => {
+      next: (res) => {
         this.markingPaidFor.set(null);
-        this.refresh();
-        this.ui.toast(`${l.firstName} marked paid.`, 'success');
+        // Patch the row in place rather than re-fetching the whole list,
+        // mirroring the camper dashboard's optimistic update.
+        const updated = this.leaders().map((row) =>
+          row.id === l.id ? { ...row, paymentReceivedAt: res.paymentReceivedAt } : row
+        );
+        this.leaders.set(updated);
+        this.ui.toast(`✓ ${l.firstName} ${l.lastName} marked paid — confirmation emailed.`, 'success');
       },
-      error: () => {
+      error: (err) => {
         this.markingPaidFor.set(null);
-        this.ui.toast('Failed to mark paid.', 'error');
+        if (err?.status === 401) {
+          this.ui.toast('Session expired — sign in again.', 'error');
+        } else {
+          this.ui.toast('Failed to mark paid.', 'error');
+        }
       },
     });
   }
