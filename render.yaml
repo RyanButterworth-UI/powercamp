@@ -49,9 +49,12 @@ services:
         value: Power Camp
       - key: NODE_VERSION
         value: "20"
-      # APP_BASE_URL and ALLOWED_ORIGINS depend on your final Render URL.
-      # Update these once you know the service URL (or your custom domain).
+      # Production URLs. APP_BASE_URL is what magic-link emails embed.
+      # ALLOWED_ORIGINS lists every host the app can be reached from, so
+      # cross-origin calls (e.g. from the bare onrender host) don't get
+      # blocked. Keep these in sync with the Render dashboard — the
+      # blueprint will overwrite the dashboard on next sync otherwise.
       - key: APP_BASE_URL
-        value: https://powercamp.onrender.com
+        value: https://powercamplife.co.za
       - key: ALLOWED_ORIGINS
-        value: https://powercamp.onrender.com
+        value: https://powercamplife.co.za,https://www.powercamplife.co.za,https://powercamp-e008.onrender.com
