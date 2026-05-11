@@ -95,7 +95,6 @@ import { ResetRegistrationService } from '../reset-registration.service';
                   <app-lookup
                     [stepVisible]="stepVisible()"
                     (goToStep)="fadeToStep($event)"
-                    (selectedCamper)="onSelectedCamper($event)"
                   ></app-lookup>
                 }
                 @if (currentStep() === StepKey.Intro && stepVisible()) {
@@ -451,12 +450,6 @@ export class FormComponent {
         this.isSubmitting.set(false);
       },
     });
-  }
-
-  onSelectedCamper(camper: { id: number; firstName: string; lastName: string; year: number }) {
-    // PR 5 will replace this with sending a verification code to the parent_email
-    // on file and gating the edit flow behind it.
-    console.log('selected camper (PR 5 will wire this up):', camper);
   }
 
   fadeToStep(step: keyof typeof StepKey | number) {
