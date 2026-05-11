@@ -112,9 +112,22 @@ type Stage = 'screening' | 'rejected' | 'form' | 'submitted';
           <h2 class="font-semibold mb-1" style="color: var(--color-saga-success)">
             Application received
           </h2>
+          <p class="text-sm mb-2" style="color: var(--color-saga-text)">
+            Thanks! Your application is on Neil's review queue.
+          </p>
           <p class="text-sm mb-3" style="color: var(--color-saga-text)">
-            Thanks! Your application has been recorded and Neil has been notified. Once approved
-            you'll receive an email with a link to finish your registration.
+            <strong>Don't forget to email Neil at
+              <a
+                href="mailto:neil@wol.co.za"
+                class="underline"
+                style="color: var(--color-saga-action)"
+              >neil&#64;wol.co.za</a>
+              with why you'd like to lead</strong> —
+            he won't be able to approve your application without it.
+          </p>
+          <p class="text-sm mb-3" style="color: var(--color-saga-text-muted)">
+            Once approved, you'll receive an email with a link to finish your registration
+            (cell, age, church, t-shirt size, etc.).
           </p>
           <button type="button" (click)="goHome()" class="saga-btn saga-btn-primary">
             Done
@@ -122,6 +135,31 @@ type Stage = 'screening' | 'rejected' | 'form' | 'submitted';
         </div>
       } @else if (form) {
         <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
+          <!-- Why so few fields: full leader details (cell/gender/age/
+               church/tshirt/etc.) are captured on /leader-register AFTER
+               Neil approves and emails the invite link. This step only
+               gets the applicant onto Neil's review queue. -->
+          <div
+            class="saga-card p-4"
+            style="border-color: var(--color-saga-action); background-color: var(--color-saga-primary-soft)"
+          >
+            <h2 class="font-semibold mb-2" style="color: var(--color-saga-text-strong)">
+              One more step — email Neil
+            </h2>
+            <p class="text-sm mb-2" style="color: var(--color-saga-text)">
+              After you submit your name and email below,
+              <strong>email Neil at
+                <a href="mailto:neil@wol.co.za" class="underline" style="color: var(--color-saga-action)">
+                  neil&#64;wol.co.za
+                </a></strong>
+              and tell him why you'd like to lead at Power Camp this year.
+            </p>
+            <p class="text-sm" style="color: var(--color-saga-text-muted)">
+              Once Neil approves you, you'll get an email link to complete
+              the rest of your details (cell, age, church, t-shirt size, etc.).
+            </p>
+          </div>
+
           <div class="saga-card p-4">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <label class="flex flex-col gap-1.5 text-sm">First Name *
@@ -132,29 +170,6 @@ type Stage = 'screening' | 'rejected' | 'form' | 'submitted';
               </label>
               <label class="flex flex-col gap-1.5 text-sm sm:col-span-2">Email *
                 <input type="email" formControlName="email" class="w-full px-3 py-2" />
-              </label>
-              <label class="flex flex-col gap-1.5 text-sm">Cell
-                <input formControlName="cell" class="w-full px-3 py-2" />
-              </label>
-              <label class="flex flex-col gap-1.5 text-sm">Gender
-                <input formControlName="gender" class="w-full px-3 py-2" />
-              </label>
-              <label class="flex flex-col gap-1.5 text-sm">Age
-                <input formControlName="age" class="w-full px-3 py-2" />
-              </label>
-              <label class="flex flex-col gap-1.5 text-sm">Church
-                <input formControlName="church" class="w-full px-3 py-2" />
-              </label>
-              <label class="flex flex-col gap-1.5 text-sm sm:col-span-2">T-shirt
-                <input formControlName="tshirt" class="w-full px-3 py-2" />
-              </label>
-              <label class="flex flex-col gap-1.5 text-sm sm:col-span-2">
-                Why do you want to lead? Any relevant experience?
-                <textarea
-                  formControlName="applicationNotes"
-                  rows="4"
-                  class="w-full px-3 py-2"
-                ></textarea>
               </label>
             </div>
           </div>
@@ -318,16 +333,14 @@ export class LeaderApplyComponent {
   }
 
   private buildForm(): void {
+    // Minimal payload — only what we need to land them in Neil's review
+    // queue. The full leader registration (cell, gender, age, church,
+    // tshirt, parent contact) happens on /leader-register once Neil
+    // approves and emails them an invite link.
     this.form = this.fb.group({
       firstName: ['', Validators.required],
       lastName: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
-      cell: [''],
-      gender: [''],
-      age: [''],
-      church: [''],
-      tshirt: [''],
-      applicationNotes: [''],
     });
   }
 }

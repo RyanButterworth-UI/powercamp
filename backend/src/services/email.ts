@@ -272,11 +272,12 @@ export async function sendLeaderApplicationNotice(
     `Email: ${applicant.email}`,
     applicant.church ? `Church: ${applicant.church}` : '',
     '',
-    'Why they want to lead:',
-    applicant.applicationNotes || '(no notes provided)',
+    'They have been asked to email you directly with why they want to lead —',
+    'check your inbox for a message from them before approving.',
     '',
-    'Review and approve in the admin panel — once approved you can send them',
-    'a registration link with one click.',
+    'When you are ready, review and approve in the admin panel. Once approved,',
+    'send them an invite link from there and they will fill in the rest of their',
+    'details (cell, age, t-shirt, etc.) themselves.',
   ].filter(Boolean).join('\n');
 
   await safeSendMail({
