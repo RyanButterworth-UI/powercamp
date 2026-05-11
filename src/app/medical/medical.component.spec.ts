@@ -1,23 +1,9 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-
 import { MedicalComponent } from './medical.component';
+import { mountStep } from '../testing/step-host';
 
 describe('MedicalComponent', () => {
-  let component: MedicalComponent;
-  let fixture: ComponentFixture<MedicalComponent>;
-
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [MedicalComponent]
-    })
-    .compileComponents();
-
-    fixture = TestBed.createComponent(MedicalComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-  });
-
   it('should create', () => {
-    expect(component).toBeTruthy();
+    const { child } = mountStep(MedicalComponent);
+    expect(child).toBeTruthy();
   });
 });

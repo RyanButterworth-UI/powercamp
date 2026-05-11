@@ -5,7 +5,6 @@ import {
 } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { FormsModule } from '@angular/forms';
 import { LeaderApplyComponent } from './leader-apply.component';
 import { environment } from '../../environments/environment';
 
@@ -15,7 +14,7 @@ describe('LeaderApplyComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [LeaderApplyComponent, FormsModule],
+      imports: [LeaderApplyComponent],
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
@@ -24,46 +23,44 @@ describe('LeaderApplyComponent', () => {
     });
     fixture = TestBed.createComponent(LeaderApplyComponent);
     http = TestBed.inject(HttpTestingController);
+    // The component holds rendering behind a 300ms ready-signal so the
+    // page-ghost can show on first paint. The setTimeout is queued in the
+    // constructor — by the time we hit assertions the timer hasn't fired
+    // yet. Flip the signal manually so the real template renders.
+    fixture.componentInstance.ready.set(true);
     fixture.detectChanges();
   });
 
   afterEach(() => http.verify());
 
-  it('shows the password gate first and not the form', () => {
-    expect(fixture.nativeElement.querySelector('[data-testid="gate"]')).toBeTruthy();
-    expect(fixture.componentInstance.unlocked()).toBe(false);
+  it('starts on the screening stage with the rejection / form panels hidden', () => {
+    expect(fixture.nativeElement.querySelector('[data-testid="screening"]')).toBeTruthy();
+    expect(fixture.componentInstance.stage()).toBe('screening');
+    expect(fixture.componentInstance.outOfSchool()).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="rejected"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="submitted"]')).toBeNull();
   });
 
-  it('unlocks the form on a correct gate password', () => {
-    fixture.componentInstance.passwordInput = 'right-pw';
-    fixture.componentInstance.checkPassword();
-
-    const req = http.expectOne(`${environment.baseApi}/leaders/check-password`);
-    expect(req.request.body).toEqual({ password: 'right-pw' });
-    req.flush({ ok: true });
+  it('out-of-school = no jumps to the rejected stage and never POSTs', () => {
+    fixture.componentInstance.setOutOfSchool(false);
     fixture.detectChanges();
+    expect(fixture.componentInstance.stage()).toBe('rejected');
+    expect(fixture.nativeElement.querySelector('[data-testid="rejected"]')).toBeTruthy();
+    // No HTTP traffic at all — the screening is purely client-side.
+    http.verify();
+  });
 
-    expect(fixture.componentInstance.unlocked()).toBe(true);
+  it('both yes reveals the application form', () => {
+    fixture.componentInstance.setOutOfSchool(true);
+    fixture.componentInstance.setChurchInvolved(true);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.stage()).toBe('form');
     expect(fixture.componentInstance.form).toBeTruthy();
   });
 
-  it('shows wrong-password error on 401', () => {
-    fixture.componentInstance.passwordInput = 'bad';
-    fixture.componentInstance.checkPassword();
-    http.expectOne(`${environment.baseApi}/leaders/check-password`).flush(
-      { error: 'Wrong password' },
-      { status: 401, statusText: 'Unauthorized' }
-    );
-    fixture.detectChanges();
-
-    expect(fixture.componentInstance.unlocked()).toBe(false);
-    expect(fixture.componentInstance.gateError()).toMatch(/wrong password/i);
-  });
-
-  it('POSTs the application to /leaders/apply on submit and shows the success panel', () => {
-    fixture.componentInstance.passwordInput = 'right-pw';
-    fixture.componentInstance.checkPassword();
-    http.expectOne(`${environment.baseApi}/leaders/check-password`).flush({ ok: true });
+  it('POSTs the application to /leaders/apply on submit and lands on the submitted stage', () => {
+    fixture.componentInstance.setOutOfSchool(true);
+    fixture.componentInstance.setChurchInvolved(true);
     fixture.detectChanges();
 
     fixture.componentInstance.form!.patchValue({
@@ -79,7 +76,15 @@ describe('LeaderApplyComponent', () => {
     req.flush({ id: 11 });
     fixture.detectChanges();
 
-    expect(fixture.componentInstance.submittedAt()).toBeTruthy();
+    expect(fixture.componentInstance.stage()).toBe('submitted');
     expect(fixture.nativeElement.querySelector('[data-testid="submitted"]')).toBeTruthy();
+  });
+
+  it('Change-my-answer on rejection puts the screener back at the first question', () => {
+    fixture.componentInstance.setOutOfSchool(false);
+    fixture.componentInstance.resetScreening();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.stage()).toBe('screening');
+    expect(fixture.componentInstance.outOfSchool()).toBeNull();
   });
 });
