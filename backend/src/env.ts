@@ -1,7 +1,10 @@
 import 'dotenv/config';
 import { z } from 'zod';
 
-const schema = z.object({
+// Exported for tests. The actual env-validate-and-exit dance below uses
+// the same schema. Anything that wants to assert on the schema's behaviour
+// (e.g. "APP_BASE_URL can't be localhost in prod") imports this directly.
+export const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   CAMP_YEAR: z
     .string()
@@ -25,7 +28,22 @@ const schema = z.object({
   GMAIL_USER: z.string().email(),
   GMAIL_APP_PASSWORD: z.string().min(1),
   FROM_NAME: z.string().default('Power Camp'),
-  APP_BASE_URL: z.string().url().default('http://localhost:4200'),
+  // The public URL emails embed. Default is local-dev only; in production
+  // (NODE_ENV=production) we refuse to fall back to localhost — otherwise
+  // a missing Render env var silently emails leader invites and magic
+  // links pointing at http://localhost:4200, which is what just happened
+  // to Nadia. Render sets NODE_ENV=production automatically on web
+  // services, so this fails fast at boot instead of in a recipient's inbox.
+  APP_BASE_URL: z
+    .string()
+    .url()
+    .default('http://localhost:4200')
+    .refine(
+      (url) =>
+        process.env.NODE_ENV !== 'production' ||
+        (!url.includes('localhost') && !url.includes('127.0.0.1')),
+      'APP_BASE_URL must be a public URL in production (e.g. https://powercamplife.co.za). Set it in the Render dashboard.'
+    ),
   ALLOWED_ORIGINS: z
     .string()
     .default('http://localhost:4200,https://powercamp-registration.onrender.com')
@@ -42,7 +60,7 @@ const schema = z.object({
     .pipe(z.number().int().positive()),
 });
 
-const parsed = schema.safeParse(process.env);
+const parsed = envSchema.safeParse(process.env);
 if (!parsed.success) {
   console.error('Invalid environment configuration:', parsed.error.flatten().fieldErrors);
   process.exit(1);
