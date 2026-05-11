@@ -29,6 +29,14 @@ describe('LeaderApplyComponent', () => {
     // yet. Flip the signal manually so the real template renders.
     fixture.componentInstance.ready.set(true);
     fixture.detectChanges();
+    // The constructor also fires GET /public-config to pull the env-driven
+    // Neil email. Flush it here so http.verify() in afterEach stays clean;
+    // tests that don't care about the email default get the constructor
+    // fallback ("neil.cable@wol.co.za") either way.
+    http.expectOne(`${environment.baseApi}/public-config`).flush({
+      leaderApplicationEmail: 'neil.cable@wol.co.za',
+      campYear: 2026,
+    });
   });
 
   afterEach(() => http.verify());

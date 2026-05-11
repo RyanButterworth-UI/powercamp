@@ -118,10 +118,10 @@ type Stage = 'screening' | 'rejected' | 'form' | 'submitted';
           <p class="text-sm mb-3" style="color: var(--color-saga-text)">
             <strong>Don't forget to email Neil at
               <a
-                href="mailto:neil@wol.co.za"
+                [href]="'mailto:' + neilEmail()"
                 class="underline"
                 style="color: var(--color-saga-action)"
-              >neil&#64;wol.co.za</a>
+              >{{ neilEmail() }}</a>
               with why you'd like to lead</strong> —
             he won't be able to approve your application without it.
           </p>
@@ -149,8 +149,8 @@ type Stage = 'screening' | 'rejected' | 'form' | 'submitted';
             <p class="text-sm mb-2" style="color: var(--color-saga-text)">
               After you submit your name and email below,
               <strong>email Neil at
-                <a href="mailto:neil@wol.co.za" class="underline" style="color: var(--color-saga-action)">
-                  neil&#64;wol.co.za
+                <a [href]="'mailto:' + neilEmail()" class="underline" style="color: var(--color-saga-action)">
+                  {{ neilEmail() }}
                 </a></strong>
               and tell him why you'd like to lead at Power Camp this year.
             </p>
@@ -250,6 +250,14 @@ export class LeaderApplyComponent {
   submitError = signal<string | null>(null);
   missingFields = signal<string[]>([]);
 
+  // Driven by the backend's /public-config endpoint (which reads the
+  // NEIL_EMAIL env var). The literal here is the launch-day value and
+  // acts as a fallback if /public-config can't be reached on first
+  // paint — the page is still usable even if the API is briefly down.
+  // If you want to change the address permanently, update NEIL_EMAIL
+  // in Render, not this literal.
+  neilEmail = signal('neil.cable@wol.co.za');
+
   // Friendly labels for the form's required controls — used to render
   // "Please fill in: First Name, Last Name…" when submit is attempted with
   // an invalid form.
@@ -266,6 +274,23 @@ export class LeaderApplyComponent {
   constructor() {
     setTimeout(() => this.ready.set(true), 300);
     this.buildForm();
+    this.loadPublicConfig();
+  }
+
+  // Best-effort: fetch the env-driven Neil address so the displayed mailto
+  // link tracks the NEIL_EMAIL env var without a rebuild. Any failure keeps
+  // the constructor default so the page still works offline / on cold-boot.
+  private loadPublicConfig(): void {
+    this.http
+      .get<{ leaderApplicationEmail?: string }>(`${environment.baseApi}/public-config`)
+      .subscribe({
+        next: (cfg) => {
+          if (cfg.leaderApplicationEmail) this.neilEmail.set(cfg.leaderApplicationEmail);
+        },
+        error: () => {
+          // Default already set on the signal — silent fall-through is fine.
+        },
+      });
   }
 
   setOutOfSchool(v: boolean): void {

@@ -14,6 +14,7 @@ import { leadersRouter } from './routes/leaders';
 import { unsubscribeRouter } from './routes/unsubscribe';
 import { statsRouter } from './routes/stats';
 import { teamsRouter } from './routes/teams';
+import { publicConfigRouter } from './routes/public-config';
 
 const app = express();
 
@@ -46,6 +47,7 @@ app.use(leadersRouter);
 app.use(unsubscribeRouter);
 app.use(statsRouter);
 app.use(teamsRouter);
+app.use(publicConfigRouter);
 
 const distDir = path.resolve(__dirname, '../dist/powercamp/browser');
 app.use(express.static(distDir));
