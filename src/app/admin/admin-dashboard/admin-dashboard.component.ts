@@ -526,7 +526,17 @@ export class AdminDashboardComponent {
   visibleColumns = computed<ColumnDef[]>(() => {
     if (this.viewMode() === 'group') {
       const g = COLUMN_GROUPS.find((gg) => gg.key === this.selectedGroup());
-      return g ? g.columns : [];
+      if (!g) return [];
+      // Always pin Name as the leftmost column when in group mode —
+      // otherwise switching to Payment/Consent (or Emergency) hides the
+      // identity of every row and the admin has no way to tell which
+      // camper they're about to Mark paid for. The Camper group already
+      // contains Name so we don't double-add.
+      const nameCol = this.allColumns.find((c) => c.key === 'name');
+      if (!nameCol || g.key === 'camper' || g.columns.some((c) => c.key === 'name')) {
+        return g.columns;
+      }
+      return [nameCol, ...g.columns];
     }
     const allowed = new Set(this.allColumns.map((c) => c.key));
     const order = new Map(this.allColumns.map((c, i) => [c.key, i]));
