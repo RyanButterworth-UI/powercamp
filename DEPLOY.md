@@ -53,11 +53,17 @@ Render dashboard in step 5.
 # JWT signing secret
 openssl rand -hex 32
 
-# Admin and leader password hashes
+# Admin, leader, and Neil password hashes
 cd backend
 npm run hash:admin-password -- '<your-admin-password>'
 npm run hash:admin-password -- '<your-leader-password>'
+npm run hash:admin-password -- '<neils-password>'
 ```
+
+> **Rotate the Neil password before this deploy.** A previous hardcoded
+> literal (`gravelROx`) lived in `backend/src/routes/admin.ts` for months
+> and remains in git history — anyone with repo read access has seen it.
+> Pick a fresh password and hash it for `NEIL_PASSWORD_HASH`.
 
 You'll also need:
 

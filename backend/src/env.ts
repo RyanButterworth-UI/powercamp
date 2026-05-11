@@ -17,6 +17,11 @@ const schema = z.object({
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   ADMIN_PASSWORD_HASH: z.string().min(1),
   LEADER_PASSWORD_HASH: z.string().min(1),
+  // Bcrypt hash of Neil's second-factor password for approve/reject. Generated
+  // the same way as ADMIN_PASSWORD_HASH (`npm run hash:admin-password -- '<pw>'`).
+  // The previous hardcoded literal in admin.ts has been removed and must be
+  // considered burned — rotate to a fresh password before deploying.
+  NEIL_PASSWORD_HASH: z.string().min(1),
   GMAIL_USER: z.string().email(),
   GMAIL_APP_PASSWORD: z.string().min(1),
   FROM_NAME: z.string().default('Power Camp'),
