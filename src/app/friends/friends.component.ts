@@ -34,10 +34,20 @@ import { ResetRegistrationService } from '../reset-registration.service';
           <div formArrayName="friends" class="flex flex-col gap-2">
             @for (ctrl of friendsArray.controls; track $index) {
               <div class="flex items-center gap-2">
+                <!-- Numbered prefix so a single-row state still reads as
+                     "you've added Friend 1" — without it the row looks
+                     like a placeholder and parents can't tell whether
+                     their typing was captured. -->
+                <span
+                  class="text-xs font-medium whitespace-nowrap"
+                  style="color: var(--color-saga-text-muted); min-width: 4.5rem;"
+                >
+                  Friend {{ $index + 1 }}
+                </span>
                 <input
                   type="text"
                   [formControlName]="$index"
-                  placeholder="Friend's name"
+                  placeholder="Their name"
                   class="rounded-md px-3 py-1.5 w-full text-sm"
                 />
                 @if (friendsArray.controls.length > 1) {

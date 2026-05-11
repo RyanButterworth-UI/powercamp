@@ -134,7 +134,7 @@ interface StatsResponse {
         } @else {
           <p class="text-xs mb-2" style="color: var(--color-saga-text-muted)">
             For privacy, only the email already linked to the camper can edit the registration.
-            Hit Register and we'll send a sign-in link to that email — you can update your
+            Hit Register / Edit and we'll send a sign-in link to that email — you can update your
             email address (or any other detail) on the next screen once you click the link.
           </p>
           <ul
@@ -158,7 +158,7 @@ interface StatsResponse {
                   [disabled]="sendingLinkFor() === r.id"
                   (click)="select(r)"
                 >
-                  {{ sendingLinkFor() === r.id ? 'Sending…' : 'Register' }}
+                  {{ sendingLinkFor() === r.id ? 'Sending…' : 'Register / Edit' }}
                 </button>
               </li>
             }

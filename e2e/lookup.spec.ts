@@ -14,7 +14,7 @@ test.describe('Lookup search', () => {
     const results = page.getByTestId('results');
     await expect(results).toBeVisible({ timeout: 10_000 });
     await expect(results.getByText(/cable/i).first()).toBeVisible();
-    await expect(page.getByRole('button', { name: /^Register$/ }).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /register\s*\/\s*edit/i }).first()).toBeVisible();
   });
 
   test('search with no matches shows the no-results message + first-time CTAs', async ({ page }) => {
@@ -30,7 +30,7 @@ test.describe('Lookup search', () => {
     await page.goto('/');
     await page.getByPlaceholder(/first or last name/i).fill('Cable');
     await page.getByRole('button', { name: /^Search$/ }).click();
-    await page.getByRole('button', { name: /^Register$/ }).first().click();
+    await page.getByRole('button', { name: /register\s*\/\s*edit/i }).first().click();
     await expect(page.getByTestId('link-sent')).toBeVisible({ timeout: 10_000 });
     // The masked-email placeholder should be visible inside the card.
     await expect(page.getByTestId('link-sent')).toContainText(/@/);
