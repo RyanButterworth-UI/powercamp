@@ -25,6 +25,21 @@ interface VerifiedCamper {
   tshirt: string | null;
   generalInfo: string | null;
   dob: string | null;
+  // Existing consent values (or null). Stored as 'accept' on the DB row
+  // when previously accepted; null when never given. Used to prefill the
+  // edit form so a parent doesn't have to re-tick six boxes they already
+  // agreed to last year.
+  consentGeneral: string | null;
+  consentLocation: string | null;
+  consentRisk: string | null;
+  consentPowerCamp: string | null;
+  consentBehaviour: string | null;
+  consentPhoto: string | null;
+  consentEmergencyName: string | null;
+  consentEmergencyContact: string | null;
+  consentMedicalAidName: string | null;
+  consentMedicalAidNumber: string | null;
+  consentDate: string | null;
 }
 
 @Component({
@@ -175,19 +190,46 @@ interface VerifiedCamper {
                 </label>
               }
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+            <div class="flex items-center justify-between gap-2 mt-4 mb-2 flex-wrap">
+              <span class="text-xs font-semibold uppercase tracking-wide" style="color: var(--color-saga-text-muted)">
+                Emergency &amp; medical aid
+              </span>
+              <button
+                type="button"
+                (click)="useParentAsEmergencyContact()"
+                class="saga-btn saga-btn-secondary !py-1 !px-2.5 !text-xs"
+                data-testid="same-as-parent"
+              >
+                Use parent's name &amp; number
+              </button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <label class="flex flex-col gap-1.5 text-sm">Emergency contact name *
                 <input formControlName="emergencyName" class="w-full px-3 py-2" />
               </label>
               <label class="flex flex-col gap-1.5 text-sm">Emergency contact number *
                 <input formControlName="emergencyContact" class="w-full px-3 py-2" />
               </label>
-              <label class="flex flex-col gap-1.5 text-sm">Medical aid name *
-                <input formControlName="medicalAidName" class="w-full px-3 py-2" placeholder="NONE if not on medical aid" />
+              <!-- "Not on medical aid" toggle — mirrors the camper consent
+                   step. Hides + zeroes the medical-aid inputs when on. -->
+              <label class="flex items-center gap-2 text-sm sm:col-span-2 cursor-pointer mt-1">
+                <input
+                  type="checkbox"
+                  [checked]="noMedicalAid()"
+                  (change)="toggleNoMedicalAid($any($event.target).checked)"
+                  data-testid="no-medical-aid"
+                  class="h-4 w-4"
+                />
+                <span>We're not on medical aid</span>
               </label>
-              <label class="flex flex-col gap-1.5 text-sm">Medical aid number *
-                <input formControlName="medicalAidNumber" class="w-full px-3 py-2" placeholder="NONE if not on medical aid" />
-              </label>
+              @if (!noMedicalAid()) {
+                <label class="flex flex-col gap-1.5 text-sm">Medical aid name *
+                  <input formControlName="medicalAidName" class="w-full px-3 py-2" />
+                </label>
+                <label class="flex flex-col gap-1.5 text-sm">Medical aid number *
+                  <input formControlName="medicalAidNumber" class="w-full px-3 py-2" />
+                </label>
+              }
               <label class="flex flex-col gap-1.5 text-sm sm:col-span-2">Date of completion *
                 <input type="date" formControlName="date" class="w-full px-3 py-2" />
               </label>
@@ -299,16 +341,21 @@ export class VerifyLinkComponent {
         dob: [c.dob ?? ''],
       }),
       consent: this.fb.group({
-        general: [false, Validators.requiredTrue],
-        location: [false, Validators.requiredTrue],
-        risk: [false, Validators.requiredTrue],
-        powerCamp: [false, Validators.requiredTrue],
-        behaviour: [false, Validators.requiredTrue],
-        photo: [false, Validators.requiredTrue],
-        emergencyName: ['', Validators.required],
-        emergencyContact: ['', Validators.required],
-        medicalAidName: ['', Validators.required],
-        medicalAidNumber: ['', Validators.required],
+        // Prefill from prior values so the edit form doesn't reset what
+        // the parent already agreed to. 'accept' → true; anything else → false.
+        general: [c.consentGeneral === 'accept', Validators.requiredTrue],
+        location: [c.consentLocation === 'accept', Validators.requiredTrue],
+        risk: [c.consentRisk === 'accept', Validators.requiredTrue],
+        powerCamp: [c.consentPowerCamp === 'accept', Validators.requiredTrue],
+        behaviour: [c.consentBehaviour === 'accept', Validators.requiredTrue],
+        photo: [c.consentPhoto === 'accept', Validators.requiredTrue],
+        emergencyName: [c.consentEmergencyName ?? '', Validators.required],
+        emergencyContact: [c.consentEmergencyContact ?? '', Validators.required],
+        medicalAidName: [c.consentMedicalAidName ?? '', Validators.required],
+        medicalAidNumber: [c.consentMedicalAidNumber ?? '', Validators.required],
+        // Always set the consent date to today on edit — re-confirming the
+        // consent block represents a fresh affirmation, regardless of the
+        // historical row's consentDate.
         date: [new Date().toISOString().split('T')[0], Validators.required],
       }),
     });
@@ -353,5 +400,36 @@ export class VerifyLinkComponent {
 
   goHome(): void {
     this.router.navigate(['/']);
+  }
+
+  // Mirrors the camper consent step: "Not on medical aid" is derived from
+  // the form values rather than a tracked field. If both medical-aid
+  // strings equal 'NONE' the toggle reads as on.
+  noMedicalAid(): boolean {
+    const c = this.form?.get('consent');
+    return (
+      c?.get('medicalAidName')?.value === 'NONE' &&
+      c?.get('medicalAidNumber')?.value === 'NONE'
+    );
+  }
+
+  toggleNoMedicalAid(checked: boolean): void {
+    this.form?.get('consent')?.patchValue({
+      medicalAidName: checked ? 'NONE' : '',
+      medicalAidNumber: checked ? 'NONE' : '',
+    });
+  }
+
+  // Convenience: copy parentName / parentPhone (from the Camper block)
+  // into the emergency contact fields. Most parents are themselves the
+  // emergency contact — same affordance the camper consent step offers.
+  useParentAsEmergencyContact(): void {
+    const camper = this.form?.get('camper');
+    const parentName = camper?.get('parentName')?.value ?? '';
+    const parentPhone = camper?.get('parentPhone')?.value ?? '';
+    this.form?.get('consent')?.patchValue({
+      emergencyName: parentName,
+      emergencyContact: parentPhone,
+    });
   }
 }
