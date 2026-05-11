@@ -252,7 +252,7 @@ adminRouter.post('/admin/leaders/:id/approve', requireAdmin, async (req, res) =>
 // it to them as a magic-link to /leader-register. Neil also gets a copy of
 // the receipt so he has a record that the invite went out.
 adminRouter.post('/admin/leaders/:id/invite', requireAdmin, async (req, res) => {
-  if (!isNeilOk(req.body)) {
+  if (!(await isNeilOk(req.body))) {
     return res.status(401).json({ error: 'Wrong Neil password' });
   }
   const id = Number.parseInt(req.params.id, 10);
