@@ -487,6 +487,17 @@ export class TeamsComponent {
   // standard names with the standard colour palette, then refreshes —
   // saves the admin from typing the same names every year.
   quickStart(): void {
+    // Same 4-team cap as addTeam(). The template's @if (teams().length === 0)
+    // guard hides the button under normal flow, but a stale render-then-click
+    // race once produced 8 teams (1-4 + Phoenix/Lions/Eagles/Rhinos all on
+    // the same DB). Bail here too so the round-trip can never overshoot.
+    if (this.teams().length > 0) {
+      this.ui.toast(
+        `Quick Start already ran — ${this.teams().length} team(s) exist. Remove them first if you want to start over.`,
+        'info'
+      );
+      return;
+    }
     const defaults: { name: string; color: string }[] = [
       { name: 'Phoenix', color: TEAM_PALETTE[0] },
       { name: 'Lions', color: TEAM_PALETTE[1] },
@@ -517,9 +528,25 @@ export class TeamsComponent {
     this.admin.deleteTeam(id).subscribe({
       next: () => {
         this.ui.toast('Team removed.', 'info');
+        // Drop local dirty state so the freshly-refetched server view
+        // doesn't get clobbered by stale in-memory team-column data —
+        // otherwise refresh() merges with `unsavedChanges` and the
+        // deleted team reappears until a full reload.
+        this.dirty.set(false);
         this.refresh();
       },
-      error: () => this.ui.toast('Failed to remove team.', 'error'),
+      error: (err) => {
+        if (err?.status === 401) {
+          this.admin.clearToken();
+          this.router.navigate(['/admin/login']);
+          return;
+        }
+        // Surface whatever the backend told us so we don't have to dig
+        // through the network tab to debug. Falls back to the generic
+        // message if nothing structured came back.
+        const reason = err?.error?.error || err?.message || 'Failed to remove team.';
+        this.ui.toast(reason, 'error', 5000);
+      },
     });
   }
 
