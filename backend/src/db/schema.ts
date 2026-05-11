@@ -91,6 +91,10 @@ export const leaders = pgTable(
     status: text('status').default('pending').notNull(),
     approvedByNeil: boolean('approved_by_neil').default(false).notNull(),
     approvedAt: timestamp('approved_at'),
+    // Set when the admin marks the leader as having paid for camp. Mirrors
+    // the camper-side paymentReceivedAt — same shape, same lifecycle, same
+    // best-effort sheet+email side-effects on mark-paid.
+    paymentReceivedAt: timestamp('payment_received_at'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
     deletedAt: timestamp('deleted_at'),

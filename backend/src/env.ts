@@ -1,6 +1,41 @@
 import 'dotenv/config';
 import { z } from 'zod';
 
+// Normalises whatever variant of the Google service-account private key the
+// operator pasted into the Render dashboard. Render's UI handles multi-line
+// values inconsistently — the same field accepts:
+//   • a single line with literal `\n` between PEM segments (what the JSON
+//     file already gives you)
+//   • a multi-line value with real newlines (what you get if you paste the
+//     decoded PEM)
+//   • the same value with surrounding quotes accidentally included
+//   • the whole service-account JSON object pasted verbatim (we extract
+//     the private_key field for you)
+//   • double-escaped `\\n` (rarer, but Render has been seen doing this on
+//     "view & copy" round-trips through the UI)
+// Anything else (random bytes, an OAuth refresh token, etc.) won't have the
+// PEM markers after this and the refinement below rejects at boot.
+function normalizePrivateKey(input: string): string {
+  let s = input.trim();
+  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+    s = s.slice(1, -1);
+  }
+  if (s.startsWith('{')) {
+    try {
+      const obj = JSON.parse(s);
+      if (typeof obj.private_key === 'string') s = obj.private_key;
+    } catch {
+      // not JSON — fall through with the original string
+    }
+  }
+  // Two passes so double-escape (`\\n`) collapses to single (`\n`) first,
+  // then single to a real newline. Doing them in one regex is brittle.
+  return s.replace(/\\\\n/g, '\\n').replace(/\\n/g, '\n');
+}
+
+const PEM_HEADER = /-----BEGIN [A-Z ]*PRIVATE KEY-----/;
+const PEM_FOOTER = /-----END [A-Z ]*PRIVATE KEY-----/;
+
 // Exported for tests. The actual env-validate-and-exit dance below uses
 // the same schema. Anything that wants to assert on the schema's behaviour
 // (e.g. "APP_BASE_URL can't be localhost in prod") imports this directly.
@@ -16,7 +51,13 @@ export const envSchema = z.object({
   GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: z
     .string()
     .min(1)
-    .transform((s) => s.replace(/\\n/g, '\n')),
+    .transform(normalizePrivateKey)
+    .refine(
+      (s) => PEM_HEADER.test(s) && PEM_FOOTER.test(s),
+      'GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY must be a PEM-formatted private key. ' +
+        'Paste the entire "private_key" value from the service-account JSON file ' +
+        '(including the -----BEGIN PRIVATE KEY----- and -----END PRIVATE KEY----- lines).'
+    ),
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   ADMIN_PASSWORD_HASH: z.string().min(1),
   LEADER_PASSWORD_HASH: z.string().min(1),

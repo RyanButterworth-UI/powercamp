@@ -31,7 +31,7 @@ interface BunkColumn {
         </button>
       </div>
 
-      <nav class="flex gap-4 mb-4 text-sm" style="border-bottom: 1px solid var(--color-saga-border)">
+      <nav class="flex gap-4 mb-4 text-sm overflow-x-auto whitespace-nowrap" style="border-bottom: 1px solid var(--color-saga-border); -webkit-overflow-scrolling: touch;">
         <a routerLink="/admin" class="saga-tab no-underline">Campers</a>
         <a routerLink="/admin/leaders" class="saga-tab no-underline">Leaders</a>
         <a routerLink="/admin/bulk-email" class="saga-tab no-underline">Bulk email</a>
@@ -46,6 +46,16 @@ interface BunkColumn {
           }
         </div>
       } @else {
+        <!-- Narrow-viewport banner — same reasoning as Teams. Drag-drop
+             kanban with single-gender constraints needs a tablet or
+             desktop to be usable. -->
+        <div class="md:hidden mb-4 p-3 rounded-md text-sm"
+             style="background: var(--color-saga-primary-soft); border: 1px solid var(--color-saga-action); color: var(--color-saga-text);">
+          <strong>Heads up:</strong> Bunks is built for drag-and-drop on a
+          tablet or desktop. Everything below will load, but moving campers
+          between bunks won't be comfortable on a phone-sized screen.
+        </div>
+
         <div class="flex flex-wrap items-center gap-3 mb-4">
           <button type="button" (click)="addBunk('Male')" class="saga-btn saga-btn-secondary !py-1 !px-2.5 !text-xs">
             Add male bunk
@@ -65,7 +75,10 @@ interface BunkColumn {
           </span>
         </div>
 
-        <div class="grid gap-3" [style.gridTemplateColumns]="'repeat(' + columns().length + ', minmax(220px, 1fr))'">
+        <!-- Auto-fill grid so bunks wrap into rows on iPad. Each card stays
+             at least 220px so camper pills inside remain comfortable; the
+             column count adapts to the viewport without horizontal scroll. -->
+        <div class="grid gap-3" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr))">
           @for (col of columns(); track col.id ?? -1) {
             <div
               class="bunk-column"
@@ -146,11 +159,16 @@ interface BunkColumn {
               >
                 @for (c of col.campers; track c.id) {
                   <div cdkDrag [cdkDragData]="c" class="camper-pill">
-                    <div class="flex flex-col">
+                    <div class="flex flex-col min-w-0">
                       <span class="text-sm font-medium">{{ c.firstName }} {{ c.lastName }}</span>
                       <span class="text-[11px]" style="color: var(--color-saga-text-muted)">
                         {{ c.age || '—' }} · {{ c.grade || '—' }} · {{ c.gender || '—' }}
                       </span>
+                      @if (c.church) {
+                        <span class="text-[11px] truncate" style="color: var(--color-saga-text-muted)" [title]="c.church">
+                          {{ c.church }}
+                        </span>
+                      }
                     </div>
                     @if (col.id !== null) {
                       <button

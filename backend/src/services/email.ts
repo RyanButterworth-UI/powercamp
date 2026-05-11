@@ -272,11 +272,12 @@ export async function sendLeaderApplicationNotice(
     `Email: ${applicant.email}`,
     applicant.church ? `Church: ${applicant.church}` : '',
     '',
-    'Why they want to lead:',
-    applicant.applicationNotes || '(no notes provided)',
+    'They have been asked to email you directly with why they want to lead —',
+    'check your inbox for a message from them before approving.',
     '',
-    'Review and approve in the admin panel — once approved you can send them',
-    'a registration link with one click.',
+    'When you are ready, review and approve in the admin panel. Once approved,',
+    'send them an invite link from there and they will fill in the rest of their',
+    'details (cell, age, t-shirt, etc.) themselves.',
   ].filter(Boolean).join('\n');
 
   await safeSendMail({
@@ -284,7 +285,79 @@ export async function sendLeaderApplicationNotice(
     to: neilEmail,
     subject,
     text: lines,
+    html: leaderApplicationNoticeHtml(applicant),
   });
+}
+
+function leaderApplicationNoticeHtml(applicant: {
+  firstName: string;
+  lastName: string;
+  email: string;
+  church?: string;
+}): string {
+  const fullName = `${applicant.firstName} ${applicant.lastName}`;
+  const churchRow = applicant.church
+    ? `<tr><td style="padding:4px 0; color:#6b7280; font-size:13px; width:90px;">Church</td><td style="padding:4px 0; color:#374151; font-size:14px;">${escapeHtml(applicant.church)}</td></tr>`
+    : '';
+  return `<!doctype html>
+<html lang="en">
+  <body style="margin:0; padding:0; background-color:#f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f3f4f6; padding:24px 0;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px; background-color:#ffffff; border-radius:12px; overflow:hidden;">
+            <tr>
+              <td style="padding:32px 32px 8px 32px;">
+                <h1 style="margin:0 0 4px 0; font-size:22px; color:#111827;">New leader application</h1>
+                <p style="margin:0; color:#6b7280; font-size:14px;">Power Camp 2026</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:8px 32px 8px 32px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                  <tr>
+                    <td style="padding:4px 0; color:#6b7280; font-size:13px; width:90px;">Applicant</td>
+                    <td style="padding:4px 0; color:#111827; font-size:15px; font-weight:600;">${escapeHtml(fullName)}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:4px 0; color:#6b7280; font-size:13px;">Email</td>
+                    <td style="padding:4px 0; color:#374151; font-size:14px;">
+                      <a href="mailto:${escapeHtml(applicant.email)}" style="color:#16a34a; text-decoration:none;">${escapeHtml(applicant.email)}</a>
+                    </td>
+                  </tr>
+                  ${churchRow}
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 32px 8px 32px;">
+                <div style="background-color:#fef3c7; border-left:4px solid #f59e0b; padding:12px 16px; border-radius:6px;">
+                  <p style="margin:0; color:#78350f; font-size:14px; line-height:20px;">
+                    They've been asked to <strong>email you directly</strong> with why they want to lead.
+                    Check your inbox for a message from them before approving.
+                  </p>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 32px 24px 32px;">
+                <p style="margin:0; color:#374151; font-size:14px; line-height:22px;">
+                  When you're ready, review and approve in the admin panel. Once approved, send them an invite
+                  link from there and they'll fill in the rest of their details themselves.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 32px 24px 32px; border-top:1px solid #e5e7eb;">
+                <p style="margin:0; color:#9ca3af; font-size:12px;">— Power Camp Admin</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
 }
 
 // Sent TO the leader after Neil clicks Invite. Magic link drops them on
@@ -381,7 +454,74 @@ export async function sendInviteSentReceipt(
       '',
       '— Power Camp Admin',
     ].join('\n'),
+    html: inviteSentReceiptHtml(leader),
   });
+}
+
+function inviteSentReceiptHtml(leader: {
+  firstName: string;
+  lastName: string;
+  email: string;
+}): string {
+  const fullName = `${leader.firstName} ${leader.lastName}`;
+  return `<!doctype html>
+<html lang="en">
+  <body style="margin:0; padding:0; background-color:#f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f3f4f6; padding:24px 0;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px; background-color:#ffffff; border-radius:12px; overflow:hidden;">
+            <tr>
+              <td style="padding:32px 32px 8px 32px;">
+                <h1 style="margin:0 0 4px 0; font-size:22px; color:#111827;">Leader invite sent</h1>
+                <p style="margin:0; color:#6b7280; font-size:14px;">Power Camp 2026</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 32px 8px 32px;">
+                <div style="background-color:#dcfce7; border-left:4px solid #16a34a; padding:12px 16px; border-radius:6px;">
+                  <p style="margin:0; color:#14532d; font-size:14px; line-height:20px;">
+                    A registration invite has just been emailed to <strong>${escapeHtml(fullName)}</strong>.
+                  </p>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 32px 8px 32px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                  <tr>
+                    <td style="padding:4px 0; color:#6b7280; font-size:13px; width:90px;">Sent to</td>
+                    <td style="padding:4px 0; color:#374151; font-size:14px;">
+                      <a href="mailto:${escapeHtml(leader.email)}" style="color:#16a34a; text-decoration:none;">${escapeHtml(leader.email)}</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:4px 0; color:#6b7280; font-size:13px;">Link valid</td>
+                    <td style="padding:4px 0; color:#374151; font-size:14px;">7 days</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 32px 24px 32px;">
+                <p style="margin:0; color:#374151; font-size:14px; line-height:22px;">
+                  They'll follow the magic link in their inbox to finish their registration
+                  (cell, age, t-shirt size, etc.). If they don't act inside the window,
+                  re-issue the invite from the admin panel.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 32px 24px 32px; border-top:1px solid #e5e7eb;">
+                <p style="margin:0; color:#9ca3af; font-size:12px;">— Power Camp Admin</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
 }
 
 // =====================================================================

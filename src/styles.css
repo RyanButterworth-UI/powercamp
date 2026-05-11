@@ -1021,12 +1021,30 @@ select option,
   background-color: var(--color-saga-surface);
   color: var(--color-saga-text);
   border-radius: 12px;
-  overflow: hidden;
+  /* `overflow: clip` instead of `overflow: hidden` so the rounded corners
+     still clip the table contents, but the table doesn't establish a new
+     scroll-containing block. With `hidden`, sticky headers walk no further
+     up than the table (which can't scroll) and never engage. With `clip`,
+     sticky resolves to the page scroll as expected. */
+  overflow: clip;
 }
 
 .saga-table thead {
   background-color: var(--color-saga-surface-2);
   text-align: left;
+}
+
+/* Sticky headers across every admin table — applied at the th level so
+   the row's individual cells stay glued to the top of the viewport while
+   the user scrolls long camper/leader lists. Background must be set
+   explicitly here because position:sticky lifts the element out of its
+   normal painting context and the inherited thead background isn't
+   carried along. */
+.saga-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background-color: var(--color-saga-surface-2);
 }
 
 .saga-table th,

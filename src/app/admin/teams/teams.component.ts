@@ -38,7 +38,7 @@ const TEAM_PALETTE = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#e
         </button>
       </div>
 
-      <nav class="flex gap-4 mb-4 text-sm" style="border-bottom: 1px solid var(--color-saga-border)">
+      <nav class="flex gap-4 mb-4 text-sm overflow-x-auto whitespace-nowrap" style="border-bottom: 1px solid var(--color-saga-border); -webkit-overflow-scrolling: touch;">
         <a routerLink="/admin" class="saga-tab no-underline">Campers</a>
         <a routerLink="/admin/leaders" class="saga-tab no-underline">Leaders</a>
         <a routerLink="/admin/bulk-email" class="saga-tab no-underline">Bulk email</a>
@@ -53,11 +53,23 @@ const TEAM_PALETTE = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#e
           }
         </div>
       } @else {
+        <!-- Narrow-viewport banner. Drag-drop kanban needs hover + space
+             for 5 side-by-side columns, neither of which work on a
+             phone. We hide it on md+ where the grid actually fits. -->
+        <div class="md:hidden mb-4 p-3 rounded-md text-sm"
+             style="background: var(--color-saga-primary-soft); border: 1px solid var(--color-saga-action); color: var(--color-saga-text);">
+          <strong>Heads up:</strong> Teams is built for drag-and-drop on a
+          tablet or desktop. Everything below will load, but moving campers
+          between teams won't be comfortable on a phone-sized screen.
+        </div>
+
         <div class="flex flex-wrap items-center gap-3 mb-4">
           <button
             type="button"
             (click)="addTeam()"
+            [disabled]="teams().length >= 4"
             class="saga-btn saga-btn-secondary !py-1 !px-2.5 !text-xs"
+            [title]="teams().length >= 4 ? 'Power Camp runs four teams — remove one before adding another' : 'Add a new team'"
           >Add team</button>
           @if (teams().length === 0) {
             <button
@@ -86,7 +98,11 @@ const TEAM_PALETTE = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#e
           </span>
         </div>
 
-        <div class="grid gap-3" [style.gridTemplateColumns]="'repeat(' + (columns().length) + ', minmax(220px, 1fr))'">
+        <!-- Auto-fill grid so columns wrap into rows on narrower viewports
+             (iPad portrait gets ~3 across, landscape ~4, desktop the full 5).
+             Previously the grid was fixed at N columns and overflowed to a
+             horizontal scroll on iPad. -->
+        <div class="grid gap-3" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr))">
           @for (col of columns(); track col.id ?? -1) {
             <div
               class="team-column"
@@ -173,11 +189,16 @@ const TEAM_PALETTE = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#e
               >
                 @for (c of col.campers; track c.id) {
                   <div cdkDrag [cdkDragData]="c" class="camper-pill">
-                    <div class="flex flex-col">
+                    <div class="flex flex-col min-w-0">
                       <span class="text-sm font-medium">{{ c.firstName }} {{ c.lastName }}</span>
                       <span class="text-[11px]" style="color: var(--color-saga-text-muted)">
                         {{ c.age || '—' }} · {{ c.grade || '—' }} · {{ c.gender || '—' }}
                       </span>
+                      @if (c.church) {
+                        <span class="text-[11px] truncate" style="color: var(--color-saga-text-muted)" [title]="c.church">
+                          {{ c.church }}
+                        </span>
+                      }
                     </div>
                     @if (col.id !== null) {
                       <button
@@ -438,6 +459,13 @@ export class TeamsComponent {
 
   // ----- Team CRUD -----
   async addTeam(): Promise<void> {
+    // Hard cap at 4: Power Camp runs four teams. The button is also
+    // disabled past this in the template — this is the belt-and-braces
+    // guard for anyone clicking via DOM tools or programmatic submit.
+    if (this.teams().length >= 4) {
+      this.ui.toast('Power Camp runs four teams — remove one before adding another.', 'info');
+      return;
+    }
     const name = await this.ui.prompt({
       text: 'Team name (e.g. "Phoenix")',
       placeholder: 'Team name',
@@ -459,6 +487,17 @@ export class TeamsComponent {
   // standard names with the standard colour palette, then refreshes —
   // saves the admin from typing the same names every year.
   quickStart(): void {
+    // Same 4-team cap as addTeam(). The template's @if (teams().length === 0)
+    // guard hides the button under normal flow, but a stale render-then-click
+    // race once produced 8 teams (1-4 + Phoenix/Lions/Eagles/Rhinos all on
+    // the same DB). Bail here too so the round-trip can never overshoot.
+    if (this.teams().length > 0) {
+      this.ui.toast(
+        `Quick Start already ran — ${this.teams().length} team(s) exist. Remove them first if you want to start over.`,
+        'info'
+      );
+      return;
+    }
     const defaults: { name: string; color: string }[] = [
       { name: 'Phoenix', color: TEAM_PALETTE[0] },
       { name: 'Lions', color: TEAM_PALETTE[1] },
@@ -489,9 +528,25 @@ export class TeamsComponent {
     this.admin.deleteTeam(id).subscribe({
       next: () => {
         this.ui.toast('Team removed.', 'info');
+        // Drop local dirty state so the freshly-refetched server view
+        // doesn't get clobbered by stale in-memory team-column data —
+        // otherwise refresh() merges with `unsavedChanges` and the
+        // deleted team reappears until a full reload.
+        this.dirty.set(false);
         this.refresh();
       },
-      error: () => this.ui.toast('Failed to remove team.', 'error'),
+      error: (err) => {
+        if (err?.status === 401) {
+          this.admin.clearToken();
+          this.router.navigate(['/admin/login']);
+          return;
+        }
+        // Surface whatever the backend told us so we don't have to dig
+        // through the network tab to debug. Falls back to the generic
+        // message if nothing structured came back.
+        const reason = err?.error?.error || err?.message || 'Failed to remove team.';
+        this.ui.toast(reason, 'error', 5000);
+      },
     });
   }
 

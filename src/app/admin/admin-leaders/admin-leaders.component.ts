@@ -18,7 +18,7 @@ import { SkeletonComponent } from '../../skeleton/skeleton.component';
         </button>
       </div>
 
-      <nav class="flex gap-4 mb-4 text-sm" style="border-bottom: 1px solid var(--color-saga-border)">
+      <nav class="flex gap-4 mb-4 text-sm overflow-x-auto whitespace-nowrap" style="border-bottom: 1px solid var(--color-saga-border); -webkit-overflow-scrolling: touch;">
         <a routerLink="/admin" class="saga-tab no-underline">Campers</a>
         <span class="saga-tab is-active">Leaders</span>
         <a routerLink="/admin/bulk-email" class="saga-tab no-underline">Bulk email</a>
@@ -75,7 +75,8 @@ import { SkeletonComponent } from '../../skeleton/skeleton.component';
                 <th>Email</th>
                 <th>Status</th>
                 <th>By Neil</th>
-                <th class="w-48">Actions</th>
+                <th>Payment</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody data-testid="leaders-rows">
@@ -119,13 +120,36 @@ import { SkeletonComponent } from '../../skeleton/skeleton.component';
                     }
                   </td>
                   <td>
-                    <span class="inline-flex items-center gap-1.5 flex-wrap">
+                    @if (l.paymentReceivedAt) {
+                      <span
+                        class="text-xs px-2 py-1 rounded saga-btn saga-btn-success inline-flex items-center justify-center"
+                        style="min-width: 6rem;"
+                        title="Payment received"
+                        [attr.data-testid]="'payment-paid-' + l.id"
+                      >Paid</span>
+                    } @else {
+                      <button
+                        type="button"
+                        (click)="markPaid(l)"
+                        [disabled]="markingPaidFor() === l.id"
+                        class="text-xs px-2 py-1 rounded saga-btn saga-btn-secondary inline-flex items-center justify-center"
+                        style="min-width: 6rem;"
+                        [attr.data-testid]="'payment-mark-' + l.id"
+                      >{{ markingPaidFor() === l.id ? 'Saving…' : 'Mark paid' }}</button>
+                    }
+                  </td>
+                  <td>
+                    <!-- Side-by-side, no wrap. The column auto-sizes to fit
+                         the row's two buttons (Approve+Reject for pending,
+                         Invite+Reject for approved) so we don't stack on
+                         narrower viewports. -->
+                    <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
                       @if (l.status !== 'approved') {
                         <button
                           type="button"
                           (click)="approve(l)"
                           class="text-xs px-2 py-1 rounded saga-btn saga-btn-success inline-flex items-center justify-center"
-                          style="min-width: 5rem;"
+                          style="width: 5.5rem;"
                         >Approve</button>
                       }
                       @if (l.status === 'approved') {
@@ -134,7 +158,7 @@ import { SkeletonComponent } from '../../skeleton/skeleton.component';
                           (click)="invite(l)"
                           [disabled]="invitingFor() === l.id"
                           class="text-xs px-2 py-1 rounded saga-btn saga-btn-primary inline-flex items-center justify-center"
-                          style="min-width: 5rem;"
+                          style="width: 5.5rem;"
                           title="Send a magic-link invite so the leader can finish their registration"
                         >{{ invitingFor() === l.id ? 'Sending…' : 'Invite' }}</button>
                       }
@@ -143,7 +167,7 @@ import { SkeletonComponent } from '../../skeleton/skeleton.component';
                           type="button"
                           (click)="reject(l)"
                           class="text-xs px-2 py-1 rounded saga-btn saga-btn-danger inline-flex items-center justify-center"
-                          style="min-width: 5rem;"
+                          style="width: 5.5rem;"
                         >Reject</button>
                       }
                     </span>
@@ -151,7 +175,7 @@ import { SkeletonComponent } from '../../skeleton/skeleton.component';
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="5" class="text-center py-6" style="color: var(--color-saga-text-muted)">
+                  <td colspan="6" class="text-center py-6" style="color: var(--color-saga-text-muted)">
                     No leaders in this year.
                   </td>
                 </tr>
@@ -173,6 +197,7 @@ export class AdminLeadersComponent {
 
   copiedEmail = signal<string | null>(null);
   invitingFor = signal<number | null>(null);
+  markingPaidFor = signal<number | null>(null);
 
   years = computed(() => {
     const set = new Set(this.leaders().map((l) => l.year));
@@ -255,6 +280,37 @@ export class AdminLeadersComponent {
       },
       error: (err) => {
         this.ui.toast(err?.status === 401 ? 'Wrong Neil password.' : 'Failed to reject.', 'error');
+      },
+    });
+  }
+
+  async markPaid(l: AdminLeader): Promise<void> {
+    const ok = await this.ui.confirm(
+      `Mark ${l.firstName} ${l.lastName} as paid? This sends a confirmation email to ${l.email}.`,
+      'Mark paid',
+      'Cancel'
+    );
+    if (!ok) return;
+
+    this.markingPaidFor.set(l.id);
+    this.admin.markLeaderPaid(l.id).subscribe({
+      next: (res) => {
+        this.markingPaidFor.set(null);
+        // Patch the row in place rather than re-fetching the whole list,
+        // mirroring the camper dashboard's optimistic update.
+        const updated = this.leaders().map((row) =>
+          row.id === l.id ? { ...row, paymentReceivedAt: res.paymentReceivedAt } : row
+        );
+        this.leaders.set(updated);
+        this.ui.toast(`✓ ${l.firstName} ${l.lastName} marked paid — confirmation emailed.`, 'success');
+      },
+      error: (err) => {
+        this.markingPaidFor.set(null);
+        if (err?.status === 401) {
+          this.ui.toast('Session expired — sign in again.', 'error');
+        } else {
+          this.ui.toast('Failed to mark paid.', 'error');
+        }
       },
     });
   }
