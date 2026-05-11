@@ -1,4 +1,4 @@
-import { Component, Type } from '@angular/core';
+import { Component, NO_ERRORS_SCHEMA, Type } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { provideHttpClient } from '@angular/common/http';
@@ -22,6 +22,13 @@ import { provideRouter } from '@angular/router';
   selector: 'step-host',
   standalone: true,
   imports: [ReactiveFormsModule, FormsModule],
+  // Each mountStep call overrides the template to inject the step
+  // component's tag (e.g. <app-camper-info>). The component is provided
+  // via TestBed module imports — Angular renders it correctly — but the
+  // host's per-component schema check still logs NG0303/NG0304 because
+  // the tag isn't in this component's imports. NO_ERRORS_SCHEMA silences
+  // those warnings for this test-only host. Production never instantiates it.
+  schemas: [NO_ERRORS_SCHEMA],
   template: `
     <form [formGroup]="form">
       <ng-content></ng-content>
