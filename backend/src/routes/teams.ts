@@ -67,6 +67,54 @@ teamsRouter.post('/admin/teams', requireAdmin, async (req, res) => {
   }
 });
 
+// Bulk assignment save. The FE sends every camper-team pair from its
+// current state — easier to reason about than per-pair PATCH calls.
+// Empty teamId means "remove from any team". Idempotent.
+//
+// MUST be declared BEFORE the /:id update route — Express matches
+// routes in order, so /admin/teams/assignments would otherwise be
+// captured by /admin/teams/:id with id="assignments" and 400 out as
+// "Invalid team id".
+const saveAssignmentsBody = z.object({
+  assignments: z.array(
+    z.object({
+      camperId: z.number().int().positive(),
+      teamId: z.number().int().positive().nullable(),
+    })
+  ),
+});
+
+teamsRouter.post('/admin/teams/assignments', requireAdmin, async (req, res) => {
+  const parsed = saveAssignmentsBody.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid request', details: parsed.error.flatten() });
+  }
+  try {
+    await db.transaction(async (tx) => {
+      // Wipe + reinsert is simpler and safer than computing diffs. The
+      // table is small (≤ 150 rows per year) so the cost is trivial.
+      await tx.delete(teamAssignments).where(eq(teamAssignments.year, env.CAMP_YEAR));
+      const rows = parsed.data.assignments.filter((a) => a.teamId !== null) as Array<{
+        camperId: number;
+        teamId: number;
+      }>;
+      if (rows.length > 0) {
+        await tx.insert(teamAssignments).values(
+          rows.map((a) => ({
+            year: env.CAMP_YEAR,
+            camperId: a.camperId,
+            teamId: a.teamId,
+          }))
+        );
+      }
+    });
+    res.json({ ok: true, count: parsed.data.assignments.filter((a) => a.teamId !== null).length });
+  } catch (err) {
+    console.error('teams/assignments error:', err);
+    res.status(500).json({ error: 'Failed to save assignments' });
+  }
+});
+
 const updateTeamBody = z.object({
   name: z.string().min(1).max(60).optional(),
   color: z.string().min(1).max(20).nullable().optional(),
@@ -109,49 +157,6 @@ teamsRouter.delete('/admin/teams/:id', requireAdmin, async (req, res) => {
   } catch (err) {
     console.error('teams/delete error:', err);
     res.status(500).json({ error: 'Failed to delete team' });
-  }
-});
-
-// Bulk assignment save. The FE sends every camper-team pair from its
-// current state — easier to reason about than per-pair PATCH calls.
-// Empty teamId means "remove from any team". Idempotent.
-const saveAssignmentsBody = z.object({
-  assignments: z.array(
-    z.object({
-      camperId: z.number().int().positive(),
-      teamId: z.number().int().positive().nullable(),
-    })
-  ),
-});
-
-teamsRouter.post('/admin/teams/assignments', requireAdmin, async (req, res) => {
-  const parsed = saveAssignmentsBody.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: 'Invalid request', details: parsed.error.flatten() });
-  }
-  try {
-    await db.transaction(async (tx) => {
-      // Wipe + reinsert is simpler and safer than computing diffs. The
-      // table is small (≤ 150 rows per year) so the cost is trivial.
-      await tx.delete(teamAssignments).where(eq(teamAssignments.year, env.CAMP_YEAR));
-      const rows = parsed.data.assignments.filter((a) => a.teamId !== null) as Array<{
-        camperId: number;
-        teamId: number;
-      }>;
-      if (rows.length > 0) {
-        await tx.insert(teamAssignments).values(
-          rows.map((a) => ({
-            year: env.CAMP_YEAR,
-            camperId: a.camperId,
-            teamId: a.teamId,
-          }))
-        );
-      }
-    });
-    res.json({ ok: true, count: parsed.data.assignments.filter((a) => a.teamId !== null).length });
-  } catch (err) {
-    console.error('teams/assignments error:', err);
-    res.status(500).json({ error: 'Failed to save assignments' });
   }
 });
 
@@ -218,51 +223,9 @@ teamsRouter.post('/admin/bunks', requireAdmin, async (req, res) => {
   }
 });
 
-const updateBunkBody = z.object({
-  name: z.string().min(1).max(60).optional(),
-  gender: z.enum(['Male', 'Female']).optional(),
-  leaderId: z.number().int().positive().nullable().optional(),
-});
-
-teamsRouter.post('/admin/bunks/:id', requireAdmin, async (req, res) => {
-  const id = Number.parseInt(req.params.id, 10);
-  if (!Number.isInteger(id) || id <= 0) {
-    return res.status(400).json({ error: 'Invalid bunk id' });
-  }
-  const parsed = updateBunkBody.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: 'Invalid request', details: parsed.error.flatten() });
-  }
-  try {
-    const patch: Partial<typeof bunks.$inferInsert> = { updatedAt: new Date() };
-    if (parsed.data.name !== undefined) patch.name = parsed.data.name;
-    if (parsed.data.gender !== undefined) patch.gender = parsed.data.gender;
-    if (parsed.data.leaderId !== undefined) patch.leaderId = parsed.data.leaderId;
-    const [row] = await db.update(bunks).set(patch).where(eq(bunks.id, id)).returning();
-    if (!row) return res.status(404).json({ error: 'Bunk not found' });
-    res.json({ bunk: row });
-  } catch (err) {
-    console.error('bunks/update error:', err);
-    res.status(500).json({ error: 'Failed to update bunk' });
-  }
-});
-
-teamsRouter.delete('/admin/bunks/:id', requireAdmin, async (req, res) => {
-  const id = Number.parseInt(req.params.id, 10);
-  if (!Number.isInteger(id) || id <= 0) {
-    return res.status(400).json({ error: 'Invalid bunk id' });
-  }
-  try {
-    await db.delete(bunkAssignments).where(eq(bunkAssignments.bunkId, id));
-    const [row] = await db.delete(bunks).where(eq(bunks.id, id)).returning({ id: bunks.id });
-    if (!row) return res.status(404).json({ error: 'Bunk not found' });
-    res.json({ ok: true });
-  } catch (err) {
-    console.error('bunks/delete error:', err);
-    res.status(500).json({ error: 'Failed to delete bunk' });
-  }
-});
-
+// Bulk bunk-assignment save — same shape and reasoning as
+// /admin/teams/assignments. MUST be declared BEFORE /admin/bunks/:id
+// so Express doesn't match "assignments" as a :id param.
 const saveBunkAssignmentsBody = z.object({
   assignments: z.array(
     z.object({
@@ -321,5 +284,50 @@ teamsRouter.post('/admin/bunks/assignments', requireAdmin, async (req, res) => {
     res.status(500).json({
       error: err instanceof Error ? err.message : 'Failed to save bunk assignments',
     });
+  }
+});
+
+const updateBunkBody = z.object({
+  name: z.string().min(1).max(60).optional(),
+  gender: z.enum(['Male', 'Female']).optional(),
+  leaderId: z.number().int().positive().nullable().optional(),
+});
+
+teamsRouter.post('/admin/bunks/:id', requireAdmin, async (req, res) => {
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'Invalid bunk id' });
+  }
+  const parsed = updateBunkBody.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid request', details: parsed.error.flatten() });
+  }
+  try {
+    const patch: Partial<typeof bunks.$inferInsert> = { updatedAt: new Date() };
+    if (parsed.data.name !== undefined) patch.name = parsed.data.name;
+    if (parsed.data.gender !== undefined) patch.gender = parsed.data.gender;
+    if (parsed.data.leaderId !== undefined) patch.leaderId = parsed.data.leaderId;
+    const [row] = await db.update(bunks).set(patch).where(eq(bunks.id, id)).returning();
+    if (!row) return res.status(404).json({ error: 'Bunk not found' });
+    res.json({ bunk: row });
+  } catch (err) {
+    console.error('bunks/update error:', err);
+    res.status(500).json({ error: 'Failed to update bunk' });
+  }
+});
+
+teamsRouter.delete('/admin/bunks/:id', requireAdmin, async (req, res) => {
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'Invalid bunk id' });
+  }
+  try {
+    await db.delete(bunkAssignments).where(eq(bunkAssignments.bunkId, id));
+    const [row] = await db.delete(bunks).where(eq(bunks.id, id)).returning({ id: bunks.id });
+    if (!row) return res.status(404).json({ error: 'Bunk not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('bunks/delete error:', err);
+    res.status(500).json({ error: 'Failed to delete bunk' });
   }
 });

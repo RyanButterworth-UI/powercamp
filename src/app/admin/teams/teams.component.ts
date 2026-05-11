@@ -53,6 +53,16 @@ const TEAM_PALETTE = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#e
           }
         </div>
       } @else {
+        <!-- Narrow-viewport banner. Drag-drop kanban needs hover + space
+             for 5 side-by-side columns, neither of which work on a
+             phone. We hide it on md+ where the grid actually fits. -->
+        <div class="md:hidden mb-4 p-3 rounded-md text-sm"
+             style="background: var(--color-saga-primary-soft); border: 1px solid var(--color-saga-action); color: var(--color-saga-text);">
+          <strong>Heads up:</strong> Teams is built for drag-and-drop on a
+          tablet or desktop. Everything below will load, but moving campers
+          between teams won't be comfortable on a phone-sized screen.
+        </div>
+
         <div class="flex flex-wrap items-center gap-3 mb-4">
           <button
             type="button"
@@ -173,11 +183,16 @@ const TEAM_PALETTE = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#e
               >
                 @for (c of col.campers; track c.id) {
                   <div cdkDrag [cdkDragData]="c" class="camper-pill">
-                    <div class="flex flex-col">
+                    <div class="flex flex-col min-w-0">
                       <span class="text-sm font-medium">{{ c.firstName }} {{ c.lastName }}</span>
                       <span class="text-[11px]" style="color: var(--color-saga-text-muted)">
                         {{ c.age || '—' }} · {{ c.grade || '—' }} · {{ c.gender || '—' }}
                       </span>
+                      @if (c.church) {
+                        <span class="text-[11px] truncate" style="color: var(--color-saga-text-muted)" [title]="c.church">
+                          {{ c.church }}
+                        </span>
+                      }
                     </div>
                     @if (col.id !== null) {
                       <button

@@ -76,7 +76,7 @@ import { SkeletonComponent } from '../../skeleton/skeleton.component';
                 <th>Status</th>
                 <th>By Neil</th>
                 <th>Payment</th>
-                <th class="w-48">Actions</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody data-testid="leaders-rows">
@@ -139,13 +139,17 @@ import { SkeletonComponent } from '../../skeleton/skeleton.component';
                     }
                   </td>
                   <td>
-                    <span class="inline-flex items-center gap-1.5 flex-wrap">
+                    <!-- Side-by-side, no wrap. The column auto-sizes to fit
+                         the row's two buttons (Approve+Reject for pending,
+                         Invite+Reject for approved) so we don't stack on
+                         narrower viewports. -->
+                    <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
                       @if (l.status !== 'approved') {
                         <button
                           type="button"
                           (click)="approve(l)"
                           class="text-xs px-2 py-1 rounded saga-btn saga-btn-success inline-flex items-center justify-center"
-                          style="min-width: 5rem;"
+                          style="width: 5.5rem;"
                         >Approve</button>
                       }
                       @if (l.status === 'approved') {
@@ -154,7 +158,7 @@ import { SkeletonComponent } from '../../skeleton/skeleton.component';
                           (click)="invite(l)"
                           [disabled]="invitingFor() === l.id"
                           class="text-xs px-2 py-1 rounded saga-btn saga-btn-primary inline-flex items-center justify-center"
-                          style="min-width: 5rem;"
+                          style="width: 5.5rem;"
                           title="Send a magic-link invite so the leader can finish their registration"
                         >{{ invitingFor() === l.id ? 'Sending…' : 'Invite' }}</button>
                       }
@@ -163,7 +167,7 @@ import { SkeletonComponent } from '../../skeleton/skeleton.component';
                           type="button"
                           (click)="reject(l)"
                           class="text-xs px-2 py-1 rounded saga-btn saga-btn-danger inline-flex items-center justify-center"
-                          style="min-width: 5rem;"
+                          style="width: 5.5rem;"
                         >Reject</button>
                       }
                     </span>

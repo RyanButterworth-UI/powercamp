@@ -46,6 +46,16 @@ interface BunkColumn {
           }
         </div>
       } @else {
+        <!-- Narrow-viewport banner — same reasoning as Teams. Drag-drop
+             kanban with single-gender constraints needs a tablet or
+             desktop to be usable. -->
+        <div class="md:hidden mb-4 p-3 rounded-md text-sm"
+             style="background: var(--color-saga-primary-soft); border: 1px solid var(--color-saga-action); color: var(--color-saga-text);">
+          <strong>Heads up:</strong> Bunks is built for drag-and-drop on a
+          tablet or desktop. Everything below will load, but moving campers
+          between bunks won't be comfortable on a phone-sized screen.
+        </div>
+
         <div class="flex flex-wrap items-center gap-3 mb-4">
           <button type="button" (click)="addBunk('Male')" class="saga-btn saga-btn-secondary !py-1 !px-2.5 !text-xs">
             Add male bunk
@@ -146,11 +156,16 @@ interface BunkColumn {
               >
                 @for (c of col.campers; track c.id) {
                   <div cdkDrag [cdkDragData]="c" class="camper-pill">
-                    <div class="flex flex-col">
+                    <div class="flex flex-col min-w-0">
                       <span class="text-sm font-medium">{{ c.firstName }} {{ c.lastName }}</span>
                       <span class="text-[11px]" style="color: var(--color-saga-text-muted)">
                         {{ c.age || '—' }} · {{ c.grade || '—' }} · {{ c.gender || '—' }}
                       </span>
+                      @if (c.church) {
+                        <span class="text-[11px] truncate" style="color: var(--color-saga-text-muted)" [title]="c.church">
+                          {{ c.church }}
+                        </span>
+                      }
                     </div>
                     @if (col.id !== null) {
                       <button
