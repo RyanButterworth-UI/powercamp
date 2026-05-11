@@ -1,15 +1,26 @@
-import { Component, inject, input, output, signal } from '@angular/core';
+import { Component, OnInit, inject, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { LookupResult, StepKey } from '../../models';
 import { environment } from '../../environments/environment';
+import { UiService } from '../ui/ui.service';
+import { SkeletonComponent } from '../skeleton/skeleton.component';
+
+interface StatsResponse {
+  year: number;
+  campers: number;
+  leaders: number;
+  total: number;
+  cap: number;
+  remaining: number;
+}
 
 @Component({
   selector: 'app-lookup',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, SkeletonComponent],
   template: `
     <div
       class="customer-wrapper p-6"
@@ -20,10 +31,65 @@ import { environment } from '../../environments/environment';
       <p class="mb-1 text-sm" style="color: var(--color-saga-text-muted)">
         Purity · Obedience · Worship · Endurance · Righteousness
       </p>
-      <p class="mb-6 text-sm" style="color: var(--color-saga-text-muted)">
+      <p class="mb-4 text-sm" style="color: var(--color-saga-text-muted)">
         Been to Power Camp before? Search for your name and we'll pick up where you left off.
         Registering also adds you to our mailing list (one-click unsubscribe on every email).
       </p>
+
+      <!-- Capacity widget. While /stats is in flight we render a skeleton
+           with the same footprint as the real card so the layout doesn't
+           jump when the data arrives. If the call fails altogether the
+           widget collapses — it's a nice-to-have, not a blocker. -->
+      @if (statsLoading()) {
+        <div
+          class="mb-4 p-3 rounded-lg"
+          style="background-color: var(--color-saga-surface-2); border: 1px solid var(--color-saga-border);"
+          data-testid="stats-skeleton"
+        >
+          <div class="flex items-center justify-between gap-3 flex-wrap mb-1.5">
+            <app-skeleton width="9rem" height="14px" />
+            <app-skeleton width="7.5rem" height="22px" />
+          </div>
+          <app-skeleton width="80%" height="11px" />
+          <app-skeleton shape="block" width="100%" height="6px" />
+        </div>
+      } @else if (stats()) {
+        <div
+          class="mb-4 p-3 rounded-lg flex items-start gap-3"
+          style="background-color: var(--color-saga-surface-2); border: 1px solid var(--color-saga-border);"
+        >
+          <div class="flex-1">
+            <div class="flex items-center justify-between gap-3 flex-wrap">
+              <div class="text-sm font-semibold" style="color: var(--color-saga-text-strong)">
+                {{ stats()!.total }} of {{ stats()!.cap }} spots booked
+              </div>
+              <button
+                type="button"
+                (click)="share()"
+                class="saga-btn saga-btn-secondary !py-1 !px-2.5 !text-xs"
+                data-testid="share-link"
+              >
+                Share with a friend
+              </button>
+            </div>
+            <div class="text-xs mt-0.5" style="color: var(--color-saga-text-muted)">
+              Space is limited — once we hit {{ stats()!.cap }} we'll close registration. Don't leave it for the last week.
+            </div>
+            <div
+              class="mt-2 h-1.5 rounded-full overflow-hidden"
+              style="background-color: var(--color-saga-border)"
+            >
+              <div
+                class="h-full rounded-full"
+                [style.width.%]="capPercent()"
+                [style.background-color]="
+                  capPercent() > 85 ? 'var(--color-saga-danger)' : 'var(--color-saga-action)'
+                "
+              ></div>
+            </div>
+          </div>
+        </div>
+      }
 
       <div class="flex gap-2 mb-4">
         <input
@@ -68,7 +134,8 @@ import { environment } from '../../environments/environment';
         } @else {
           <p class="text-xs mb-2" style="color: var(--color-saga-text-muted)">
             For privacy, only the email already linked to the camper can edit the registration.
-            Hit Register and we'll send a sign-in link to that email.
+            Hit Register and we'll send a sign-in link to that email — you can update your
+            email address (or any other detail) on the next screen once you click the link.
           </p>
           <ul
             class="saga-card divide-y mb-6"
@@ -141,7 +208,7 @@ import { environment } from '../../environments/environment';
   `,
   styles: ``,
 })
-export class LookupComponent {
+export class LookupComponent implements OnInit {
   stepVisible = input.required<boolean>();
   goToStep = output<StepKey>();
   selectedCamper = output<LookupResult>();
@@ -152,8 +219,63 @@ export class LookupComponent {
   error = signal<string | null>(null);
   sendingLinkFor = signal<number | null>(null);
   linkSentTo = signal<string | null>(null);
+  stats = signal<StatsResponse | null>(null);
+  // Starts true so the skeleton renders on first paint. Flipped false
+  // on success or failure of /stats so we either show real data or
+  // collapse the widget. Render free-tier cold starts can take ~30s,
+  // so this skeleton is the difference between "is the page broken?"
+  // and "ah, it's loading".
+  statsLoading = signal(true);
 
   private readonly http = inject(HttpClient);
+  private readonly ui = inject(UiService);
+
+  ngOnInit(): void {
+    this.http.get<StatsResponse>(`${environment.baseApi}/stats`).subscribe({
+      next: (s) => {
+        this.stats.set(s);
+        this.statsLoading.set(false);
+      },
+      error: () => {
+        // Swallow — the page is still useful without the counter.
+        this.statsLoading.set(false);
+      },
+    });
+  }
+
+  capPercent(): number {
+    const s = this.stats();
+    if (!s || s.cap <= 0) return 0;
+    return Math.min(100, Math.round((s.total / s.cap) * 100));
+  }
+
+  // Native share where supported (iOS Safari, Android Chrome, recent
+  // desktop Safari). Falls back to copying the URL to the clipboard +
+  // a confirmation toast for everywhere else (Firefox, older browsers).
+  async share(): Promise<void> {
+    const url = typeof window !== 'undefined' ? window.location.origin : '';
+    const text = 'Power Camp 2026 registrations are open — Friday 31 July to Sunday 2 August.';
+
+    const navAny = typeof navigator !== 'undefined'
+      ? (navigator as Navigator & { share?: (data: ShareData) => Promise<void> })
+      : null;
+    if (navAny?.share) {
+      try {
+        await navAny.share({ title: 'Power Camp 2026', text, url });
+        return;
+      } catch {
+        // User cancelled — silent.
+        return;
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(url);
+      this.ui.toast('Link copied — paste it into a chat.', 'success', 2200);
+    } catch {
+      this.ui.toast(`Copy this link: ${url}`, 'info', 4000);
+    }
+  }
 
   search() {
     const q = (this.queryControl.value ?? '').trim();

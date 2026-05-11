@@ -3,6 +3,11 @@ import { env } from '../env';
 
 const MAGIC_TTL_MIN = 30;
 const ADMIN_TTL_HR = 8;
+// Leaders have a longer window — Neil might invite a leader on a Sunday
+// and not see them follow up till midweek. 7 days hits the right balance:
+// long enough to forget about briefly, short enough that a stale token
+// in someone's inbox isn't an indefinite ticket into the system.
+const LEADER_INVITE_TTL_DAYS = 7;
 
 export interface MagicClaims {
   camperId: number;
@@ -11,6 +16,11 @@ export interface MagicClaims {
 
 export interface AdminClaims {
   kind: 'admin';
+}
+
+export interface LeaderInviteClaims {
+  leaderId: number;
+  kind: 'leader-invite';
 }
 
 export function signMagicToken(camperId: number): string {
@@ -57,6 +67,22 @@ export function verifyUnsubscribeToken(token: string): { email: string } | null 
     const decoded = jwt.verify(token, env.JWT_SECRET) as { email?: string; kind?: string };
     if (decoded?.kind !== 'unsubscribe' || typeof decoded.email !== 'string') return null;
     return { email: decoded.email };
+  } catch {
+    return null;
+  }
+}
+
+export function signLeaderInviteToken(leaderId: number): string {
+  return jwt.sign({ leaderId, kind: 'leader-invite' }, env.JWT_SECRET, {
+    expiresIn: `${LEADER_INVITE_TTL_DAYS}d`,
+  });
+}
+
+export function verifyLeaderInviteToken(token: string): LeaderInviteClaims | null {
+  try {
+    const decoded = jwt.verify(token, env.JWT_SECRET) as Partial<LeaderInviteClaims>;
+    if (decoded?.kind !== 'leader-invite' || typeof decoded.leaderId !== 'number') return null;
+    return { leaderId: decoded.leaderId, kind: 'leader-invite' };
   } catch {
     return null;
   }

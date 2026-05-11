@@ -4,6 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { environment } from '../../environments/environment';
+import { SkeletonComponent } from '../skeleton/skeleton.component';
 
 interface VerifiedCamper {
   id: number;
@@ -29,12 +30,28 @@ interface VerifiedCamper {
 @Component({
   selector: 'app-verify-link',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, SkeletonComponent],
   template: `
     <div class="container mx-auto p-4 sm:p-6 max-w-3xl">
       @if (loading()) {
-        <div data-testid="verifying" style="color: var(--color-saga-text-muted)">
-          Verifying your link…
+        <!-- Skeleton card while we verify the magic-link token. Same
+             footprint as the real form so the page doesn't jump. The
+             label text is preserved as a sub-line beneath the skeleton
+             for users who like to know *what* is loading. -->
+        <div class="saga-card p-4" data-testid="verifying">
+          <app-skeleton width="40%" height="20px" />
+          <div class="mt-2">
+            <app-skeleton width="80%" height="14px" />
+          </div>
+          <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <app-skeleton shape="block" height="38px" />
+            <app-skeleton shape="block" height="38px" />
+            <app-skeleton shape="block" height="38px" />
+            <app-skeleton shape="block" height="38px" />
+          </div>
+          <p class="text-xs mt-3" style="color: var(--color-saga-text-muted)">
+            Verifying your link…
+          </p>
         </div>
       } @else if (verifyError()) {
         <div

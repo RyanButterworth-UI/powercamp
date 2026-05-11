@@ -12,6 +12,7 @@ import { SummaryComponent } from './summary/summary.component';
 import { SuccessDialogComponent } from '../success-dialog/success-dialog.component';
 import { environment } from '../../environments/environment';
 import { HttpClient } from '@angular/common/http';
+import { PageGhostComponent } from '../skeleton/page-ghost.component';
 
 
 
@@ -23,10 +24,14 @@ import { HttpClient } from '@angular/common/http';
     BaseComponent,
     SummaryComponent,
     SuccessDialogComponent,
+    PageGhostComponent,
   ],
   template: `
+    @if (!ready()) {
+      <app-page-ghost height="60vh" />
+    } @else {
     <div
-      class="container mx-auto bg:white lg:bg-slate-100 my-0 min-h-dvh font-inter flex lg:justify-center lg:items-center"
+      class="container mx-auto bg:white lg:bg-slate-100 my-0 min-h-dvh font-inter flex lg:justify-center lg:items-center page-fade-in"
     >
       @if (showDialog()) {
         <app-success-dialog
@@ -318,6 +323,7 @@ import { HttpClient } from '@angular/common/http';
       </div>
       }
     </div>
+    }
   `,
   styles: ``,
 })
@@ -329,6 +335,7 @@ export class ConsentComponent implements OnInit {
   currentStep = signal<number>(1);
   showDialog = signal(false);
   submissionStatus = signal<'success' | 'error'>('success');
+  ready = signal(false);
   submittedCamperName = signal('Dear Camper');
   isSubmitting  = signal(false);
 
@@ -342,6 +349,7 @@ export class ConsentComponent implements OnInit {
   ];
 
   ngOnInit() {
+    setTimeout(() => this.ready.set(true), 300);
     this.consent = this.fb.group({
       parentName: ['', Validators.required],
       camperName: ['', Validators.required],

@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { AdminService, AdminCamper } from '../admin.service';
 import { environment } from '../../../environments/environment';
 import { UiService } from '../../ui/ui.service';
+import { SkeletonComponent } from '../../skeleton/skeleton.component';
 
 export type ColumnGroupKey = 'camper' | 'contact' | 'emergency' | 'status' | 'meta';
 
@@ -103,7 +104,7 @@ const COLUMN_GROUPS: ColumnGroup[] = GROUP_ORDER.map((g) => ({
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, SkeletonComponent],
   template: `
     <div class="container mx-auto p-6 max-w-5xl">
       <div class="flex items-center justify-between mb-4">
@@ -117,7 +118,8 @@ const COLUMN_GROUPS: ColumnGroup[] = GROUP_ORDER.map((g) => ({
         <span class="saga-tab is-active">Campers</span>
         <a routerLink="/admin/leaders" class="saga-tab no-underline">Leaders</a>
         <a routerLink="/admin/bulk-email" class="saga-tab no-underline">Bulk email</a>
-        <a routerLink="/admin/team" class="saga-tab no-underline">Team Admin</a>
+        <a routerLink="/admin/teams" class="saga-tab no-underline">Teams</a>
+        <a routerLink="/admin/bunks" class="saga-tab no-underline">Bunks</a>
       </nav>
 
       <div class="flex items-center gap-3 mb-4 flex-wrap">
@@ -137,7 +139,7 @@ const COLUMN_GROUPS: ColumnGroup[] = GROUP_ORDER.map((g) => ({
           class="saga-btn saga-btn-secondary no-underline"
           data-testid="open-sheet"
         >
-          Open in Google Sheets ↗
+          Open in Google Sheets
         </a>
         <span class="text-sm" style="color: var(--color-saga-text-muted)">
           {{ total() }} total · {{ visibleCampers().length }} shown
@@ -146,7 +148,23 @@ const COLUMN_GROUPS: ColumnGroup[] = GROUP_ORDER.map((g) => ({
 
 
       @if (loading()) {
-        <div data-testid="loading" style="color: var(--color-saga-text-muted)">Loading campers…</div>
+        <!-- Skeleton table — same row geometry as the real one (year tabs,
+             search, view-mode, then 8 rows) so the page doesn't shift when
+             data arrives. The header row + 8 placeholder rows cover the
+             typical above-the-fold area on a laptop. -->
+        <div data-testid="loading" class="flex flex-col gap-3">
+          <div class="flex gap-2 mb-1">
+            <app-skeleton width="3.5rem" height="20px" />
+            <app-skeleton width="3.5rem" height="20px" />
+          </div>
+          <app-skeleton shape="block" height="40px" />
+          <app-skeleton shape="block" height="80px" />
+          <div class="flex flex-col gap-2 mt-2">
+            @for (i of [1,2,3,4,5,6,7,8]; track i) {
+              <app-skeleton shape="block" height="40px" />
+            }
+          </div>
+        </div>
       } @else if (error()) {
         <div data-testid="dashboard-error" style="color: var(--color-saga-danger)">{{ error() }}</div>
       } @else {
@@ -424,7 +442,7 @@ const COLUMN_GROUPS: ColumnGroup[] = GROUP_ORDER.map((g) => ({
                               style="min-width: 6rem;"
                               title="Payment received"
                               [attr.data-testid]="'payment-paid-' + c.id"
-                            >✓ Paid</span>
+                            >Paid</span>
                           } @else {
                             <button
                               type="button"

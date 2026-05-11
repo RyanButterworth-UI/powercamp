@@ -91,7 +91,7 @@ import { ResetRegistrationService } from '../reset-registration.service';
         <div class="flex gap-3 mt-4 items-center flex-wrap">
           <button
             type="button"
-            (click)="goToStep.emit(StepKey.LeaderApplication)"
+            (click)="goToStep.emit(StepKey.Intro)"
             class="saga-btn saga-btn-secondary"
           >
             Back

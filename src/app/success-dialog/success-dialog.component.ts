@@ -93,7 +93,7 @@ import { Component, input, Input, output } from '@angular/core';
                   class="saga-btn saga-btn-secondary w-full sm:flex-1"
                   (click)="registerAnother.emit()"
                 >
-                  ＋ Register another child
+                  Register another child
                 </button>
               }
               <button

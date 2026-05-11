@@ -5,7 +5,7 @@ import { desc, eq, isNull } from 'drizzle-orm';
 import * as XLSX from 'xlsx';
 import { db } from '../db/client';
 import { campers, leaders } from '../db/schema';
-import { signAdminToken } from '../services/auth';
+import { signAdminToken, signLeaderInviteToken } from '../services/auth';
 import { env } from '../env';
 import { requireAdmin } from '../middleware/require-admin';
 import { appendToSheet } from '../services/sheets';
@@ -15,8 +15,9 @@ import {
   blocksToPlainText,
   sendBulkEmail,
   EmailBlock,
+  sendLeaderInvite,
+  sendInviteSentReceipt,
 } from '../services/email';
-import { leaderRow } from './leaders';
 import {
   filterToSubscribed,
   listSubscriptions,
@@ -24,14 +25,15 @@ import {
 } from '../services/subscriptions';
 import { signUnsubscribeToken } from '../services/auth';
 
-// Hardcoded by design (per spec) — Neil's approve / reject / direct-add password.
-const NEIL_PASSWORD = 'gravelROx';
-
+// Neil-only second factor for the approve / reject endpoints. Hashed in env
+// (NEIL_PASSWORD_HASH) the same way as ADMIN_PASSWORD_HASH. The previous
+// hardcoded literal lived in source for months and must be considered leaked.
 const neilGuard = z.object({ neilPassword: z.string() });
 
-function isNeilOk(input: unknown): boolean {
+async function isNeilOk(input: unknown): Promise<boolean> {
   const parsed = neilGuard.safeParse(input);
-  return parsed.success && parsed.data.neilPassword === NEIL_PASSWORD;
+  if (!parsed.success) return false;
+  return bcrypt.compare(parsed.data.neilPassword, env.NEIL_PASSWORD_HASH);
 }
 
 const loginBody = z.object({
@@ -220,7 +222,7 @@ const leaderDecisionBody = z.object({
 });
 
 adminRouter.post('/admin/leaders/:id/approve', requireAdmin, async (req, res) => {
-  if (!isNeilOk(req.body)) {
+  if (!(await isNeilOk(req.body))) {
     return res.status(401).json({ error: 'Wrong Neil password' });
   }
   const id = Number.parseInt(req.params.id, 10);
@@ -246,8 +248,49 @@ adminRouter.post('/admin/leaders/:id/approve', requireAdmin, async (req, res) =>
   }
 });
 
-adminRouter.post('/admin/leaders/:id/reject', requireAdmin, async (req, res) => {
+// Issues a single-use 7-day invite token for an approved leader and emails
+// it to them as a magic-link to /leader-register. Neil also gets a copy of
+// the receipt so he has a record that the invite went out.
+adminRouter.post('/admin/leaders/:id/invite', requireAdmin, async (req, res) => {
   if (!isNeilOk(req.body)) {
+    return res.status(401).json({ error: 'Wrong Neil password' });
+  }
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'Invalid leader id' });
+  }
+  try {
+    const [leader] = await db.select().from(leaders).where(eq(leaders.id, id));
+    if (!leader || leader.deletedAt) {
+      return res.status(404).json({ error: 'Leader not found' });
+    }
+    if (leader.status !== 'approved') {
+      return res.status(400).json({ error: 'Leader must be approved before they can be invited' });
+    }
+
+    const token = signLeaderInviteToken(leader.id);
+    const url = `${env.APP_BASE_URL.replace(/\/$/, '')}/leader-register?token=${encodeURIComponent(token)}`;
+
+    // Send the leader's invite first — that's the one that matters; the
+    // Neil receipt is fire-and-forget. If the leader's send fails the
+    // admin sees the error and can retry.
+    await sendLeaderInvite(leader.email, leader.firstName, url);
+
+    sendInviteSentReceipt(env.NEIL_EMAIL ?? env.GMAIL_USER, {
+      firstName: leader.firstName,
+      lastName: leader.lastName,
+      email: leader.email,
+    }).catch((err) => console.error('Invite-sent receipt failed:', err));
+
+    res.json({ id: leader.id, sentTo: leader.email });
+  } catch (err) {
+    console.error('leader invite error:', err);
+    res.status(500).json({ error: 'Failed to send invite' });
+  }
+});
+
+adminRouter.post('/admin/leaders/:id/reject', requireAdmin, async (req, res) => {
+  if (!(await isNeilOk(req.body))) {
     return res.status(401).json({ error: 'Wrong Neil password' });
   }
   const id = Number.parseInt(req.params.id, 10);
@@ -266,23 +309,6 @@ adminRouter.post('/admin/leaders/:id/reject', requireAdmin, async (req, res) => 
     console.error('reject error:', err);
     res.status(500).json({ error: 'Failed to reject' });
   }
-});
-
-const directAddBody = z.object({
-  neilPassword: z.string(),
-  firstName: z.string().min(1),
-  lastName: z.string().min(1),
-  email: z.string().email(),
-  cell: z.string().optional(),
-  gender: z.string().optional(),
-  age: z.string().optional(),
-  grade: z.string().optional(),
-  church: z.string().optional(),
-  tshirt: z.string().optional(),
-  parentName: z.string().optional(),
-  parentPhone: z.string().optional(),
-  parentEmail: z.string().optional(),
-  applicationNotes: z.string().optional(),
 });
 
 // ---------- Bulk email ----------
@@ -386,49 +412,3 @@ adminRouter.post('/admin/subscriptions/toggle', requireAdmin, async (req, res) =
   }
 });
 
-adminRouter.post('/admin/leaders/direct-add', requireAdmin, async (req, res) => {
-  const parsed = directAddBody.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: 'Invalid request' });
-  }
-  if (parsed.data.neilPassword !== NEIL_PASSWORD) {
-    return res.status(401).json({ error: 'Wrong Neil password' });
-  }
-  const d = parsed.data;
-  try {
-    const [row] = await db
-      .insert(leaders)
-      .values({
-        year: env.CAMP_YEAR,
-        firstName: d.firstName,
-        lastName: d.lastName,
-        email: d.email.toLowerCase(),
-        cell: d.cell,
-        gender: d.gender,
-        age: d.age,
-        grade: d.grade,
-        church: d.church,
-        tshirt: d.tshirt,
-        parentName: d.parentName,
-        parentPhone: d.parentPhone,
-        parentEmail: d.parentEmail?.toLowerCase(),
-        applicationNotes: d.applicationNotes,
-        status: 'approved',
-        approvedByNeil: true,
-        approvedAt: new Date(),
-      })
-      .returning({ id: leaders.id });
-
-    appendToSheet(
-      'Leaders',
-      leaderRow({ ...d, email: d.email.toLowerCase(), status: 'approved', approvedByNeil: true })
-    ).catch((err) => {
-      console.error('Leader sheet sync failed (DB write succeeded):', err);
-    });
-
-    res.json({ id: row.id, status: 'approved' });
-  } catch (err) {
-    console.error('direct-add error:', err);
-    res.status(500).json({ error: 'Failed to add leader' });
-  }
-});

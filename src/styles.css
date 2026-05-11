@@ -1043,6 +1043,61 @@ select option,
   background-color: var(--color-saga-surface-2);
 }
 
+/* Gentle fade-in applied to page contents once their per-component
+   ready() signal flips true. Runs once on mount; the .page-ghost
+   spinner shown beforehand handles the loading affordance. */
+.page-fade-in {
+  animation: page-fade-in 280ms ease both;
+}
+@keyframes page-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Skeleton placeholders — drop-in shimmer stand-in for any value that's
+   loading over the network. Same look whether you use <app-skeleton>
+   or just slap .skeleton on a div. Width / height are set inline so
+   each occurrence can match the real content's footprint. */
+.skeleton {
+  display: inline-block;
+  vertical-align: middle;
+  background: linear-gradient(
+    90deg,
+    var(--color-saga-surface-2) 0%,
+    rgba(204, 204, 220, 0.16) 50%,
+    var(--color-saga-surface-2) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s linear infinite;
+  border-radius: 6px;
+  /* Sub-zero opacity to visually mute the bar while still keeping the
+     shimmer animation visible on dark surfaces. */
+  opacity: 0.85;
+}
+
+.skeleton-block {
+  display: block;
+  border-radius: 8px;
+}
+
+.skeleton-circle {
+  border-radius: 9999px;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Honour reduced-motion preferences — skeleton stays visible but
+   stops animating so it doesn't trigger vestibular sensitivities. */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background: var(--color-saga-surface-2);
+  }
+}
+
 /* Animated transition wrapper kept from before (existing usage). */
 .customer-wrapper {
   /* overflow-visible (rather than overflow-auto) so positioned popovers like

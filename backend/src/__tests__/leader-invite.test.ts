@@ -1,0 +1,158 @@
+import express from 'express';
+import request from 'supertest';
+
+jest.mock('../env', () => ({
+  env: {
+    CAMP_YEAR: 2026,
+    JWT_SECRET: 'test-secret-must-be-at-least-32-chars-long',
+  },
+}));
+
+const selectMock = jest.fn();
+const updateMock = jest.fn();
+jest.mock('../db/client', () => ({
+  db: {
+    select: () => ({
+      from: () => ({
+        where: () => selectMock(),
+      }),
+    }),
+    update: () => ({
+      set: () => ({
+        where: () => ({
+          returning: () => updateMock(),
+        }),
+      }),
+    }),
+  },
+}));
+
+const verifyMock = jest.fn();
+jest.mock('../services/auth', () => ({
+  verifyLeaderInviteToken: (token: string) => verifyMock(token),
+}));
+
+import { leadersRouter } from '../routes/leaders';
+
+function buildApp() {
+  const app = express();
+  app.use(express.json());
+  app.use(leadersRouter);
+  return app;
+}
+
+describe('POST /leaders/verify-invite', () => {
+  beforeEach(() => {
+    selectMock.mockReset();
+    verifyMock.mockReset();
+  });
+
+  it('returns 401 when the token is invalid', async () => {
+    verifyMock.mockReturnValueOnce(null);
+    const res = await request(buildApp())
+      .post('/leaders/verify-invite')
+      .send({ token: 'a'.repeat(20) });
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 404 when the leader was deleted', async () => {
+    verifyMock.mockReturnValueOnce({ leaderId: 5, kind: 'leader-invite' });
+    selectMock.mockResolvedValueOnce([
+      { id: 5, deletedAt: new Date(), status: 'approved', firstName: 'A', lastName: 'B', email: 'a@b.test' },
+    ]);
+    const res = await request(buildApp())
+      .post('/leaders/verify-invite')
+      .send({ token: 'a'.repeat(20) });
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 403 when the leader is not approved (e.g. still pending)', async () => {
+    verifyMock.mockReturnValueOnce({ leaderId: 5, kind: 'leader-invite' });
+    selectMock.mockResolvedValueOnce([
+      { id: 5, deletedAt: null, status: 'pending', firstName: 'A', lastName: 'B', email: 'a@b.test' },
+    ]);
+    const res = await request(buildApp())
+      .post('/leaders/verify-invite')
+      .send({ token: 'a'.repeat(20) });
+    expect(res.status).toBe(403);
+  });
+
+  it('returns the leader with PII trimmed to the fields the registration form needs', async () => {
+    verifyMock.mockReturnValueOnce({ leaderId: 5, kind: 'leader-invite' });
+    selectMock.mockResolvedValueOnce([
+      {
+        id: 5,
+        year: 2026,
+        deletedAt: null,
+        status: 'approved',
+        firstName: 'Sam',
+        lastName: 'Smith',
+        email: 'sam@example.com',
+        cell: '0820000000',
+        gender: 'Male',
+        age: '25',
+        church: 'Hope',
+        tshirt: 'large',
+        applicationNotes: 'private notes', // must NOT be in the response
+      },
+    ]);
+    const res = await request(buildApp())
+      .post('/leaders/verify-invite')
+      .send({ token: 'a'.repeat(20) });
+    expect(res.status).toBe(200);
+    expect(res.body.leader).toEqual({
+      id: 5,
+      firstName: 'Sam',
+      lastName: 'Smith',
+      email: 'sam@example.com',
+      cell: '0820000000',
+      gender: 'Male',
+      age: '25',
+      church: 'Hope',
+      tshirt: 'large',
+    });
+    // Application notes are private — should never leave the backend.
+    expect(JSON.stringify(res.body)).not.toContain('private notes');
+  });
+});
+
+describe('POST /leaders/register', () => {
+  beforeEach(() => {
+    updateMock.mockReset();
+    verifyMock.mockReset();
+  });
+
+  it('returns 401 when the token is invalid', async () => {
+    verifyMock.mockReturnValueOnce(null);
+    const res = await request(buildApp())
+      .post('/leaders/register')
+      .send({ token: 'a'.repeat(20), tshirt: 'large' });
+    expect(res.status).toBe(401);
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it('updates the leader row and tags it with the current camp year on success', async () => {
+    verifyMock.mockReturnValueOnce({ leaderId: 5, kind: 'leader-invite' });
+    updateMock.mockResolvedValueOnce([{ id: 5 }]);
+    const res = await request(buildApp())
+      .post('/leaders/register')
+      .send({
+        token: 'a'.repeat(20),
+        tshirt: 'large',
+        cell: '0820000000',
+        parentEmail: 'EMERG@EXAMPLE.COM',
+      });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ id: 5 });
+    expect(updateMock).toHaveBeenCalled();
+  });
+
+  it('returns 404 when the leader id from the token has no matching row', async () => {
+    verifyMock.mockReturnValueOnce({ leaderId: 99, kind: 'leader-invite' });
+    updateMock.mockResolvedValueOnce([]);
+    const res = await request(buildApp())
+      .post('/leaders/register')
+      .send({ token: 'a'.repeat(20), tshirt: 'large' });
+    expect(res.status).toBe(404);
+  });
+});

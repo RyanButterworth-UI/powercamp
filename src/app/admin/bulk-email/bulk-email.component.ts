@@ -4,15 +4,19 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AdminService, AdminCamper, EmailBlock } from '../admin.service';
 import { UiService } from '../../ui/ui.service';
+import { PageGhostComponent } from '../../skeleton/page-ghost.component';
 
 type Filter = 'all' | 'paid' | 'unpaid' | 'consent' | 'no-consent';
 
 @Component({
   selector: 'app-bulk-email',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, PageGhostComponent],
   template: `
-    <div class="container mx-auto p-6 max-w-7xl">
+    @if (!ready()) {
+      <app-page-ghost height="60vh" />
+    } @else {
+    <div class="container mx-auto p-6 max-w-7xl page-fade-in">
       <div class="flex items-center justify-between mb-4">
         <h1 class="text-2xl font-bold">Power Camp Admin — Bulk email</h1>
         <button type="button" (click)="logout()" class="saga-btn-ghost text-sm underline cursor-pointer">
@@ -24,7 +28,8 @@ type Filter = 'all' | 'paid' | 'unpaid' | 'consent' | 'no-consent';
         <a routerLink="/admin" class="saga-tab no-underline">Campers</a>
         <a routerLink="/admin/leaders" class="saga-tab no-underline">Leaders</a>
         <span class="saga-tab is-active">Bulk email</span>
-        <a routerLink="/admin/team" class="saga-tab no-underline">Team Admin</a>
+        <a routerLink="/admin/teams" class="saga-tab no-underline">Teams</a>
+        <a routerLink="/admin/bunks" class="saga-tab no-underline">Bunks</a>
       </nav>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -137,10 +142,10 @@ type Filter = 'all' | 'paid' | 'unpaid' | 'consent' | 'no-consent';
           }
 
           <div class="flex flex-wrap gap-2 mb-3">
-            <button type="button" (click)="addBlock('heading')" class="saga-btn saga-btn-secondary !py-1 !px-2 !text-xs">+ Heading</button>
-            <button type="button" (click)="addBlock('paragraph')" class="saga-btn saga-btn-secondary !py-1 !px-2 !text-xs">+ Paragraph</button>
-            <button type="button" (click)="addBlock('button')" class="saga-btn saga-btn-secondary !py-1 !px-2 !text-xs">+ Button</button>
-            <button type="button" (click)="addBlock('divider')" class="saga-btn saga-btn-secondary !py-1 !px-2 !text-xs">+ Divider</button>
+            <button type="button" (click)="addBlock('heading')" class="saga-btn saga-btn-secondary !py-1 !px-2 !text-xs">Heading</button>
+            <button type="button" (click)="addBlock('paragraph')" class="saga-btn saga-btn-secondary !py-1 !px-2 !text-xs">Paragraph</button>
+            <button type="button" (click)="addBlock('button')" class="saga-btn saga-btn-secondary !py-1 !px-2 !text-xs">Button</button>
+            <button type="button" (click)="addBlock('divider')" class="saga-btn saga-btn-secondary !py-1 !px-2 !text-xs">Divider</button>
           </div>
 
           <div class="space-y-3">
@@ -243,6 +248,7 @@ type Filter = 'all' | 'paid' | 'unpaid' | 'consent' | 'no-consent';
         </section>
       </div>
     </div>
+    }
   `,
   styles: ``,
 })
@@ -258,6 +264,7 @@ export class BulkEmailComponent {
   filter = signal<Filter>('all');
   searchQuery = signal('');
   selected = signal<Set<number>>(new Set());
+  ready = signal(false);
 
   years = computed(() => {
     const set = new Set(this.campers().map((c) => c.year));
@@ -311,6 +318,7 @@ export class BulkEmailComponent {
   private readonly ui = inject(UiService);
 
   constructor() {
+    setTimeout(() => this.ready.set(true), 300);
     // Imperatively write the preview HTML into the iframe — [srcdoc] gets
     // sanitised/cleared by Angular's binding for some browser/version
     // combos, so we use document.write to bypass that path entirely.

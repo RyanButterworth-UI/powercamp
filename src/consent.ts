@@ -1,5 +1,5 @@
 export enum ConsentType {
-  General = "Give permission for my child to participate in the programs and activities of the POWER Camp from 22nd August 2025 to 24th August 2025 subject to the conditions stated below:",
+  General = "Give permission for my child to participate in the programs and activities of the POWER Camp from 31 July 2026 to 2 August 2026 subject to the conditions stated below:",
   Location = "I understand that the programs and activities will be held at YFC Magaliesburg (Boitumelo & Kotula) - Magaliesberg",
   Risk = "I accept that my child participates in all activities at his/her own risk.",
   PowerCamp = 'I agree to indemnify and hold harmless the Power Camp organisers (including the facilitators and leaders, and YFC Cyara), against all claims, demands, suits and liability of whatever nature and howsoever arising out of the injury to my child, and the relevant activity being undertaken.',

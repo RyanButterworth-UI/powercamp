@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import bcrypt from 'bcryptjs';
+import { eq } from 'drizzle-orm';
 import { db } from '../db/client';
 import { leaders } from '../db/schema';
 import { env } from '../env';
 import { appendToSheet } from '../services/sheets';
 import { ensureSubscription } from '../services/subscriptions';
+import { sendLeaderApplicationNotice } from '../services/email';
+import { verifyLeaderInviteToken } from '../services/auth';
 
 // Leaders sheet tab column order:
 // A firstName, B lastName, C cell, D gender, E email, F age, G grade,
@@ -50,10 +52,10 @@ function leaderRow(d: {
 
 export { leaderRow };
 
-const checkPasswordBody = z.object({
-  password: z.string().min(1).max(200),
-});
-
+// Public application body. The password gate is gone — applications are
+// now open. The two screening booleans (out-of-school / church-involved)
+// are gated client-side; if either is false the FE never POSTs here, and
+// the applicant just sees the "we regret to inform you…" message inline.
 const applyBody = z.object({
   firstName: z.string().min(1),
   lastName: z.string().min(1),
@@ -71,18 +73,6 @@ const applyBody = z.object({
 });
 
 export const leadersRouter = Router();
-
-leadersRouter.post('/leaders/check-password', async (req, res) => {
-  const parsed = checkPasswordBody.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: 'Invalid request' });
-  }
-  const ok = await bcrypt.compare(parsed.data.password, env.LEADER_PASSWORD_HASH);
-  if (!ok) {
-    return res.status(401).json({ error: 'Wrong password' });
-  }
-  res.json({ ok: true });
-});
 
 leadersRouter.post('/leaders/apply', async (req, res) => {
   const parsed = applyBody.safeParse(req.body);
@@ -124,9 +114,116 @@ leadersRouter.post('/leaders/apply', async (req, res) => {
       console.error('Subscription upsert failed (leader):', err)
     );
 
+    // Notify Neil so he doesn't have to refresh the admin panel to spot
+    // new applications. Best-effort: a Gmail hiccup shouldn't block the
+    // applicant's success response.
+    sendLeaderApplicationNotice(env.NEIL_EMAIL ?? env.GMAIL_USER, {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email.toLowerCase(),
+      church: data.church,
+      applicationNotes: data.applicationNotes,
+    }).catch((err) => console.error('Neil notification email failed:', err));
+
     res.json({ id: row.id });
   } catch (err) {
     console.error('leaders/apply error:', err);
     res.status(500).json({ error: 'Failed to submit application' });
+  }
+});
+
+// Verifies a Neil-issued invite token and returns the leader row so the
+// /leader-register page can pre-populate the form with what we already
+// know about them (name + email at minimum).
+const inviteTokenBody = z.object({
+  token: z.string().min(10),
+});
+
+leadersRouter.post('/leaders/verify-invite', async (req, res) => {
+  const parsed = inviteTokenBody.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid request' });
+  }
+  const claims = verifyLeaderInviteToken(parsed.data.token);
+  if (!claims) {
+    return res.status(401).json({ error: 'Invalid or expired invite' });
+  }
+
+  try {
+    const [leader] = await db.select().from(leaders).where(eq(leaders.id, claims.leaderId));
+    if (!leader || leader.deletedAt) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+    if (leader.status !== 'approved') {
+      return res.status(403).json({ error: 'Application is not approved' });
+    }
+    res.json({
+      leader: {
+        id: leader.id,
+        firstName: leader.firstName,
+        lastName: leader.lastName,
+        email: leader.email,
+        cell: leader.cell,
+        gender: leader.gender,
+        age: leader.age,
+        church: leader.church,
+        tshirt: leader.tshirt,
+      },
+    });
+  } catch (err) {
+    console.error('leaders/verify-invite error:', err);
+    res.status(500).json({ error: 'Failed to verify invite' });
+  }
+});
+
+// Finalizes a leader's registration. Stitches the submitted full record
+// onto the existing leader row so we keep the original applicationNotes,
+// approvedByNeil, approvedAt, etc. Tagged with the current camp year on
+// completion so reporting / Sheets line up with the active cohort.
+const registerBody = z.object({
+  token: z.string().min(10),
+  cell: z.string().optional(),
+  gender: z.string().optional(),
+  age: z.string().optional(),
+  church: z.string().optional(),
+  tshirt: z.string().optional(),
+  parentName: z.string().optional(),
+  parentPhone: z.string().optional(),
+  parentEmail: z.string().optional(),
+});
+
+leadersRouter.post('/leaders/register', async (req, res) => {
+  const parsed = registerBody.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid request', details: parsed.error.flatten() });
+  }
+  const claims = verifyLeaderInviteToken(parsed.data.token);
+  if (!claims) {
+    return res.status(401).json({ error: 'Invalid or expired invite' });
+  }
+
+  const { token: _token, ...patch } = parsed.data;
+  try {
+    const [updated] = await db
+      .update(leaders)
+      .set({
+        cell: patch.cell ?? null,
+        gender: patch.gender ?? null,
+        age: patch.age ?? null,
+        church: patch.church ?? null,
+        tshirt: patch.tshirt ?? null,
+        parentName: patch.parentName ?? null,
+        parentPhone: patch.parentPhone ?? null,
+        parentEmail: patch.parentEmail?.toLowerCase() ?? null,
+        year: env.CAMP_YEAR,
+        updatedAt: new Date(),
+      })
+      .where(eq(leaders.id, claims.leaderId))
+      .returning({ id: leaders.id });
+    if (!updated) return res.status(404).json({ error: 'Leader not found' });
+    res.json({ id: updated.id });
+  } catch (err) {
+    console.error('leaders/register error:', err);
+    res.status(500).json({ error: 'Failed to save registration' });
   }
 });
