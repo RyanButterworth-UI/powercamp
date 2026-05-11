@@ -232,6 +232,14 @@ export class AdminService {
     );
   }
 
+  markLeaderPaid(leaderId: number): Observable<{ id: number; paymentReceivedAt: string }> {
+    return this.http.post<{ id: number; paymentReceivedAt: string }>(
+      `${environment.baseApi}/admin/leaders/${leaderId}/mark-paid`,
+      {},
+      { headers: this.authHeaders() }
+    );
+  }
+
   updateParentEmail(camperId: number, parentEmail: string): Observable<{ id: number; parentEmail: string }> {
     return this.http.post<{ id: number; parentEmail: string }>(
       `${environment.baseApi}/admin/campers/${camperId}/update-email`,
@@ -286,6 +294,8 @@ export interface AdminLeader {
   status: 'pending' | 'approved' | 'rejected';
   approvedByNeil: boolean;
   approvedAt: string | null;
+  paymentReceivedAt: string | null;
+  createdAt: string | null;
 }
 
 export interface NewAdminLeader {

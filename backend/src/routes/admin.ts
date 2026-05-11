@@ -203,13 +203,54 @@ adminRouter.post('/admin/campers/:id/mark-paid', requireAdmin, async (req, res) 
   }
 });
 
+// Mirrors /admin/campers/:id/mark-paid. Leaders pay for camp too — this
+// keeps the admin queue honest. Same best-effort sheet append and
+// payment-confirmed email side-effects as the camper version.
+adminRouter.post('/admin/leaders/:id/mark-paid', requireAdmin, async (req, res) => {
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'Invalid leader id' });
+  }
+  try {
+    const [updated] = await db
+      .update(leaders)
+      .set({ paymentReceivedAt: new Date(), updatedAt: new Date() })
+      .where(eq(leaders.id, id))
+      .returning();
+    if (!updated) return res.status(404).json({ error: 'Leader not found' });
+
+    appendToSheet('Payments', [
+      new Date().toISOString(),
+      String(updated.id),
+      `${updated.firstName} ${updated.lastName}`,
+      updated.email,
+      'leader',
+      String(updated.year),
+    ]).catch((err) => {
+      console.error('Payments sheet sync failed (DB write succeeded):', err);
+    });
+
+    sendPaymentConfirmed(updated.email, updated.firstName, null).catch((err) => {
+      console.error('Payment-confirmed email failed:', err);
+    });
+
+    res.json({ id: updated.id, paymentReceivedAt: updated.paymentReceivedAt });
+  } catch (err) {
+    console.error('leader mark-paid error:', err);
+    res.status(500).json({ error: 'Failed to mark as paid' });
+  }
+});
+
 adminRouter.get('/admin/leaders', requireAdmin, async (_req, res) => {
   try {
     const rows = await db
       .select()
       .from(leaders)
       .where(isNull(leaders.deletedAt))
-      .orderBy(desc(leaders.year), leaders.lastName, leaders.firstName);
+      // Order by registration date (newest first) so the admin sees fresh
+      // applications at the top of the queue rather than buried in
+      // alphabetical pages of approved leaders.
+      .orderBy(desc(leaders.createdAt));
     res.json({ total: rows.length, leaders: rows });
   } catch (err) {
     console.error('admin/leaders error:', err);
