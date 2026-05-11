@@ -33,8 +33,14 @@ function normalizePrivateKey(input: string): string {
   return s.replace(/\\\\n/g, '\\n').replace(/\\n/g, '\n');
 }
 
-const PEM_HEADER = /-----BEGIN [A-Z ]*PRIVATE KEY-----/;
-const PEM_FOOTER = /-----END [A-Z ]*PRIVATE KEY-----/;
+// Loose markers — case-insensitive, tolerant of em-dashes / extra hyphens /
+// missing newlines. The point of this guard is to catch obvious mistakes
+// (placeholder text, empty paste, half-copied value) before OpenSSL erupts
+// with ERR_OSSL_UNSUPPORTED. A real PEM that's slightly mangled in shape
+// should still pass — let the SDK make the final call on whether it can
+// actually sign with it.
+const PEM_HEADER = /BEGIN[\s\S]*?PRIVATE\s*KEY/i;
+const PEM_FOOTER = /END[\s\S]*?PRIVATE\s*KEY/i;
 
 // Exported for tests. The actual env-validate-and-exit dance below uses
 // the same schema. Anything that wants to assert on the schema's behaviour
