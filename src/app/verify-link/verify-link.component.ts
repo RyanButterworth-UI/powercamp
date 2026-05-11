@@ -2,9 +2,21 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { environment } from '../../environments/environment';
 import { SkeletonComponent } from '../skeleton/skeleton.component';
+import { SagaSelectComponent, SagaSelectOption } from '../saga-select/saga-select.component';
+import { CHURCHES, CHURCH_OTHER } from '../data/churches';
+
+// Same option lists as the main registration form (camp-additional-info
+// + t-shirt). Duplicated here rather than imported because each step
+// component owns its constants — the camp-additional-info component
+// keeps them as plain signals on the class. Keeping the values literal
+// here means a future tweak to one needs the other touched too.
+const GENDER_OPTIONS = ['Male', 'Female'] as const;
+const AGE_OPTIONS = ['14', '15', '16', '17', '18', 'Leader 18+'];
+const GRADE_OPTIONS = ['8', '9', '10', '11', '12', 'Leader'];
+const TSHIRT_OPTIONS = ['small', 'medium', 'large', 'xlarge'];
 
 interface VerifiedCamper {
   id: number;
@@ -45,7 +57,7 @@ interface VerifiedCamper {
 @Component({
   selector: 'app-verify-link',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, SkeletonComponent],
+  imports: [CommonModule, ReactiveFormsModule, SkeletonComponent, SagaSelectComponent],
   template: `
     <div class="container mx-auto p-4 sm:p-6 max-w-3xl">
       @if (loading()) {
@@ -128,24 +140,113 @@ interface VerifiedCamper {
               <label class="flex flex-col gap-1.5 text-sm">Camper Cell
                 <input formControlName="camperCell" class="w-full px-3 py-2" />
               </label>
-              <label class="flex flex-col gap-1.5 text-sm">Gender
-                <input formControlName="gender" class="w-full px-3 py-2" />
-              </label>
-              <label class="flex flex-col gap-1.5 text-sm">Age
-                <input formControlName="age" class="w-full px-3 py-2" />
-              </label>
-              <label class="flex flex-col gap-1.5 text-sm">Grade
-                <input formControlName="grade" class="w-full px-3 py-2" />
-              </label>
-              <label class="flex flex-col gap-1.5 text-sm">Date of birth
+
+              <!-- Gender: radio cards, same shape as camp-additional-info. -->
+              <fieldset aria-label="Gender" class="sm:col-span-2">
+                <legend class="text-sm font-medium mb-2">Gender</legend>
+                <div class="grid grid-cols-2 gap-3">
+                  @for (g of genderOptions; track g) {
+                    <label
+                      class="group relative flex items-center justify-center rounded-md border border-gray-300 bg-white p-3 has-checked:border-green-300 has-checked:bg-green-300 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-green-600 cursor-pointer"
+                    >
+                      <input
+                        type="radio"
+                        formControlName="gender"
+                        [value]="g"
+                        class="absolute inset-0 appearance-none focus:outline-none"
+                      />
+                      <span class="text-sm font-medium uppercase group-has-checked:text-green-900">{{ g }}</span>
+                    </label>
+                  }
+                </div>
+              </fieldset>
+
+              <!-- Age: 14-18 + "Leader 18+" for adults. -->
+              <fieldset aria-label="Age" class="sm:col-span-2">
+                <legend class="text-sm font-medium mb-2">Age</legend>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+                  @for (a of ageOptions; track a) {
+                    <label
+                      class="group relative flex items-center justify-center rounded-md border border-gray-300 bg-white p-2.5 has-checked:border-green-300 has-checked:bg-green-300 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-green-600 cursor-pointer"
+                    >
+                      <input
+                        type="radio"
+                        formControlName="age"
+                        [value]="a"
+                        class="absolute inset-0 appearance-none focus:outline-none"
+                      />
+                      <span class="text-xs font-medium uppercase group-has-checked:text-green-900 text-center">{{ a }}</span>
+                    </label>
+                  }
+                </div>
+              </fieldset>
+
+              <!-- Grade: 8-12 + "Leader". -->
+              <fieldset aria-label="Grade" class="sm:col-span-2">
+                <legend class="text-sm font-medium mb-2">Grade</legend>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+                  @for (g of gradeOptions; track g) {
+                    <label
+                      class="group relative flex items-center justify-center rounded-md border border-gray-300 bg-white p-2.5 has-checked:border-green-300 has-checked:bg-green-300 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-green-600 cursor-pointer"
+                    >
+                      <input
+                        type="radio"
+                        formControlName="grade"
+                        [value]="g"
+                        class="absolute inset-0 appearance-none focus:outline-none"
+                      />
+                      <span class="text-xs font-medium uppercase group-has-checked:text-green-900">{{ g }}</span>
+                    </label>
+                  }
+                </div>
+              </fieldset>
+
+              <label class="flex flex-col gap-1.5 text-sm sm:col-span-2">Date of birth
                 <input type="date" formControlName="dob" class="w-full px-3 py-2" />
               </label>
-              <label class="flex flex-col gap-1.5 text-sm">Church
-                <input formControlName="church" class="w-full px-3 py-2" />
-              </label>
-              <label class="flex flex-col gap-1.5 text-sm">T-shirt size
-                <input formControlName="tshirt" class="w-full px-3 py-2" />
-              </label>
+
+              <!-- Church: same saga-select as the t-shirt step, with the
+                   "Other" escape hatch for churches not in the list. -->
+              <div class="flex flex-col gap-1.5 text-sm sm:col-span-2">
+                <span>Church</span>
+                <app-saga-select
+                  [control]="churchSelect"
+                  [options]="churchOptions"
+                  placeholder="Select your church…"
+                  [enableSearch]="true"
+                ></app-saga-select>
+                @if (otherSelected()) {
+                  <input
+                    formControlName="church"
+                    placeholder="Type your church name"
+                    type="text"
+                    class="w-full rounded-lg px-3 py-2 mt-1"
+                  />
+                }
+              </div>
+
+              <!-- T-shirt: radio cards, same option list as the t-shirt step. -->
+              <fieldset aria-label="T-shirt size" class="sm:col-span-2">
+                <legend class="text-sm font-medium mb-2">T-shirt size</legend>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  @for (t of tshirtOptions; track t) {
+                    <label
+                      class="group relative flex items-center justify-center rounded-md border border-gray-300 bg-white p-2.5 has-checked:border-green-300 has-checked:bg-green-300 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-green-600 cursor-pointer"
+                    >
+                      <input
+                        type="radio"
+                        formControlName="tshirt"
+                        [value]="t"
+                        class="absolute inset-0 appearance-none focus:outline-none"
+                      />
+                      <span class="text-xs font-medium uppercase group-has-checked:text-green-900">
+                        {{ t === 'xlarge' ? 'X-Large' : (t.charAt(0).toUpperCase() + t.slice(1)) }}
+                      </span>
+                    </label>
+                  }
+                </div>
+              </fieldset>
+
               <label class="flex flex-col gap-1.5 text-sm sm:col-span-2">Medical info
                 <input formControlName="medical" class="w-full px-3 py-2" />
               </label>
@@ -293,6 +394,25 @@ export class VerifyLinkComponent {
     { key: 'photo', label: 'Photo consent — photos taken at camp may be used in camp media.' },
   ];
 
+  // Option lists rendered as radio cards in the template — mirror what
+  // camp-additional-info + t-shirt show on the main registration flow.
+  readonly genderOptions = GENDER_OPTIONS;
+  readonly ageOptions = AGE_OPTIONS;
+  readonly gradeOptions = GRADE_OPTIONS;
+  readonly tshirtOptions = TSHIRT_OPTIONS;
+
+  // Standalone control for the church saga-select (same pattern as the
+  // t-shirt step). We sync it both directions with the camper.church
+  // form field in buildForm() so selecting from the dropdown writes
+  // through, and an existing church value (or "Other") opens the
+  // free-text input.
+  churchSelect = new FormControl<string>('');
+  otherSelected = signal(false);
+  readonly churchOptions: SagaSelectOption[] = [
+    ...CHURCHES.map((c) => ({ value: c, label: c })),
+    { value: CHURCH_OTHER, label: 'Other (type your own)' },
+  ];
+
   private readonly http = inject(HttpClient);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -367,6 +487,42 @@ export class VerifyLinkComponent {
         // historical row's consentDate.
         date: [new Date().toISOString().split('T')[0], Validators.required],
       }),
+    });
+    this.wireChurchSelect(c.church ?? '');
+  }
+
+  // Same sync pattern as the camper t-shirt step. The saga-select holds
+  // either a known church from the list OR the literal CHURCH_OTHER
+  // sentinel. When the user picks "Other" we open a free-text input
+  // that writes through to the camper.church form control.
+  private wireChurchSelect(initial: string): void {
+    const camperGroup = this.form?.get('camper');
+    if (!camperGroup) return;
+
+    if (!initial) {
+      this.churchSelect.setValue('');
+      this.otherSelected.set(false);
+    } else if (CHURCHES.includes(initial)) {
+      this.churchSelect.setValue(initial);
+      this.otherSelected.set(false);
+    } else {
+      // Anything not in the list is treated as a free-text "Other" entry.
+      this.churchSelect.setValue(CHURCH_OTHER);
+      this.otherSelected.set(true);
+    }
+
+    this.churchSelect.valueChanges.subscribe((value) => {
+      if (value === CHURCH_OTHER) {
+        this.otherSelected.set(true);
+        // Clear the existing church so the free-text input doesn't
+        // come up pre-populated with a stale name from the list.
+        if (CHURCHES.includes(camperGroup.get('church')?.value ?? '')) {
+          camperGroup.get('church')?.setValue('');
+        }
+      } else {
+        this.otherSelected.set(false);
+        camperGroup.get('church')?.setValue(value ?? '');
+      }
     });
   }
 
