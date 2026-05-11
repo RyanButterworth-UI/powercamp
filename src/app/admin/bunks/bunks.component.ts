@@ -31,7 +31,7 @@ interface BunkColumn {
         </button>
       </div>
 
-      <nav class="flex gap-4 mb-4 text-sm" style="border-bottom: 1px solid var(--color-saga-border)">
+      <nav class="flex gap-4 mb-4 text-sm overflow-x-auto whitespace-nowrap" style="border-bottom: 1px solid var(--color-saga-border); -webkit-overflow-scrolling: touch;">
         <a routerLink="/admin" class="saga-tab no-underline">Campers</a>
         <a routerLink="/admin/leaders" class="saga-tab no-underline">Leaders</a>
         <a routerLink="/admin/bulk-email" class="saga-tab no-underline">Bulk email</a>
@@ -75,7 +75,10 @@ interface BunkColumn {
           </span>
         </div>
 
-        <div class="grid gap-3" [style.gridTemplateColumns]="'repeat(' + columns().length + ', minmax(220px, 1fr))'">
+        <!-- Auto-fill grid so bunks wrap into rows on iPad. Each card stays
+             at least 220px so camper pills inside remain comfortable; the
+             column count adapts to the viewport without horizontal scroll. -->
+        <div class="grid gap-3" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr))">
           @for (col of columns(); track col.id ?? -1) {
             <div
               class="bunk-column"

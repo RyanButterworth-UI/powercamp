@@ -24,7 +24,7 @@ type Filter = 'all' | 'paid' | 'unpaid' | 'consent' | 'no-consent';
         </button>
       </div>
 
-      <nav class="flex gap-4 mb-6 text-sm" style="border-bottom: 1px solid var(--color-saga-border)">
+      <nav class="flex gap-4 mb-6 text-sm overflow-x-auto whitespace-nowrap" style="border-bottom: 1px solid var(--color-saga-border); -webkit-overflow-scrolling: touch;">
         <a routerLink="/admin" class="saga-tab no-underline">Campers</a>
         <a routerLink="/admin/leaders" class="saga-tab no-underline">Leaders</a>
         <span class="saga-tab is-active">Bulk email</span>

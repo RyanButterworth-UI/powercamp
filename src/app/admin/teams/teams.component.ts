@@ -38,7 +38,7 @@ const TEAM_PALETTE = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#e
         </button>
       </div>
 
-      <nav class="flex gap-4 mb-4 text-sm" style="border-bottom: 1px solid var(--color-saga-border)">
+      <nav class="flex gap-4 mb-4 text-sm overflow-x-auto whitespace-nowrap" style="border-bottom: 1px solid var(--color-saga-border); -webkit-overflow-scrolling: touch;">
         <a routerLink="/admin" class="saga-tab no-underline">Campers</a>
         <a routerLink="/admin/leaders" class="saga-tab no-underline">Leaders</a>
         <a routerLink="/admin/bulk-email" class="saga-tab no-underline">Bulk email</a>
@@ -67,7 +67,9 @@ const TEAM_PALETTE = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#e
           <button
             type="button"
             (click)="addTeam()"
+            [disabled]="teams().length >= 4"
             class="saga-btn saga-btn-secondary !py-1 !px-2.5 !text-xs"
+            [title]="teams().length >= 4 ? 'Power Camp runs four teams — remove one before adding another' : 'Add a new team'"
           >Add team</button>
           @if (teams().length === 0) {
             <button
@@ -96,7 +98,11 @@ const TEAM_PALETTE = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#e
           </span>
         </div>
 
-        <div class="grid gap-3" [style.gridTemplateColumns]="'repeat(' + (columns().length) + ', minmax(220px, 1fr))'">
+        <!-- Auto-fill grid so columns wrap into rows on narrower viewports
+             (iPad portrait gets ~3 across, landscape ~4, desktop the full 5).
+             Previously the grid was fixed at N columns and overflowed to a
+             horizontal scroll on iPad. -->
+        <div class="grid gap-3" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr))">
           @for (col of columns(); track col.id ?? -1) {
             <div
               class="team-column"
@@ -453,6 +459,13 @@ export class TeamsComponent {
 
   // ----- Team CRUD -----
   async addTeam(): Promise<void> {
+    // Hard cap at 4: Power Camp runs four teams. The button is also
+    // disabled past this in the template — this is the belt-and-braces
+    // guard for anyone clicking via DOM tools or programmatic submit.
+    if (this.teams().length >= 4) {
+      this.ui.toast('Power Camp runs four teams — remove one before adding another.', 'info');
+      return;
+    }
     const name = await this.ui.prompt({
       text: 'Team name (e.g. "Phoenix")',
       placeholder: 'Team name',

@@ -18,7 +18,7 @@ import { SkeletonComponent } from '../../skeleton/skeleton.component';
         </button>
       </div>
 
-      <nav class="flex gap-4 mb-4 text-sm" style="border-bottom: 1px solid var(--color-saga-border)">
+      <nav class="flex gap-4 mb-4 text-sm overflow-x-auto whitespace-nowrap" style="border-bottom: 1px solid var(--color-saga-border); -webkit-overflow-scrolling: touch;">
         <a routerLink="/admin" class="saga-tab no-underline">Campers</a>
         <span class="saga-tab is-active">Leaders</span>
         <a routerLink="/admin/bulk-email" class="saga-tab no-underline">Bulk email</a>
