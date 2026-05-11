@@ -28,11 +28,39 @@ app.use(
 
 app.use(express.json());
 
+// Resolved here (rather than next to express.static below) because the
+// SPA-fallback middleware further down references it before that block.
+const distDir = path.resolve(__dirname, '../dist/powercamp/browser');
+
 // Health check — used by Render to verify the service is up.
 // Must be registered before the static-file and SPA fallback handlers
 // so it isn't swallowed by the catch-all '*' route.
 app.get('/healthz', (_req, res) => {
   res.status(200).json({ status: 'ok' });
+});
+
+// SPA fallback for browser navigations under /admin/*. Several admin
+// routes overlap by name between the frontend (/admin/leaders /teams
+// /bunks are Angular routes) and the backend (GET /admin/leaders /teams
+// /bunks are JSON API routes). Without this middleware, refreshing on
+// /admin/bunks hits the API, requireAdmin sees no Bearer token, returns
+// 401 JSON, and the user never gets the SPA back.
+//
+// Detection by Accept header: browser navigations send
+//   Accept: text/html,application/xhtml+xml,...
+// and Angular's HttpClient fetch() sends
+//   Accept: application/json, text/plain, */*
+// so req.accepts(['html','json']) picks 'html' for the first and 'json'
+// for the second. The API stays accessible to authed fetch() calls.
+app.use((req, res, next) => {
+  if (
+    req.method === 'GET' &&
+    req.path.startsWith('/admin/') &&
+    req.accepts(['html', 'json']) === 'html'
+  ) {
+    return res.sendFile(path.join(distDir, 'index.html'));
+  }
+  next();
 });
 
 app.use(submitRouter);
@@ -49,7 +77,6 @@ app.use(statsRouter);
 app.use(teamsRouter);
 app.use(publicConfigRouter);
 
-const distDir = path.resolve(__dirname, '../dist/powercamp/browser');
 app.use(express.static(distDir));
 app.get('*', (_req, res) => {
   res.sendFile(path.join(distDir, 'index.html'));
