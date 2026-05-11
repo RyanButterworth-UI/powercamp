@@ -52,6 +52,20 @@ verifyLinkRouter.post('/verify-link', async (req, res) => {
         tshirt: camper.tshirt,
         generalInfo: camper.generalInfo,
         dob: camper.dob,
+        // Consent fields — prior values so the edit form can prefill
+        // instead of forcing the parent to re-tick six boxes they
+        // already agreed to. Stored as 'accept' or null on the row.
+        consentGeneral: camper.consentGeneral,
+        consentLocation: camper.consentLocation,
+        consentRisk: camper.consentRisk,
+        consentPowerCamp: camper.consentPowerCamp,
+        consentBehaviour: camper.consentBehaviour,
+        consentPhoto: camper.consentPhoto,
+        consentEmergencyName: camper.consentEmergencyName,
+        consentEmergencyContact: camper.consentEmergencyContact,
+        consentMedicalAidName: camper.consentMedicalAidName,
+        consentMedicalAidNumber: camper.consentMedicalAidNumber,
+        consentDate: camper.consentDate,
       },
     });
   } catch (err) {

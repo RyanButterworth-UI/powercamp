@@ -396,13 +396,16 @@ describe('AdminDashboardComponent — view mode (mix vs group)', () => {
     expect(panel.textContent?.toLowerCase()).toContain('columns');
   });
 
-  it('switching to group mode shows only the selected group\'s columns', () => {
+  it('switching to group mode shows the Name column pinned plus the selected group\'s columns', () => {
     const c = fixture.componentInstance;
     c.viewMode.set('group');
     c.selectedGroup.set('emergency');
     fixture.detectChanges();
     const visible = c.visibleColumns().map((x) => x.key);
-    expect(visible).toEqual(['consentEmergencyName', 'consentEmergencyContact']);
+    // Name is pinned as the leftmost column in group mode so the admin
+    // can always tell who each row is. The selected group's own columns
+    // come after it.
+    expect(visible).toEqual(['name', 'consentEmergencyName', 'consentEmergencyContact']);
   });
 
   it('selecting a group via the group selector updates the visible columns', () => {
@@ -416,7 +419,8 @@ describe('AdminDashboardComponent — view mode (mix vs group)', () => {
     metaBtn.click();
     fixture.detectChanges();
     expect(c.selectedGroup()).toBe('meta');
-    expect(c.visibleColumns().map((x) => x.key)).toEqual(['source', 'createdAt']);
+    // Name pinned + meta group's columns.
+    expect(c.visibleColumns().map((x) => x.key)).toEqual(['name', 'source', 'createdAt']);
   });
 
   it('persists view mode to localStorage (selected group resets each visit)', () => {

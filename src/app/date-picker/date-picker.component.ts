@@ -51,7 +51,11 @@ export class DatePickerComponent implements OnInit {
   control = input.required<FormControl>();
   min = input<string | null>(null);
   max = input<string | null>(null);
-  /** Year range, default = current year back 30 years (covers camper DOBs). */
+  /** Year range, default = current year back 80 years. Camper DOBs sit
+   * inside the most-recent 18 years of this, but the same picker is
+   * reused on /leader-register where adult leaders (Neil born 1975 etc.)
+   * need their birth year to be selectable too. Callers that want a
+   * tighter range can pass `yearsRange` explicitly. */
   yearsRange = input<{ from: number; to: number } | null>(null);
 
   readonly monthOptions: SagaSelectOption[] = [
@@ -84,7 +88,7 @@ export class DatePickerComponent implements OnInit {
 
   yearOptions = (): SagaSelectOption[] => {
     const range = this.yearsRange();
-    const from = range?.from ?? new Date().getFullYear() - 30;
+    const from = range?.from ?? new Date().getFullYear() - 80;
     const to = range?.to ?? new Date().getFullYear();
     const out: SagaSelectOption[] = [];
     for (let y = to; y >= from; y--) {
