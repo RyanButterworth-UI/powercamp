@@ -10,6 +10,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "import:2025": "tsx scripts/import-2025.ts",
+    "import:leaders-2025": "tsx scripts/import-leaders-2025.ts",
     "seed:test": "tsx scripts/seed-test-user.ts",
     "seed:random": "tsx scripts/seed-random.ts",
     "seed:team": "tsx scripts/seed-team.ts",
