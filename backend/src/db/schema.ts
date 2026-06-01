@@ -199,3 +199,41 @@ export const subscriptions = pgTable(
 
 export type Subscription = typeof subscriptions.$inferSelect;
 export type NewSubscription = typeof subscriptions.$inferInsert;
+
+// App-wide settings — a single-row table (id is pinned to 1). Currently
+// holds the master registrations-open switch the admin toggles to close the
+// public form once camp is full. Kept as its own table (rather than an env
+// var) so it can be flipped at runtime without a redeploy.
+export const settings = pgTable('settings', {
+  id: integer('id').primaryKey().default(1),
+  registrationsOpen: boolean('registrations_open').default(true).notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export type Settings = typeof settings.$inferSelect;
+
+// Waiting list — populated when registrations are closed and a family asks
+// to be added (via the closed-screen form, or manually by an admin from an
+// email). Separate from campers: these are not registrations, just a queue
+// of interested families to contact if a spot opens up.
+export const waitlist = pgTable(
+  'waitlist',
+  {
+    id: serial('id').primaryKey(),
+    year: integer('year').notNull(),
+    camperName: text('camper_name').notNull(),
+    parentName: text('parent_name'),
+    parentEmail: text('parent_email').notNull(),
+    phone: text('phone'),
+    grade: text('grade'),
+    note: text('note'),
+    // 'waiting' | 'contacted' | 'placed' | 'declined' — free-text so the
+    // admin UI can evolve the workflow without a migration.
+    status: text('status').default('waiting').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (t) => [index('waitlist_year_idx').on(t.year)]
+);
+
+export type WaitlistEntry = typeof waitlist.$inferSelect;
+export type NewWaitlistEntry = typeof waitlist.$inferInsert;

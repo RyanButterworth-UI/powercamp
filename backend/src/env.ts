@@ -100,6 +100,11 @@ export const envSchema = z.object({
   // so a fresh deploy without NEIL_EMAIL still routes notifications to a
   // real inbox the camp owns rather than dropping them.
   NEIL_EMAIL: z.string().email().optional(),
+  // Inbox families are pointed at to join the waiting list once
+  // registrations are closed, and where new waiting-list submissions are
+  // notified. Defaults to the camp's public mailbox so a fresh deploy
+  // works without extra config.
+  REGISTRATION_ADMIN_EMAIL: z.string().email().default('powercamplife@gmail.com'),
   PORT: z
     .string()
     .default('3000')

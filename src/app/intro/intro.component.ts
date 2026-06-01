@@ -43,7 +43,7 @@ import { StepKey } from '../../models';
             <span class="ml-2" style="color: var(--color-saga-action); font-weight: 700;">ONLY grade 8 – grade 12</span>
           </div>
           <div>
-            <span class="font-semibold">Cost:</span> R1300 (accommodation, meals, all activities, and the POWER camp T-shirt)
+            <span class="font-semibold">Cost:</span> R1350 (accommodation, meals, all activities, and the POWER camp T-shirt)
           </div>
           <div class="text-xs font-bold" style="color: var(--color-saga-danger)">Excludes transport to and from camp and tuck money.</div>
         </div>

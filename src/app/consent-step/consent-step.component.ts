@@ -37,10 +37,19 @@ const CONSENT_EXTRA_KEYS = [
         [class.opacity-100]="stepVisible()"
       >
         <h2 class="text-xl font-bold mb-2">Consent (required for each child)</h2>
-        <p class="text-xs mb-4" style="color: var(--color-saga-text-muted)">
-          As parent/guardian of {{ camperName() }}, please tick each statement
-          to give your consent. All must be ticked before you can submit.
+        <p class="text-xs mb-3" style="color: var(--color-saga-text-muted)">
+          Please read the full consent below, then tick each statement to confirm you accept it.
+          All statements must be accepted before you can submit.
         </p>
+        <div
+          class="rounded-lg p-3 mb-4 text-sm"
+          style="background-color: var(--color-saga-primary-soft); border: 1px solid var(--color-saga-primary); color: var(--color-saga-text);"
+          data-testid="consent-preamble"
+        >
+          I, <span class="font-semibold">{{ parentFullName() }}</span>, parent/guardian of
+          <span class="font-semibold">{{ camperName() }}</span>, give the following consents for
+          Power Camp 2026 (31 July – 2 August 2026):
+        </div>
 
         <div class="flex flex-col gap-2 mb-6">
           @for (c of consentItems; track c.key) {
@@ -173,40 +182,43 @@ export class ConsentStepComponent {
   StepKey = StepKey;
   protected readonly resetSvc = inject(ResetRegistrationService);
 
-  // Each statement IS the policy — there is no separate document to read.
-  // Wording is original (not lifted verbatim from the 2024 Typeform) and
-  // reframed politely so the consents stand on their own under the POPIA
-  // requirement that consent be specific, informed, and freely given.
+  // Full formal consent wording, carried over from previous years' indemnity
+  // form and updated to the 2026 dates/venue. Each statement is its own
+  // specific, informed consent (POPIA). The fourth statement intentionally
+  // combines the "safety of child & property" and "indemnity" clauses from
+  // the prior form into one acceptance so the data model stays at six
+  // boolean fields (no DB migration), while still showing the parent the
+  // complete liability wording from previous years.
   consentItems = [
     {
       key: 'consent_general',
       label:
-        'I give permission for my child to attend Power Camp from 31 July – 2 August 2026 and take part in the activities.',
+        'I give permission for my child to participate in the programs and activities of Power Camp from 31 July 2026 to 2 August 2026, subject to the conditions stated below.',
     },
     {
       key: 'consent_location',
       label:
-        'I am aware that camp runs at YFC Magaliesburg (Boitumelo & Kotula).',
+        'I understand that the programs and activities will be held at YFC Magaliesburg (Boitumelo & Kotula), Magaliesburg.',
     },
     {
       key: 'consent_risk',
       label:
-        'I accept that camp activities carry inherent risk, and my child takes part at their own risk.',
+        'I accept that my child participates in all activities at his/her own risk.',
     },
     {
       key: 'consent_powerCamp',
       label:
-        'I accept that the organisers, leaders and YFC Magaliesburg staff cannot be held liable for any loss, injury or damage, and I will not bring any claim against them arising from my child’s participation.',
+        'I understand that the Power Camp organisers, facilitators and camp leaders (and the staff of YFC Magaliesburg) will do all in their power to ensure the safety of my child and his/her property, but cannot be held responsible for any loss or damage to life or property that arises while my child is at camp. I therefore agree to indemnify and hold harmless the Power Camp organisers (including the facilitators and leaders, and YFC Magaliesburg) against all claims, demands, suits and liability of whatever nature and howsoever arising out of injury to my child, and the relevant activity being undertaken.',
     },
     {
       key: 'consent_behaviour',
       label:
-        'My child agrees to follow reasonable instructions from camp leaders. I understand that, at the organisers’ discretion, a camper who behaves inappropriately may be sent home.',
+        'I understand that my child will be required to obey all lawful instructions from the facilitators, leaders and any other Power Camp authorities. I also hereby give consent that my child may be sent home if they behave inappropriately, as decided by the Power Camp organisers.',
     },
     {
       key: 'consent_photo',
       label:
-        'I am happy for photos or videos of my child taken at camp to be shared with other campers and on Power Camp’s social channels.',
+        'I give consent for photographs and videos to be taken of my child, and for these to be shared with other campers as well as on Power Camp social media sites.',
     },
   ];
 
@@ -218,6 +230,12 @@ export class ConsentStepComponent {
     const f = this.form.get('firstName')?.value ?? '';
     const l = this.form.get('lastName')?.value ?? '';
     return `${f} ${l}`.trim() || 'this camper';
+  }
+
+  // Parent/guardian full name for the formal consent preamble. Falls back to
+  // a neutral phrase before the Parent step has been filled in.
+  parentFullName(): string {
+    return (this.form.get('parentName')?.value ?? '').toString().trim() || 'the parent/guardian';
   }
 
   consentValid(): boolean {

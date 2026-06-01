@@ -43,7 +43,7 @@ describe('IntroComponent', () => {
   it('shows the camp dates / location / cost (merged from the old Details step)', () => {
     const text: string = fixture.nativeElement.textContent;
     expect(text).toContain('YFC Magaliesburg');
-    expect(text).toContain('R1300');
+    expect(text).toContain('R1350');
     expect(text).toContain('grade 8');
   });
 });

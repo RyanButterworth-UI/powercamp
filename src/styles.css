@@ -37,7 +37,18 @@ html, body {
   background-color: var(--color-saga-canvas);
   color: var(--color-saga-text);
   font-family: var(--font-saga);
+  /* 100vh on mobile counts the space behind the address bar, so the page
+     ends up taller than the visible viewport and a phantom scrollbar appears.
+     dvh tracks the *visible* height; the vh line stays as a fallback for
+     browsers without dvh support. */
   min-height: 100vh;
+  min-height: 100dvh;
+  /* Height reserved by the sticky site header. Page containers subtract this
+     from the viewport so a full-height page (which sits BELOW the header in
+     normal flow) doesn't push the document past the viewport and create a
+     phantom scroll. Slightly over the real header height so we err toward a
+     hair of slack rather than overflow. */
+  --site-nav-h: 4rem;
 }
 
 /* Topographical map background — simple ellipses warped by an SVG turbulence

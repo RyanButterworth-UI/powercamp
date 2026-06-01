@@ -12,6 +12,7 @@ import { OtherInfoComponent } from '../other-info/other-info.component';
 import { ParentComponent } from '../parent/parent.component';
 import { SuccessDialogComponent } from '../success-dialog/success-dialog.component';
 import { SummaryComponent } from '../summary/summary.component';
+import { RegistrationClosedComponent } from '../registration-closed/registration-closed.component';
 import { TShirtComponent } from '../t-shirt/t-shirt.component';
 import { StepKey } from '../../models';
 import { HttpClient } from '@angular/common/http';
@@ -35,12 +36,13 @@ import { ResetRegistrationService } from '../reset-registration.service';
     ParentComponent,
     SuccessDialogComponent,
     SummaryComponent,
+    RegistrationClosedComponent,
     TShirtComponent,
     ReactiveFormsModule,
   ],
   template: `
     <div
-      class="container mx-auto my-0 min-h-dvh font-inter flex lg:justify-center lg:items-center"
+      class="container mx-auto my-0 min-h-[calc(100dvh-var(--site-nav-h))] font-inter flex lg:justify-center lg:items-center"
     >
       <div class="w-full lg:w-1/2 h-full flex flex-col">
         <div class="w-full mx-auto h-full flex flex-col">
@@ -51,6 +53,8 @@ import { ResetRegistrationService } from '../reset-registration.service';
               (refreshApp)="refreshApp()"
               (registerAnother)="registerAnotherChild()"
             ></app-success-dialog>
+          } @else if (!registrationsOpen()) {
+            <app-registration-closed [waitlistEmail]="waitlistEmail()"></app-registration-closed>
           } @else {
             @if (isSubmitting()) {
               <div
@@ -172,6 +176,13 @@ export class FormComponent {
 
   stepVisible = signal(true);
   isSubmitting = signal(false);
+  // Whether the public form is accepting new registrations. Defaults to true
+  // so the form shows immediately; flipped to false only once the backend's
+  // /registration-status says registrations are closed. The closed screen is
+  // for NEW registrations only — existing families edit via their link
+  // (/verify-link), which is unaffected.
+  registrationsOpen = signal(true);
+  waitlistEmail = signal('powercamplife@gmail.com');
   // Hides the form area on first paint so the stepper doesn't flash in before
   // the rest of the layout settles. Flipped to true after a short tick — gives
   // the browser one frame to lay things out before the fade-in starts.
@@ -301,6 +312,23 @@ export class FormComponent {
     // Step components render their own inline Restart button and dispatch
     // through this service rather than each carrying their own Output.
     this.resetSvc.register(() => this.confirmReset());
+
+    // Check whether registrations are open. Best-effort: if the request
+    // fails we leave the form open (registrationsOpen defaults to true) so a
+    // transient backend hiccup never blocks a family from registering.
+    this.http
+      .get<{ registrationsOpen: boolean; waitlistEmail?: string }>(
+        `${environment.baseApi}/registration-status`
+      )
+      .subscribe({
+        next: (res) => {
+          this.registrationsOpen.set(res.registrationsOpen);
+          if (res.waitlistEmail) this.waitlistEmail.set(res.waitlistEmail);
+        },
+        error: () => {
+          // Leave registrations open on error.
+        },
+      });
   }
 
   // Walks the form's required fields in order and returns the step where the

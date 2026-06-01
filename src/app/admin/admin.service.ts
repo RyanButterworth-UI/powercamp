@@ -64,6 +64,19 @@ export interface Bunk {
 }
 export interface BunkAssignment { camperId: number; bunkId: number | null; }
 
+export interface WaitlistEntry {
+  id: number;
+  year: number;
+  camperName: string;
+  parentName: string | null;
+  parentEmail: string;
+  phone: string | null;
+  grade: string | null;
+  note: string | null;
+  status: string;
+  createdAt: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdminService {
   private readonly http = inject(HttpClient);
@@ -86,6 +99,30 @@ export class AdminService {
 
   login(password: string): Observable<{ token: string }> {
     return this.http.post<{ token: string }>(`${environment.baseApi}/admin/login`, { password });
+  }
+
+  // ----- Registrations open/closed -----
+  getRegistrationStatus(): Observable<{ registrationsOpen: boolean }> {
+    return this.http.get<{ registrationsOpen: boolean }>(
+      `${environment.baseApi}/admin/registration-status`,
+      { headers: this.authHeaders() }
+    );
+  }
+
+  setRegistrationStatus(open: boolean): Observable<{ registrationsOpen: boolean }> {
+    return this.http.post<{ registrationsOpen: boolean }>(
+      `${environment.baseApi}/admin/registration-status`,
+      { open },
+      { headers: this.authHeaders() }
+    );
+  }
+
+  // ----- Waiting list -----
+  listWaitlist(): Observable<{ total: number; waitlist: WaitlistEntry[] }> {
+    return this.http.get<{ total: number; waitlist: WaitlistEntry[] }>(
+      `${environment.baseApi}/admin/waitlist`,
+      { headers: this.authHeaders() }
+    );
   }
 
   list(): Observable<{ total: number; campers: AdminCamper[] }> {

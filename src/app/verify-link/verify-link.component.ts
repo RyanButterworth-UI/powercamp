@@ -112,6 +112,96 @@ interface VerifiedCamper {
             Done
           </button>
         </div>
+      } @else if (reviewing() && form && camper()) {
+        <!-- Read-only review/summary screen — the "summary page at the end"
+             returning families asked for, matching the new-registration flow. -->
+        <div data-testid="edit-review">
+          <h2 class="text-xl font-bold mb-1" style="color: var(--color-saga-text-strong)">
+            Please review your details
+          </h2>
+          <p class="text-sm mb-6" style="color: var(--color-saga-text-muted)">
+            Check everything below is correct, then confirm to submit your registration for
+            Power Camp 2026. Need to change something? Use “Back to edit”.
+          </p>
+
+          <fieldset class="saga-card p-4 mb-4">
+            <legend class="px-2 text-sm font-semibold" style="color: var(--color-saga-text)">Camper details</legend>
+            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">
+              <div><dt class="text-xs uppercase tracking-wide" style="color: var(--color-saga-text-muted)">Name</dt><dd>{{ camperVal('firstName') }} {{ camperVal('lastName') }}</dd></div>
+              <div><dt class="text-xs uppercase tracking-wide" style="color: var(--color-saga-text-muted)">Camper email</dt><dd>{{ camperVal('email') }}</dd></div>
+              <div><dt class="text-xs uppercase tracking-wide" style="color: var(--color-saga-text-muted)">Camper cell</dt><dd>{{ camperVal('camperCell') }}</dd></div>
+              <div><dt class="text-xs uppercase tracking-wide" style="color: var(--color-saga-text-muted)">Gender</dt><dd>{{ camperVal('gender') }}</dd></div>
+              <div><dt class="text-xs uppercase tracking-wide" style="color: var(--color-saga-text-muted)">Age</dt><dd>{{ camperVal('age') }}</dd></div>
+              <div><dt class="text-xs uppercase tracking-wide" style="color: var(--color-saga-text-muted)">Grade</dt><dd>{{ camperVal('grade') }}</dd></div>
+              <div><dt class="text-xs uppercase tracking-wide" style="color: var(--color-saga-text-muted)">Date of birth</dt><dd>{{ camperVal('dob') }}</dd></div>
+              <div><dt class="text-xs uppercase tracking-wide" style="color: var(--color-saga-text-muted)">Church</dt><dd>{{ camperVal('church') }}</dd></div>
+              <div><dt class="text-xs uppercase tracking-wide" style="color: var(--color-saga-text-muted)">T-shirt</dt><dd>{{ camperVal('tshirt') }}</dd></div>
+              <div class="sm:col-span-2"><dt class="text-xs uppercase tracking-wide" style="color: var(--color-saga-text-muted)">Medical info</dt><dd>{{ camperVal('medical') }}</dd></div>
+              <div class="sm:col-span-2"><dt class="text-xs uppercase tracking-wide" style="color: var(--color-saga-text-muted)">Anything else</dt><dd>{{ camperVal('generalInfo') }}</dd></div>
+            </dl>
+          </fieldset>
+
+          <fieldset class="saga-card p-4 mb-4">
+            <legend class="px-2 text-sm font-semibold" style="color: var(--color-saga-text)">Parent / guardian</legend>
+            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">
+              <div><dt class="text-xs uppercase tracking-wide" style="color: var(--color-saga-text-muted)">Name</dt><dd>{{ camperVal('parentName') }}</dd></div>
+              <div><dt class="text-xs uppercase tracking-wide" style="color: var(--color-saga-text-muted)">Phone</dt><dd>{{ camperVal('parentPhone') }}</dd></div>
+              <div class="sm:col-span-2"><dt class="text-xs uppercase tracking-wide" style="color: var(--color-saga-text-muted)">Email</dt><dd>{{ camperVal('parentEmail') }}</dd></div>
+            </dl>
+          </fieldset>
+
+          <fieldset class="saga-card p-4 mb-4">
+            <legend class="px-2 text-sm font-semibold" style="color: var(--color-saga-text)">Emergency &amp; medical aid</legend>
+            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">
+              <div><dt class="text-xs uppercase tracking-wide" style="color: var(--color-saga-text-muted)">Emergency contact</dt><dd>{{ consentVal('emergencyName') }}</dd></div>
+              <div><dt class="text-xs uppercase tracking-wide" style="color: var(--color-saga-text-muted)">Emergency number</dt><dd>{{ consentVal('emergencyContact') }}</dd></div>
+              @if (noMedicalAid()) {
+                <div class="sm:col-span-2"><dt class="text-xs uppercase tracking-wide" style="color: var(--color-saga-text-muted)">Medical aid</dt><dd>Not on medical aid</dd></div>
+              } @else {
+                <div><dt class="text-xs uppercase tracking-wide" style="color: var(--color-saga-text-muted)">Medical aid</dt><dd>{{ consentVal('medicalAidName') }}</dd></div>
+                <div><dt class="text-xs uppercase tracking-wide" style="color: var(--color-saga-text-muted)">Medical aid number</dt><dd>{{ consentVal('medicalAidNumber') }}</dd></div>
+              }
+              <div class="sm:col-span-2"><dt class="text-xs uppercase tracking-wide" style="color: var(--color-saga-text-muted)">Date of completion</dt><dd>{{ consentVal('date') }}</dd></div>
+            </dl>
+          </fieldset>
+
+          <fieldset class="saga-card p-4 mb-4">
+            <legend class="px-2 text-sm font-semibold" style="color: var(--color-saga-text)">Consent</legend>
+            <ul class="flex flex-col gap-2 text-sm">
+              @for (c of consentItems; track c.key) {
+                <li class="flex gap-2">
+                  <span aria-hidden="true" style="color: var(--color-saga-success)">{{ consentAccepted(c.key) ? '✓' : '✗' }}</span>
+                  <span>{{ c.label }}</span>
+                </li>
+              }
+            </ul>
+          </fieldset>
+
+          @if (submitError()) {
+            <div
+              class="saga-card p-3 text-sm mb-4"
+              data-testid="submit-error"
+              style="border-color: var(--color-saga-danger); background-color: var(--color-saga-danger-soft); color: var(--color-saga-danger)"
+            >
+              {{ submitError() }}
+            </div>
+          }
+
+          <div class="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
+            <button type="button" (click)="backToEdit()" class="saga-btn saga-btn-secondary w-full sm:w-auto">
+              Back to edit
+            </button>
+            <button
+              type="button"
+              (click)="submit()"
+              [disabled]="submitting()"
+              data-testid="confirm-submit"
+              class="saga-btn saga-btn-primary w-full sm:w-auto"
+            >
+              {{ submitting() ? 'Submitting…' : 'Confirm &amp; submit' }}
+            </button>
+          </div>
+        </div>
       } @else if (form && camper()) {
         <h2 class="text-xl font-bold mb-1" style="color: var(--color-saga-text-strong)">
           Welcome back, {{ camper()!.firstName }} {{ camper()!.lastName }}
@@ -121,7 +211,7 @@ interface VerifiedCamper {
           consent and submit to register for Power Camp 2026.
         </p>
 
-        <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-6">
+        <form [formGroup]="form" (ngSubmit)="review()" class="flex flex-col gap-6">
           <!-- Camper details -->
           <fieldset class="saga-card p-4">
             <legend class="px-2 text-sm font-semibold" style="color: var(--color-saga-text)">
@@ -280,8 +370,9 @@ interface VerifiedCamper {
               Consent (all required)
             </legend>
             <p class="text-xs mb-3" style="color: var(--color-saga-text-muted)">
-              I, the parent/guardian of {{ camper()!.firstName }} {{ camper()!.lastName }}, agree to the
-              following.
+              Please read the full consent below, then tick each statement to confirm you accept it.
+              I, the parent/guardian of {{ camper()!.firstName }} {{ camper()!.lastName }}, give the
+              following consents for Power Camp 2026 (31 July – 2 August 2026):
             </p>
             <div class="flex flex-col gap-2">
               @for (c of consentItems; track c.key) {
@@ -365,7 +456,7 @@ interface VerifiedCamper {
               [disabled]="form.invalid || submitting()"
               class="saga-btn saga-btn-primary w-full sm:w-auto"
             >
-              {{ submitting() ? 'Submitting…' : 'Submit registration' }}
+              Review &amp; submit
             </button>
           </div>
         </form>
@@ -382,16 +473,47 @@ export class VerifyLinkComponent {
   submitting = signal(false);
   submitError = signal<string | null>(null);
   submittedAt = signal<string | null>(null);
+  // When true we show the read-only review/summary screen instead of the
+  // edit form, mirroring the "Review" step new registrations get on the main
+  // flow. Returning families flagged that editing went straight from the form
+  // to submit with no chance to check everything first.
+  reviewing = signal(false);
 
   form: FormGroup | null = null;
 
+  // Full formal consent wording — kept in step with the main registration
+  // flow's consent-step. The fourth statement combines the prior form's
+  // "safety of child & property" and "indemnity" clauses into one acceptance.
   consentItems: { key: string; label: string }[] = [
-    { key: 'general', label: 'General consent — my child may attend Power Camp.' },
-    { key: 'location', label: 'Location consent — I am aware of the venue and the dates.' },
-    { key: 'risk', label: 'Risk consent — I accept the inherent risk of camp activities.' },
-    { key: 'powerCamp', label: 'Organisers consent — I understand the role of the camp organisers.' },
-    { key: 'behaviour', label: 'Behaviour consent — I have read the behaviour policy.' },
-    { key: 'photo', label: 'Photo consent — photos taken at camp may be used in camp media.' },
+    {
+      key: 'general',
+      label:
+        'I give permission for my child to participate in the programs and activities of Power Camp from 31 July 2026 to 2 August 2026, subject to the conditions stated below.',
+    },
+    {
+      key: 'location',
+      label:
+        'I understand that the programs and activities will be held at YFC Magaliesburg (Boitumelo & Kotula), Magaliesburg.',
+    },
+    {
+      key: 'risk',
+      label: 'I accept that my child participates in all activities at his/her own risk.',
+    },
+    {
+      key: 'powerCamp',
+      label:
+        'I understand that the Power Camp organisers, facilitators and camp leaders (and the staff of YFC Magaliesburg) will do all in their power to ensure the safety of my child and his/her property, but cannot be held responsible for any loss or damage to life or property that arises while my child is at camp. I therefore agree to indemnify and hold harmless the Power Camp organisers (including the facilitators and leaders, and YFC Magaliesburg) against all claims, demands, suits and liability of whatever nature and howsoever arising out of injury to my child, and the relevant activity being undertaken.',
+    },
+    {
+      key: 'behaviour',
+      label:
+        'I understand that my child will be required to obey all lawful instructions from the facilitators, leaders and any other Power Camp authorities. I also hereby give consent that my child may be sent home if they behave inappropriately, as decided by the Power Camp organisers.',
+    },
+    {
+      key: 'photo',
+      label:
+        'I give consent for photographs and videos to be taken of my child, and for these to be shared with other campers as well as on Power Camp social media sites.',
+    },
   ];
 
   // Option lists rendered as radio cards in the template — mirror what
@@ -524,6 +646,44 @@ export class VerifyLinkComponent {
         camperGroup.get('church')?.setValue(value ?? '');
       }
     });
+  }
+
+  // Step 1 of submitting: validate, then show the read-only review screen.
+  // The actual POST happens in submit(), called from the review screen's
+  // "Confirm & submit" button. If the form is invalid we mark all controls
+  // touched so the inline validation messages show on the fields at fault.
+  review(): void {
+    if (!this.form) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+    this.submitError.set(null);
+    this.reviewing.set(true);
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // Return from the review screen to the editable form.
+  backToEdit(): void {
+    this.reviewing.set(false);
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // Read a camper field for the read-only review screen. Arrays (friends)
+  // are joined; empty values render as an em dash.
+  camperVal(key: string): string {
+    const v = this.form?.get('camper')?.get(key)?.value;
+    if (Array.isArray(v)) return v.filter(Boolean).join(', ') || '—';
+    return v != null && String(v).trim() !== '' ? String(v) : '—';
+  }
+
+  consentVal(key: string): string {
+    const v = this.form?.get('consent')?.get(key)?.value;
+    return v != null && String(v).trim() !== '' ? String(v) : '—';
+  }
+
+  consentAccepted(key: string): boolean {
+    return !!this.form?.get('consent')?.get(key)?.value;
   }
 
   submit(): void {

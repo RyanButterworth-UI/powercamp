@@ -33,9 +33,31 @@ import { PageGhostComponent } from '../skeleton/page-ghost.component';
           portal password. Talk to your camp coordinator if you're interested.
         </p>
         <p class="text-sm" style="color: var(--color-saga-text-muted)">
-          Cost is R1300 — accommodation, all meals, every activity, and the official camp T-shirt.
+          Cost is R1350 — accommodation, all meals, every activity, and the official camp T-shirt.
           You bring transport, tuck money, and a sense of adventure.
         </p>
+      </div>
+
+      <div class="saga-card p-6 mb-6">
+        <details data-testid="payment-details">
+          <summary class="text-lg font-semibold cursor-pointer">Payment details</summary>
+          <p class="text-sm mt-3 mb-3" style="color: var(--color-saga-text-muted)">
+            Your spot is provisionally held and confirmed once payment of
+            <span class="font-semibold">R1350</span> is received. Please use the reference below so we
+            can match your payment to your registration.
+          </p>
+          <dl class="text-sm grid grid-cols-1 sm:grid-cols-[10rem_1fr] gap-x-4 gap-y-1.5">
+            <dt style="color: var(--color-saga-text-muted)">Account name</dt><dd>Brackenhurst Baptist Church</dd>
+            <dt style="color: var(--color-saga-text-muted)">Account number</dt><dd>6201 2474 136</dd>
+            <dt style="color: var(--color-saga-text-muted)">Account type</dt><dd>Current</dd>
+            <dt style="color: var(--color-saga-text-muted)">Bank</dt><dd>First National Bank</dd>
+            <dt style="color: var(--color-saga-text-muted)">Branch code</dt><dd>252 242</dd>
+            <dt style="color: var(--color-saga-text-muted)">Reference</dt><dd>PowerCamp &lt;Surname&gt;</dd>
+          </dl>
+          <p class="text-xs mt-3" style="color: var(--color-saga-text-muted)">
+            Replace &lt;Surname&gt; with the camper's surname, e.g. <span class="font-mono">PowerCamp Smith</span>.
+          </p>
+        </details>
       </div>
 
       <div class="saga-card p-6 mb-6">

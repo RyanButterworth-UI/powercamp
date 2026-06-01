@@ -73,6 +73,12 @@ export const routes: Routes = [
     canActivate: [adminGuard],
   },
   {
+    path: 'admin/waitlist',
+    loadComponent: () =>
+      import('./admin/waitlist/waitlist.component').then((m) => m.AdminWaitlistComponent),
+    canActivate: [adminGuard],
+  },
+  {
     path: 'leader-apply',
     loadComponent: () =>
       import('./leader-apply/leader-apply.component').then((m) => m.LeaderApplyComponent),
