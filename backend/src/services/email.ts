@@ -131,6 +131,7 @@ export async function sendRegistrationReceived(
   // Send to parent_email; CC the camper's own email when we have one and it's
   // different so the camper sees the confirmation too.
   const ccList = cc && cc.trim().toLowerCase() !== to.trim().toLowerCase() ? cc : undefined;
+  const infoUrl = `${env.APP_BASE_URL.replace(/\/$/, '')}/info`;
   await safeSendMail({
     from: `"${fromName}" <${env.GMAIL_USER}>`,
     to,
@@ -142,18 +143,21 @@ export async function sendRegistrationReceived(
       "We've received your Power Camp 2026 registration — thank you!",
       '',
       'Your spot is provisionally held. Your registration will be CONFIRMED once payment',
-      'is complete. We will follow up shortly with payment details.',
+      'is complete.',
+      '',
+      `For payment details and everything you need to know, head to the camp info page:`,
+      infoUrl,
       '',
       'If anything looks wrong, request a sign-in link from the registration page',
       'and update your details.',
       '',
       '— Power Camp',
     ].join('\n'),
-    html: registrationReceivedHtml(firstName || 'there'),
+    html: registrationReceivedHtml(firstName || 'there', infoUrl),
   });
 }
 
-function registrationReceivedHtml(firstName: string): string {
+function registrationReceivedHtml(firstName: string, infoUrl: string): string {
   return `<!doctype html>
 <html lang="en">
   <body style="margin:0; padding:0; background-color:#f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
@@ -169,9 +173,23 @@ function registrationReceivedHtml(firstName: string): string {
                 </p>
                 <p style="margin:0 0 12px 0; color:#374151; font-size:15px; line-height:22px;">
                   Your spot is <strong>provisionally held</strong>. Your registration will be
-                  <strong>confirmed once payment is complete</strong>. We'll follow up shortly with
-                  payment details.
+                  <strong>confirmed once payment is complete</strong>.
                 </p>
+                <p style="margin:0 0 16px 0; color:#374151; font-size:15px; line-height:22px;">
+                  For payment details and everything you need to know, head to the camp info page.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding:0 32px 20px 32px;">
+                <a href="${infoUrl}"
+                   style="display:inline-block; background-color:#16a34a; color:#ffffff; text-decoration:none; font-weight:600; font-size:16px; padding:14px 28px; border-radius:8px;">
+                  View camp info &amp; payment details
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 32px 24px 32px;">
                 <p style="margin:0; color:#6b7280; font-size:13px; line-height:20px;">
                   If anything looks wrong, request a sign-in link from the registration page
                   and update your details.
@@ -640,6 +658,44 @@ export function blocksToPlainText(blocks: EmailBlock[]): string {
       }
     })
     .join('\n\n');
+}
+
+// Notifies the camp admin mailbox that a family has asked to join the
+// waiting list (registrations being closed). Best-effort, like the other
+// notification sends — the row is already persisted before this runs.
+export async function sendWaitlistNotification(
+  to: string,
+  entry: {
+    camperName: string;
+    parentName?: string | null;
+    parentEmail: string;
+    phone?: string | null;
+    grade?: string | null;
+    note?: string | null;
+  }
+): Promise<void> {
+  const fromName = env.FROM_NAME ?? 'Power Camp';
+  const lines = [
+    'A new waiting-list request has come in for Power Camp:',
+    '',
+    `Camper: ${entry.camperName}`,
+    `Parent/guardian: ${entry.parentName || '—'}`,
+    `Parent email: ${entry.parentEmail}`,
+    `Phone: ${entry.phone || '—'}`,
+    `Grade: ${entry.grade || '—'}`,
+    `Note: ${entry.note || '—'}`,
+    '',
+    'They appear in the admin Waiting List view.',
+    '',
+    '— Power Camp',
+  ];
+  await safeSendMail({
+    from: `"${fromName}" <${env.GMAIL_USER}>`,
+    to,
+    replyTo: entry.parentEmail,
+    subject: `Power Camp waiting list — ${entry.camperName}`,
+    text: lines.join('\n'),
+  });
 }
 
 // Test seam.

@@ -14,7 +14,7 @@ function getSheetsClient(): sheets_v4.Sheets {
   return cachedClient;
 }
 
-export type SheetTab = 'Registrations' | 'Consent' | 'Feedback' | 'Leaders' | 'Payments' | 'Subscriptions';
+export type SheetTab = 'Registrations' | 'Consent' | 'Feedback' | 'Leaders' | 'Payments' | 'Subscriptions' | 'Waitlist';
 
 // "Unable to parse range: Foo!A:Z" — what Google returns when a tab doesn't
 // exist. Match defensively on the message rather than the status code so a

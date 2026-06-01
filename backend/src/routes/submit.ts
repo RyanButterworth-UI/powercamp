@@ -6,6 +6,7 @@ import { env } from '../env';
 import { appendToSheet } from '../services/sheets';
 import { sendRegistrationReceived } from '../services/email';
 import { ensureSubscription } from '../services/subscriptions';
+import { getRegistrationsOpen } from '../services/settings';
 
 const optionalString = z.string().optional().nullable().transform((v) => v ?? undefined);
 
@@ -87,6 +88,13 @@ function toSheetRow(d: CamperInput): (string | number | null)[] {
 export const submitRouter = Router();
 
 submitRouter.post('/submit', async (req, res) => {
+  // Block NEW registrations when the admin has closed registrations. Editing
+  // an existing registration (POST /update) is intentionally unaffected, so
+  // families who already have a spot can still update their details.
+  if (!(await getRegistrationsOpen())) {
+    return res.status(403).json({ error: 'Registrations are closed' });
+  }
+
   const parsed = submitBody.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: 'Invalid registration', details: parsed.error.flatten() });

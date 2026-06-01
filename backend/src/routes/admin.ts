@@ -24,6 +24,7 @@ import {
   setSubscribed,
 } from '../services/subscriptions';
 import { signUnsubscribeToken } from '../services/auth';
+import { getRegistrationsOpen, setRegistrationsOpen } from '../services/settings';
 
 // Neil-only second factor for the approve / reject endpoints. Hashed in env
 // (NEIL_PASSWORD_HASH) the same way as ADMIN_PASSWORD_HASH. The previous
@@ -450,6 +451,31 @@ adminRouter.post('/admin/subscriptions/toggle', requireAdmin, async (req, res) =
   } catch (err) {
     console.error('toggle subscription error:', err);
     res.status(500).json({ error: 'Failed to toggle' });
+  }
+});
+
+// ---------- Registrations open/closed ----------
+
+adminRouter.get('/admin/registration-status', requireAdmin, async (_req, res) => {
+  try {
+    res.json({ registrationsOpen: await getRegistrationsOpen() });
+  } catch (err) {
+    console.error('get registration-status error:', err);
+    res.status(500).json({ error: 'Failed to read registration status' });
+  }
+});
+
+const registrationStatusBody = z.object({ open: z.boolean() });
+
+adminRouter.post('/admin/registration-status', requireAdmin, async (req, res) => {
+  const parsed = registrationStatusBody.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: 'Invalid request' });
+  try {
+    const registrationsOpen = await setRegistrationsOpen(parsed.data.open);
+    res.json({ registrationsOpen });
+  } catch (err) {
+    console.error('set registration-status error:', err);
+    res.status(500).json({ error: 'Failed to update registration status' });
   }
 });
 

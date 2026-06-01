@@ -18,7 +18,7 @@ import { environment } from '../../environments/environment';
       <app-page-ghost height="60vh" />
     } @else {
     <div
-      class="container mx-auto bg:white lg:bg-slate-100 my-0 min-h-dvh font-inter flex lg:justify-center lg:items-center page-fade-in"
+      class="container mx-auto bg:white lg:bg-slate-100 my-0 min-h-[calc(100dvh-var(--site-nav-h))] font-inter flex lg:justify-center lg:items-center page-fade-in"
     >
       <div class="w-full lg:w-1/2 h-full flex flex-col">
         <div class="w-full mx-auto h-full flex flex-col">

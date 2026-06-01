@@ -24,12 +24,18 @@ jest.mock('../services/email', () => ({
   sendRegistrationReceived: jest.fn(),
 }));
 
+jest.mock('../services/settings', () => ({
+  getRegistrationsOpen: jest.fn(),
+}));
+
 import { appendToSheet } from '../services/sheets';
 import { sendRegistrationReceived } from '../services/email';
+import { getRegistrationsOpen } from '../services/settings';
 import { submitRouter } from '../routes/submit';
 
 const mockAppend = appendToSheet as jest.MockedFunction<typeof appendToSheet>;
 const mockEmail = sendRegistrationReceived as jest.MockedFunction<typeof sendRegistrationReceived>;
+const mockRegOpen = getRegistrationsOpen as jest.MockedFunction<typeof getRegistrationsOpen>;
 
 function buildApp() {
   const app = express();
@@ -77,6 +83,15 @@ describe('POST /submit', () => {
     insertMock.mockResolvedValue([{ id: 42 }]);
     mockAppend.mockResolvedValue(undefined);
     mockEmail.mockResolvedValue(undefined);
+    mockRegOpen.mockResolvedValue(true);
+  });
+
+  it('rejects new registrations with 403 when registrations are closed', async () => {
+    mockRegOpen.mockResolvedValue(false);
+    const res = await request(buildApp()).post('/submit').send(validBody);
+    expect(res.status).toBe(403);
+    expect(res.body).toEqual({ error: 'Registrations are closed' });
+    expect(insertMock).not.toHaveBeenCalled();
   });
 
   it('inserts the camper into the DB tagged with CAMP_YEAR and lowercased emails', async () => {

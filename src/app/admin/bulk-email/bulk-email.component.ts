@@ -37,6 +37,19 @@ type Filter = 'all' | 'paid' | 'unpaid' | 'consent' | 'no-consent';
         <section class="saga-card p-4 lg:col-span-1">
           <h2 class="text-lg font-semibold mb-3">Recipients</h2>
 
+          <!-- One-click: target last year's families with the "camp is open"
+               announcement. Selects everyone from the most recent prior year
+               and pre-fills the subject + body. Sends to parent AND camper
+               emails (deduped by the composer + backend). -->
+          <button
+            type="button"
+            (click)="buildLastYearAnnouncement()"
+            class="saga-btn saga-btn-primary w-full mb-3"
+            data-testid="build-announcement"
+          >
+            ✦ Build "Camp is open" email to last year's families
+          </button>
+
           <label class="block text-xs mb-1" style="color: var(--color-saga-text-muted)">Year</label>
           <select
             [ngModel]="selectedYear()"
@@ -368,6 +381,60 @@ export class BulkEmailComponent {
     this.selected.set(new Set());
   }
 
+  // One-click setup for the "registration is open" announcement to last
+  // year's families. Picks the most recent prior year, selects everyone from
+  // it, and pre-fills the subject + body. The admin still reviews and presses
+  // Send — we never auto-send.
+  buildLastYearAnnouncement(): void {
+    const ys = this.years(); // sorted desc
+    const prior = ys.filter((y) => y < 2026);
+    const target = prior.length ? prior[0] : ys[0] ?? null;
+    if (target === null) {
+      this.ui.toast('No past registrations found to email.', 'error');
+      return;
+    }
+
+    this.selectedYear.set(target);
+    this.filter.set('all');
+    this.searchQuery.set('');
+    this.selected.set(
+      new Set(this.campers().filter((c) => c.year === target).map((c) => c.id))
+    );
+
+    this.subject = 'Power Camp 2026 is open — register now';
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const registerUrl = origin ? `${origin}/` : 'https://powercamplife.co.za/';
+    const infoUrl = origin ? `${origin}/info` : 'https://powercamplife.co.za/info';
+    let id = this.nextBlockId;
+    const blocks: (EmailBlock & { id: number })[] = [
+      { kind: 'heading', text: 'Power Camp 2026 is open!', id: id++ },
+      {
+        kind: 'paragraph',
+        text: "Registration for Power Camp 2026 is now open — we'd love to have your family back.",
+        id: id++,
+      },
+      {
+        kind: 'paragraph',
+        text: 'When: Friday 31 July – Sunday 2 August 2026. Where: YFC Magaliesburg (Boitumelo & Kotula). Who: grades 8–12. Cost: R1350 (accommodation, meals, all activities, and the camp T-shirt).',
+        id: id++,
+      },
+      { kind: 'button', text: 'Register for 2026', url: registerUrl, id: id++ },
+      {
+        kind: 'paragraph',
+        text: `Spots are limited and fill up quickly, so register early to secure your place. More details are on the camp info page: ${infoUrl}`,
+        id: id++,
+      },
+    ];
+    this.nextBlockId = id;
+    this.blocks.set(blocks);
+    this.refreshPreview();
+    this.ui.toast(
+      `Built the announcement and selected ${this.selected().size} families from ${target}. Review it, then press Send.`,
+      'success',
+      6000
+    );
+  }
+
   addBlock(kind: EmailBlock['kind']): void {
     const id = this.nextBlockId++;
     const blank: Record<EmailBlock['kind'], EmailBlock> = {
@@ -433,9 +500,16 @@ export class BulkEmailComponent {
     if (!ok) return;
 
     const blocks = this.blocks().map(({ id: _id, ...rest }) => rest as EmailBlock);
-    const recipients = this.campers()
-      .filter((c) => this.selected().has(c.id))
-      .map((c) => c.parentEmail);
+    // Gather BOTH the parent and the camper's own email from every selected
+    // registration, deduped and lowercased. The backend dedupes and drops
+    // unsubscribers again, but doing it here keeps the recipient count honest.
+    const set = new Set<string>();
+    for (const c of this.campers()) {
+      if (!this.selected().has(c.id)) continue;
+      if (c.parentEmail) set.add(c.parentEmail.trim().toLowerCase());
+      if (c.email) set.add(c.email.trim().toLowerCase());
+    }
+    const recipients = Array.from(set).filter(Boolean);
 
     this.sending.set(true);
     this.lastResult.set(null);

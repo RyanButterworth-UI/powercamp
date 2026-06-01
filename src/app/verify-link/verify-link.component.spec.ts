@@ -146,4 +146,36 @@ describe('VerifyLinkComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="submitted"]')).toBeTruthy();
     http.verify();
   });
+
+  it('shows the review/summary screen before submitting and confirms from there', () => {
+    const fixture = createFixture('a-valid-token');
+    const http = TestBed.inject(HttpTestingController);
+    fixture.detectChanges();
+    http.expectOne(`${environment.baseApi}/verify-link`).flush({ camper: mockCamper });
+    fixture.detectChanges();
+
+    const consent = fixture.componentInstance.form!.get('consent')!;
+    consent.patchValue({
+      general: true, location: true, risk: true,
+      powerCamp: true, behaviour: true, photo: true,
+      emergencyName: 'X', emergencyContact: '0820000099',
+      medicalAidName: 'NONE', medicalAidNumber: 'NONE',
+      date: '2026-05-02',
+    });
+
+    // Review first — no network call yet, just the summary screen.
+    fixture.componentInstance.review();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.reviewing()).toBe(true);
+    expect(fixture.nativeElement.querySelector('[data-testid="edit-review"]')).toBeTruthy();
+    http.expectNone(`${environment.baseApi}/update`);
+
+    // Confirm from the review screen → POST.
+    fixture.componentInstance.submit();
+    const req = http.expectOne(`${environment.baseApi}/update`);
+    req.flush({ id: 7, consentAcceptedAt: '2026-05-02T10:00:00.000Z' });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="submitted"]')).toBeTruthy();
+    http.verify();
+  });
 });

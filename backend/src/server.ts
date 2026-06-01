@@ -15,6 +15,8 @@ import { unsubscribeRouter } from './routes/unsubscribe';
 import { statsRouter } from './routes/stats';
 import { teamsRouter } from './routes/teams';
 import { publicConfigRouter } from './routes/public-config';
+import { registrationStatusRouter } from './routes/registration-status';
+import { waitlistRouter } from './routes/waitlist';
 
 const app = express();
 
@@ -76,6 +78,8 @@ app.use(unsubscribeRouter);
 app.use(statsRouter);
 app.use(teamsRouter);
 app.use(publicConfigRouter);
+app.use(registrationStatusRouter);
+app.use(waitlistRouter);
 
 app.use(express.static(distDir));
 app.get('*', (_req, res) => {

@@ -3,6 +3,7 @@ jest.mock('../env', () => ({
     FROM_NAME: 'Power Camp',
     GMAIL_USER: 'send@powercamp.test',
     GMAIL_APP_PASSWORD: 'fake-pw',
+    APP_BASE_URL: 'https://powercamp.test',
   },
 }));
 

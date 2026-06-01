@@ -27,7 +27,7 @@ import { ResetRegistrationService } from '../reset-registration.service';
           </p>
           <fieldset aria-label="Parent/Guardian Details">
             <label class="block text-xs font-medium text-gray-900">
-              Parent/Guardian Name <span class="required-star">*</span>
+              Parent Guardian Full Name <span class="required-star">*</span>
             </label>
             <input
               type="text"
