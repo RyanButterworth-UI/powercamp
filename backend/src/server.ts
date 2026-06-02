@@ -17,8 +17,14 @@ import { teamsRouter } from './routes/teams';
 import { publicConfigRouter } from './routes/public-config';
 import { registrationStatusRouter } from './routes/registration-status';
 import { waitlistRouter } from './routes/waitlist';
+import { loginRateLimiter, publicFormRateLimiter } from './middleware/rate-limit';
 
 const app = express();
+
+// Render terminates TLS at its proxy and forwards the real client IP in
+// X-Forwarded-For. Trusting the first hop lets the rate limiter key off the
+// actual visitor instead of lumping everyone behind the proxy into one bucket.
+app.set('trust proxy', 1);
 
 app.use(
   cors({
@@ -64,6 +70,15 @@ app.use((req, res, next) => {
   }
   next();
 });
+
+// Spam / brute-force protection. Mounted by path *before* the routers so they
+// run first. Strict limiter on the credential endpoint; a moderate limiter on
+// the public endpoints that write to the DB and send email.
+app.use('/admin/login', loginRateLimiter);
+app.use('/submit', publicFormRateLimiter);
+app.use('/waitlist', publicFormRateLimiter);
+app.use('/leaders/apply', publicFormRateLimiter);
+app.use('/request-link', publicFormRateLimiter);
 
 app.use(submitRouter);
 app.use(consentRouter);
