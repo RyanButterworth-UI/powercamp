@@ -13,7 +13,7 @@ const updateMock = jest.fn();
 const insertMock = jest.fn();
 jest.mock('../db/client', () => ({
   db: {
-    select: () => ({ from: () => ({ where: () => selectMock() }) }),
+    select: () => ({ from: () => ({ where: () => ({ limit: () => selectMock() }) }) }),
     update: () => ({
       set: () => ({
         where: () => ({ returning: () => updateMock() }),
@@ -100,24 +100,46 @@ describe('POST /update', () => {
     expect(selectMock).not.toHaveBeenCalled();
   });
 
-  it('UPDATEs an existing CAMP_YEAR row when one exists for the parent email', async () => {
-    selectMock.mockResolvedValueOnce([{ id: 99 }]);
-    updateMock.mockResolvedValueOnce([{ id: 99 }]);
+  it('UPDATEs the camper the link was issued for when it is a current-year row, NOT "first by parent email" (sibling-safe)', async () => {
+    // The token is for camper 7; it resolves to a current-year row, so we
+    // update exactly that row and never run the parent-email fallback query.
+    selectMock.mockResolvedValueOnce([{ id: 7, year: 2026, deletedAt: null }]);
+    updateMock.mockResolvedValueOnce([{ id: 7 }]);
 
     const token = signMagicToken(7);
+    const res = await request(buildApp()).post('/update').send(validBody(token));
+
+    expect(res.status).toBe(200);
+    expect(res.body.id).toBe(7);
+    expect(updateMock).toHaveBeenCalledTimes(1);
+    expect(insertMock).not.toHaveBeenCalled();
+    // Only the linked lookup ran — no "first row by parent email" fallback.
+    expect(selectMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to the current-year row for the parent when the link points at a prior-year record (re-registration)', async () => {
+    selectMock
+      .mockResolvedValueOnce([{ id: 5, year: 2025, deletedAt: null }]) // linked row is last year's
+      .mockResolvedValueOnce([{ id: 99 }]); // family already has a current-year row
+    updateMock.mockResolvedValueOnce([{ id: 99 }]);
+
+    const token = signMagicToken(5);
     const res = await request(buildApp()).post('/update').send(validBody(token));
 
     expect(res.status).toBe(200);
     expect(res.body.id).toBe(99);
     expect(updateMock).toHaveBeenCalledTimes(1);
     expect(insertMock).not.toHaveBeenCalled();
+    expect(selectMock).toHaveBeenCalledTimes(2);
   });
 
-  it('INSERTs a new CAMP_YEAR row when no existing row exists for the parent email', async () => {
-    selectMock.mockResolvedValueOnce([]);
+  it('INSERTs a fresh current-year row when the link is prior-year and the family has none yet', async () => {
+    selectMock
+      .mockResolvedValueOnce([{ id: 5, year: 2025, deletedAt: null }]) // prior-year link
+      .mockResolvedValueOnce([]); // no current-year row for this parent
     insertMock.mockResolvedValueOnce([{ id: 200 }]);
 
-    const token = signMagicToken(7);
+    const token = signMagicToken(5);
     const res = await request(buildApp()).post('/update').send(validBody(token));
 
     expect(res.status).toBe(200);
@@ -127,7 +149,7 @@ describe('POST /update', () => {
   });
 
   it('appends to the Registrations sheet with the consent timestamp in column Q', async () => {
-    selectMock.mockResolvedValueOnce([]);
+    selectMock.mockResolvedValue([]); // no linked row, no current-year row → insert
     insertMock.mockResolvedValueOnce([{ id: 1 }]);
 
     const token = signMagicToken(7);
@@ -147,7 +169,7 @@ describe('POST /update', () => {
   });
 
   it('sends the registration-received email to the parent_email (lowercased)', async () => {
-    selectMock.mockResolvedValueOnce([]);
+    selectMock.mockResolvedValue([]);
     insertMock.mockResolvedValueOnce([{ id: 1 }]);
 
     const token = signMagicToken(7);
@@ -158,7 +180,7 @@ describe('POST /update', () => {
   });
 
   it('still returns 200 if sheet sync or email fails (DB is source of truth)', async () => {
-    selectMock.mockResolvedValueOnce([]);
+    selectMock.mockResolvedValue([]);
     insertMock.mockResolvedValueOnce([{ id: 1 }]);
     sheetMock.mockRejectedValueOnce(new Error('sheets down'));
     emailMock.mockRejectedValueOnce(new Error('SMTP down'));
