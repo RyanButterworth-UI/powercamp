@@ -108,26 +108,49 @@ updateRouter.post('/update', async (req, res) => {
 
   let camperId: number;
   try {
-    const [existing] = await db
-      .select({ id: campers.id })
+    // The magic link identifies a specific camper row (claims.camperId). If
+    // that row is a current-year registration, update exactly it — never
+    // "first row by parent email", which silently clobbers a sibling when two
+    // children share one parent email (our implicit family key). Only when the
+    // link points at a prior-year record (a returning family) or a row that's
+    // since been removed do we fall back to the current-year find-or-insert
+    // that powers cross-year re-registration.
+    const [linked] = await db
+      .select({ id: campers.id, year: campers.year, deletedAt: campers.deletedAt })
       .from(campers)
-      .where(
-        and(eq(campers.parentEmail, parentEmail), eq(campers.year, env.CAMP_YEAR))
-      );
+      .where(eq(campers.id, claims.camperId))
+      .limit(1);
 
-    if (existing) {
+    if (linked && !linked.deletedAt && linked.year === env.CAMP_YEAR) {
       const [updated] = await db
         .update(campers)
         .set(camperPayload)
-        .where(eq(campers.id, existing.id))
+        .where(eq(campers.id, linked.id))
         .returning({ id: campers.id });
       camperId = updated.id;
     } else {
-      const [inserted] = await db
-        .insert(campers)
-        .values(camperPayload)
-        .returning({ id: campers.id });
-      camperId = inserted.id;
+      const [existing] = await db
+        .select({ id: campers.id })
+        .from(campers)
+        .where(
+          and(eq(campers.parentEmail, parentEmail), eq(campers.year, env.CAMP_YEAR))
+        )
+        .limit(1);
+
+      if (existing) {
+        const [updated] = await db
+          .update(campers)
+          .set(camperPayload)
+          .where(eq(campers.id, existing.id))
+          .returning({ id: campers.id });
+        camperId = updated.id;
+      } else {
+        const [inserted] = await db
+          .insert(campers)
+          .values(camperPayload)
+          .returning({ id: campers.id });
+        camperId = inserted.id;
+      }
     }
   } catch (err) {
     console.error('update DB error:', err);
