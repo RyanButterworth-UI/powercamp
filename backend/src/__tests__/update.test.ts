@@ -31,8 +31,10 @@ jest.mock('../services/sheets', () => ({
 }));
 
 const emailMock = jest.fn();
+const updatedEmailMock = jest.fn();
 jest.mock('../services/email', () => ({
   sendRegistrationReceived: (...args: unknown[]) => emailMock(...args),
+  sendRegistrationUpdated: (...args: unknown[]) => updatedEmailMock(...args),
 }));
 
 import { signMagicToken } from '../services/auth';
@@ -87,6 +89,7 @@ describe('POST /update', () => {
     insertMock.mockReset();
     sheetMock.mockReset().mockResolvedValue(undefined);
     emailMock.mockReset().mockResolvedValue(undefined);
+    updatedEmailMock.mockReset().mockResolvedValue(undefined);
   });
 
   it('rejects missing/short tokens with 400', async () => {
@@ -191,15 +194,28 @@ describe('POST /update', () => {
     expect(fallbackCols).toEqual([0, 1, 11]);
   });
 
-  it('sends the registration-received email to the parent_email (lowercased)', async () => {
-    selectMock.mockResolvedValue([{ id: 1, deletedAt: null }]);
+  it('editing a CURRENT-year registration sends the "details updated" email, NOT the received one', async () => {
+    selectMock.mockResolvedValue([{ id: 1, year: 2026, deletedAt: null }]); // current year → edit
     updateMock.mockResolvedValueOnce([{ id: 1 }]);
 
     const token = signMagicToken(1);
     await request(buildApp()).post('/update').send(validBody(token));
     await new Promise((resolve) => setImmediate(resolve));
 
-    expect(emailMock).toHaveBeenCalledWith('parent@example.com', 'Ryan');
+    expect(updatedEmailMock).toHaveBeenCalledWith('parent@example.com', 'Ryan', 'camper@example.com');
+    expect(emailMock).not.toHaveBeenCalled();
+  });
+
+  it('carrying a PRIOR-year row forward sends the "registration received" email', async () => {
+    selectMock.mockResolvedValue([{ id: 1, year: 2025, deletedAt: null }]); // prior year → register
+    updateMock.mockResolvedValueOnce([{ id: 1 }]);
+
+    const token = signMagicToken(1);
+    await request(buildApp()).post('/update').send(validBody(token));
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(emailMock).toHaveBeenCalledWith('parent@example.com', 'Ryan', 'camper@example.com');
+    expect(updatedEmailMock).not.toHaveBeenCalled();
   });
 
   it('still returns 200 if sheet sync or email fails (DB is source of truth)', async () => {
