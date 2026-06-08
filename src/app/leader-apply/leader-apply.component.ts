@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { environment } from '../../environments/environment';
 import { PageGhostComponent } from '../skeleton/page-ghost.component';
 
@@ -30,6 +30,17 @@ type Stage = 'screening' | 'rejected' | 'form' | 'submitted';
         Want to lead at Power Camp 2026? Two quick questions first, then a short application
         form. Neil reviews every application personally.
       </p>
+
+      @if (returning()) {
+        <div
+          class="saga-card p-3 mb-5 text-sm"
+          data-testid="returning-leader"
+          style="border-color: var(--color-saga-action); background-color: var(--color-saga-action-soft); color: var(--color-saga-text)"
+        >
+          Welcome back! We've pre-filled your name. Leaders re-apply each year, so just confirm the
+          two questions below and pop in your email to send your application to Neil again.
+        </div>
+      }
 
       @if (stage() === 'screening') {
         <div class="saga-card p-5" data-testid="screening">
@@ -242,6 +253,9 @@ type Stage = 'screening' | 'rejected' | 'form' | 'submitted';
 export class LeaderApplyComponent {
   ready = signal(false);
   stage = signal<Stage>('screening');
+  // True when arriving from the "previously registered" search as a returning
+  // leader — drives a small "welcome back" note and a pre-filled name.
+  returning = signal(false);
   outOfSchool = signal<boolean | null>(null);
   churchInvolved = signal<boolean | null>(null);
 
@@ -270,11 +284,26 @@ export class LeaderApplyComponent {
   private readonly http = inject(HttpClient);
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   constructor() {
     setTimeout(() => this.ready.set(true), 300);
     this.buildForm();
+    this.prefillFromQuery();
     this.loadPublicConfig();
+  }
+
+  // A returning leader arriving from the search lands here with their name in
+  // the URL (email is deliberately not passed — it's masked for privacy, so
+  // they re-enter it). Pre-fill the name and show a "welcome back" note.
+  private prefillFromQuery(): void {
+    const q = this.route.snapshot.queryParamMap;
+    const firstName = q.get('firstName') ?? '';
+    const lastName = q.get('lastName') ?? '';
+    if (q.get('returning') === '1' && (firstName || lastName)) {
+      this.returning.set(true);
+      this.form?.patchValue({ firstName, lastName });
+    }
   }
 
   // Best-effort: fetch the env-driven Neil address so the displayed mailto

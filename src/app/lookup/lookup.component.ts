@@ -2,7 +2,7 @@ import { Component, OnInit, inject, input, output, signal } from '@angular/core'
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { LookupResult, StepKey } from '../../models';
 import { environment } from '../../environments/environment';
 import { UiService } from '../ui/ui.service';
@@ -133,20 +133,27 @@ interface StatsResponse {
           </div>
         } @else {
           <p class="text-xs mb-2" style="color: var(--color-saga-text-muted)">
-            For privacy, only the email already linked to the camper can edit the registration.
-            Hit Register / Edit and we'll send a sign-in link to that email — you can update your
-            email address (or any other detail) on the next screen once you click the link.
+            For campers, we send a sign-in link to the email already on file (only that inbox can
+            edit the registration) — you can change any detail once you click the link. Leaders
+            re-apply each year, so "Apply again" takes you to a fresh application with your name
+            pre-filled.
           </p>
           <ul
             class="saga-card divide-y mb-6"
             data-testid="results"
             style="border-color: var(--color-saga-border)"
           >
-            @for (r of results(); track r.id) {
+            @for (r of results(); track r.kind + '-' + r.id) {
               <li class="p-3 flex items-center justify-between" style="border-color: var(--color-saga-border)">
                 <div>
-                  <div class="font-medium" style="color: var(--color-saga-text-strong)">
+                  <div class="font-medium flex items-center gap-2" style="color: var(--color-saga-text-strong)">
                     {{ r.firstName }} {{ r.lastName }}
+                    @if (r.kind === 'leader') {
+                      <span
+                        class="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded"
+                        style="background-color: var(--color-saga-action-soft); color: var(--color-saga-action); border: 1px solid var(--color-saga-action);"
+                      >Leader</span>
+                    }
                   </div>
                   <div class="text-sm" style="color: var(--color-saga-text-muted)">
                     {{ r.year }} · {{ r.parentEmailMasked }}
@@ -155,10 +162,10 @@ interface StatsResponse {
                 <button
                   type="button"
                   class="saga-btn saga-btn-primary !py-1 !px-3 !text-xs"
-                  [disabled]="sendingLinkFor() === r.id"
+                  [disabled]="sendingLinkFor() === r.id && r.kind === 'camper'"
                   (click)="select(r)"
                 >
-                  {{ sendingLinkFor() === r.id ? 'Sending…' : 'Register / Edit' }}
+                  {{ (sendingLinkFor() === r.id && r.kind === 'camper') ? 'Sending…' : (r.kind === 'leader' ? 'Apply again' : 'Register / Edit') }}
                 </button>
               </li>
             }
@@ -229,6 +236,7 @@ export class LookupComponent implements OnInit {
 
   private readonly http = inject(HttpClient);
   private readonly ui = inject(UiService);
+  private readonly router = inject(Router);
 
   ngOnInit(): void {
     this.http.get<StatsResponse>(`${environment.baseApi}/stats`).subscribe({
@@ -300,9 +308,21 @@ export class LookupComponent implements OnInit {
   }
 
   select(r: LookupResult) {
+    this.error.set(null);
+
+    // Returning leaders don't use the camper magic-link edit — they go back
+    // through the (open) leader application, pre-filled with their name. We
+    // deliberately don't pass the email (it's masked for privacy); they re-enter
+    // it themselves, same as any applicant.
+    if (r.kind === 'leader') {
+      this.router.navigate(['/leader-apply'], {
+        queryParams: { firstName: r.firstName, lastName: r.lastName, returning: '1' },
+      });
+      return;
+    }
+
     this.selectedCamper.emit(r);
     this.sendingLinkFor.set(r.id);
-    this.error.set(null);
 
     this.http.post<{ ok: boolean }>(`${environment.baseApi}/request-link`, { camperId: r.id }).subscribe({
       next: () => {

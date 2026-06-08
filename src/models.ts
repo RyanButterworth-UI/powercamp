@@ -38,6 +38,9 @@ export interface LookupResult {
   lastName: string;
   year: number;
   parentEmailMasked: string;
+  // 'camper' results get a magic-link edit; 'leader' results route back into
+  // the (open) leader application, pre-filled with their name.
+  kind: 'camper' | 'leader';
 }
 export enum consentKey {
   Intro
