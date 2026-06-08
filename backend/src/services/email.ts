@@ -6,6 +6,14 @@ let cached: Transporter | null = null;
 function transporter(): Transporter {
   if (cached) return cached;
   cached = nodemailer.createTransport({
+    // Connection POOLING is essential for bulk sends. Without it nodemailer
+    // opens a fresh SMTP connection — and a fresh Gmail LOGIN — for every
+    // single message, and Gmail blocks after ~100 logins with
+    // "454-4.7.0 Too many login attempts". Pooling reuses ONE authenticated
+    // connection for the whole batch, so Gmail sees one login, not hundreds.
+    pool: true,
+    maxConnections: 1, // a single reused connection → a single login
+    maxMessages: Infinity, // never recycle the connection mid-batch (avoids re-login)
     service: 'gmail',
     auth: { user: env.GMAIL_USER, pass: env.GMAIL_APP_PASSWORD },
   });
