@@ -128,6 +128,22 @@ describe('POST /leaders/verify-invite', () => {
   });
 });
 
+// The leader register form now mirrors the camper consent — a full block is
+// mandatory, so every register body carries one.
+const validConsent = {
+  general: 'accept',
+  location: 'accept',
+  risk: 'accept',
+  powerCamp: 'accept',
+  behaviour: 'accept',
+  photo: 'accept',
+  emergencyName: 'Emergency Person',
+  emergencyContact: '0820000099',
+  medicalAidName: 'NONE',
+  medicalAidNumber: 'NONE',
+  date: '2026-07-01',
+};
+
 describe('POST /leaders/register', () => {
   beforeEach(() => {
     selectMock.mockReset();
@@ -137,16 +153,25 @@ describe('POST /leaders/register', () => {
     selectMock.mockResolvedValue([{ id: 5, status: 'approved', deletedAt: null }]);
   });
 
+  it('returns 400 when the mandatory consent block is missing', async () => {
+    verifyMock.mockReturnValueOnce({ leaderId: 5, kind: 'leader-invite' });
+    const res = await request(buildApp())
+      .post('/leaders/register')
+      .send({ token: 'a'.repeat(20), tshirt: 'large' });
+    expect(res.status).toBe(400);
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+
   it('returns 401 when the token is invalid', async () => {
     verifyMock.mockReturnValueOnce(null);
     const res = await request(buildApp())
       .post('/leaders/register')
-      .send({ token: 'a'.repeat(20), tshirt: 'large' });
+      .send({ token: 'a'.repeat(20), tshirt: 'large', consent: validConsent });
     expect(res.status).toBe(401);
     expect(updateMock).not.toHaveBeenCalled();
   });
 
-  it('updates the leader row and tags it with the current camp year on success', async () => {
+  it('saves the leader (incl. consent) and tags it with the current camp year on success', async () => {
     verifyMock.mockReturnValueOnce({ leaderId: 5, kind: 'leader-invite' });
     updateMock.mockResolvedValueOnce([{ id: 5, email: 'leader@real.co.za', firstName: 'Sam' }]);
     const res = await request(buildApp())
@@ -155,7 +180,7 @@ describe('POST /leaders/register', () => {
         token: 'a'.repeat(20),
         tshirt: 'large',
         cell: '0820000000',
-        parentEmail: 'EMERG@EXAMPLE.COM',
+        consent: validConsent,
       });
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ id: 5 });
@@ -167,7 +192,7 @@ describe('POST /leaders/register', () => {
     selectMock.mockResolvedValueOnce([]); // re-check finds no leader → 404
     const res = await request(buildApp())
       .post('/leaders/register')
-      .send({ token: 'a'.repeat(20), tshirt: 'large' });
+      .send({ token: 'a'.repeat(20), tshirt: 'large', consent: validConsent });
     expect(res.status).toBe(404);
     expect(updateMock).not.toHaveBeenCalled();
   });

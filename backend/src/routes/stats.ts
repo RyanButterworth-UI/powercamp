@@ -27,7 +27,10 @@ statsRouter.get('/stats', async (_req, res) => {
       .from(leaders)
       .where(and(eq(leaders.year, env.CAMP_YEAR), isNull(leaders.deletedAt)));
 
-    const total = camperCount + leaderCount;
+    // The public "X of 150 spots booked" counter reflects CAMPERS only.
+    // Leaders are tracked (and still returned here for admin/reference) but
+    // must not inflate the camper total or eat into the displayed remaining.
+    const total = camperCount;
     res.json({
       year: env.CAMP_YEAR,
       campers: camperCount,

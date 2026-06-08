@@ -5,6 +5,7 @@ import { db } from '../db/client';
 import { campers } from '../db/schema';
 import { env } from '../env';
 import { appendToSheet } from '../services/sheets';
+import { registrationSheetRow } from '../lib/registration-sheet';
 import { sendRegistrationReceived } from '../services/email';
 import { ensureSubscription } from '../services/subscriptions';
 import { getRegistrationsOpen } from '../services/settings';
@@ -57,33 +58,6 @@ const submitBody = z.object({
   camper: camperBody,
   consent: consentBody,
 });
-
-type CamperInput = z.infer<typeof camperBody>;
-
-// Column order MUST match the existing sheet's layout: firstName in A,
-// lastName in B, email in E, parentName in J, parentEmail in L. Q='TRUE'
-// since /submit only fires after the mandatory consent step.
-function toSheetRow(d: CamperInput): (string | number | null)[] {
-  return [
-    d.firstName,                  // A
-    d.lastName,                   // B
-    d.camperCell ?? '',           // C
-    d.gender ?? '',               // D
-    d.email ?? '',                // E
-    d.age ?? '',                  // F
-    d.grade ?? '',                // G
-    (d.friends ?? []).join(', '), // H
-    d.medical ?? '',              // I
-    d.parentName ?? '',           // J
-    d.parentPhone ?? '',          // K
-    d.parentEmail,                // L
-    d.church ?? '',               // M
-    d.tshirt ?? '',               // N
-    d.generalInfo ?? '',          // O
-    d.dob ?? '',                  // P
-    'TRUE',                       // Q — consent accepted (gated by ConsentStepComponent before submit)
-  ];
-}
 
 export const submitRouter = Router();
 
@@ -178,14 +152,19 @@ submitRouter.post('/submit', async (req, res) => {
       })
       .returning({ id: campers.id });
 
-    // Col R (index 17) carries the camper's stable DB id so the edit flow's
-    // sheet upsert can match this row by id — surviving later name/email edits
-    // that would otherwise spawn a duplicate row. It sits after the A..Q block
-    // the sheet already relies on, so nothing upstream shifts.
-    appendToSheet('Registrations', [
-      ...toSheetRow({ ...c, parentEmail, email: camperEmail }),
-      row.id,
-    ]).catch((err) => {
+    // Full row via the shared builder so /submit and /update can never drift
+    // apart. Col R carries the stable camper id (the edit upsert key); the
+    // emergency-contact, medical-aid and consent-date columns mean the sheet
+    // holds the complete record, not just the headline fields.
+    appendToSheet(
+      'Registrations',
+      registrationSheetRow(
+        { ...c, parentEmail, email: camperEmail },
+        consent,
+        row.id,
+        env.CAMP_YEAR
+      )
+    ).catch((err) => {
       console.error('Sheet sync failed (DB write succeeded):', err);
     });
 

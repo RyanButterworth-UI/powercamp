@@ -16,7 +16,10 @@ import { verifyLeaderInviteToken } from '../services/auth';
 // Leaders sheet tab column order:
 // A firstName, B lastName, C cell, D gender, E email, F age, G grade,
 // H church, I tshirt, J parentName, K parentPhone, L parentEmail,
-// M applicationNotes, N status, O approvedByNeil, P createdAt.
+// M applicationNotes, N status, O approvedByNeil, P createdAt,
+// Q medical, R generalInfo, S id, T year, U dob, V emergency name,
+// W emergency number, X medical aid name, Y medical aid number,
+// Z consent date, AA consent accepted.
 function leaderRow(d: {
   firstName: string;
   lastName: string;
@@ -37,6 +40,20 @@ function leaderRow(d: {
   // reject sheet sync) so re-writing the row in place doesn't reset col P to
   // "now". Defaults to now for a fresh application row.
   createdAt?: string;
+  // Captured on the post-approval registration form (camper-parity, minus
+  // the parent block). Appended after the established A..P block so existing
+  // column positions don't shift.
+  medical?: string;
+  generalInfo?: string;
+  id?: number;
+  year?: number;
+  dob?: string;
+  emergencyName?: string;
+  emergencyContact?: string;
+  medicalAidName?: string;
+  medicalAidNumber?: string;
+  consentDate?: string;
+  consentAccepted?: boolean;
 }): (string | number | null)[] {
   return [
     d.firstName,
@@ -55,6 +72,17 @@ function leaderRow(d: {
     d.status,
     d.approvedByNeil ? 'TRUE' : 'FALSE',
     d.createdAt ?? new Date().toISOString(),
+    d.medical ?? '',                          // Q
+    d.generalInfo ?? '',                      // R
+    d.id ?? '',                               // S leader id
+    d.year ?? '',                             // T year
+    d.dob ?? '',                              // U
+    d.emergencyName ?? '',                    // V
+    d.emergencyContact ?? '',                 // W
+    d.medicalAidName ?? '',                   // X
+    d.medicalAidNumber ?? '',                 // Y
+    d.consentDate ?? '',                      // Z
+    d.consentAccepted ? 'TRUE' : '',          // AA
   ];
 }
 
@@ -113,7 +141,14 @@ leadersRouter.post('/leaders/apply', async (req, res) => {
 
     appendToSheet(
       'Leaders',
-      leaderRow({ ...data, email: data.email.toLowerCase(), status: 'pending', approvedByNeil: false })
+      leaderRow({
+        ...data,
+        email: data.email.toLowerCase(),
+        status: 'pending',
+        approvedByNeil: false,
+        id: row.id,
+        year: env.CAMP_YEAR,
+      })
     ).catch((err) => {
       console.error('Leader sheet sync failed (DB write succeeded):', err);
     });
@@ -180,8 +215,25 @@ leadersRouter.post('/leaders/verify-invite', async (req, res) => {
         cell: leader.cell,
         gender: leader.gender,
         age: leader.age,
+        grade: leader.grade,
+        dob: leader.dob,
         church: leader.church,
         tshirt: leader.tshirt,
+        medical: leader.medical,
+        generalInfo: leader.generalInfo,
+        // Prior consent values (or null) so the edit form can prefill instead
+        // of forcing a re-tick. Stored as 'accept' / null on the row.
+        consentGeneral: leader.consentGeneral,
+        consentLocation: leader.consentLocation,
+        consentRisk: leader.consentRisk,
+        consentPowerCamp: leader.consentPowerCamp,
+        consentBehaviour: leader.consentBehaviour,
+        consentPhoto: leader.consentPhoto,
+        consentEmergencyName: leader.consentEmergencyName,
+        consentEmergencyContact: leader.consentEmergencyContact,
+        consentMedicalAidName: leader.consentMedicalAidName,
+        consentMedicalAidNumber: leader.consentMedicalAidNumber,
+        consentDate: leader.consentDate,
       },
     });
   } catch (err) {
@@ -190,20 +242,37 @@ leadersRouter.post('/leaders/verify-invite', async (req, res) => {
   }
 });
 
-// Finalizes a leader's registration. Stitches the submitted full record
-// onto the existing leader row so we keep the original applicationNotes,
-// approvedByNeil, approvedAt, etc. Tagged with the current camp year on
-// completion so reporting / Sheets line up with the active cohort.
+// Finalizes a leader's registration. The form mirrors the camper details
+// (minus the parent block): dropdowns for gender/age/grade/t-shirt, DOB,
+// church, medical/allergy notes, "anything else", PLUS the full consent block
+// (six agreements, emergency contact, medical aid) — worded in the first
+// person for an adult registering themselves. `grade` doubles as
+// grade-or-occupation. Consent is mandatory; the detail fields are lenient
+// server-side (the form gates them client-side).
 const registerBody = z.object({
   token: z.string().min(10),
   cell: z.string().optional(),
   gender: z.string().optional(),
   age: z.string().optional(),
+  grade: z.string().optional(),
+  dob: z.string().optional(),
   church: z.string().optional(),
   tshirt: z.string().optional(),
-  parentName: z.string().optional(),
-  parentPhone: z.string().optional(),
-  parentEmail: z.string().optional(),
+  medical: z.string().optional(),
+  generalInfo: z.string().optional(),
+  consent: z.object({
+    general: z.string().min(1),
+    location: z.string().min(1),
+    risk: z.string().min(1),
+    powerCamp: z.string().min(1),
+    behaviour: z.string().min(1),
+    photo: z.string().min(1),
+    emergencyName: z.string().min(1),
+    emergencyContact: z.string().min(1),
+    medicalAidName: z.string().min(1),
+    medicalAidNumber: z.string().min(1),
+    date: z.string().min(1),
+  }),
 });
 
 leadersRouter.post('/leaders/register', async (req, res) => {
@@ -216,7 +285,8 @@ leadersRouter.post('/leaders/register', async (req, res) => {
     return res.status(401).json({ error: 'Invalid or expired invite' });
   }
 
-  const { token: _token, ...patch } = parsed.data;
+  const { token: _token, consent, ...patch } = parsed.data;
+  const acceptedAt = new Date();
   try {
     // A valid 7-day token isn't enough on its own: re-check the leader is
     // still approved and not removed before saving. Otherwise someone
@@ -236,11 +306,24 @@ leadersRouter.post('/leaders/register', async (req, res) => {
         cell: patch.cell ?? null,
         gender: patch.gender ?? null,
         age: patch.age ?? null,
+        grade: patch.grade ?? null,
+        dob: patch.dob ?? null,
         church: patch.church ?? null,
         tshirt: patch.tshirt ?? null,
-        parentName: patch.parentName ?? null,
-        parentPhone: patch.parentPhone ?? null,
-        parentEmail: patch.parentEmail?.toLowerCase() ?? null,
+        medical: patch.medical ?? null,
+        generalInfo: patch.generalInfo ?? null,
+        consentGeneral: consent.general,
+        consentLocation: consent.location,
+        consentRisk: consent.risk,
+        consentPowerCamp: consent.powerCamp,
+        consentBehaviour: consent.behaviour,
+        consentPhoto: consent.photo,
+        consentEmergencyName: consent.emergencyName,
+        consentEmergencyContact: consent.emergencyContact,
+        consentMedicalAidName: consent.medicalAidName,
+        consentMedicalAidNumber: consent.medicalAidNumber,
+        consentDate: consent.date,
+        consentAcceptedAt: acceptedAt,
         year: env.CAMP_YEAR,
         updatedAt: new Date(),
       })
@@ -254,8 +337,8 @@ leadersRouter.post('/leaders/register', async (req, res) => {
       console.error('Leader registration-complete email failed:', err)
     );
 
-    // Reflect the now-complete details (cell, age, t-shirt, emergency contact)
-    // in the Leaders sheet by updating the leader's existing row in place,
+    // Reflect the now-complete record (details + consent + emergency + medical
+    // aid) in the Leaders sheet by updating the leader's existing row in place,
     // keyed on the email column (E / index 4) — so the sheet no longer shows
     // the blanks captured at apply time. Best-effort.
     upsertToSheet(
@@ -277,6 +360,17 @@ leadersRouter.post('/leaders/register', async (req, res) => {
         status: updated.status as 'pending' | 'approved' | 'rejected',
         approvedByNeil: updated.approvedByNeil,
         createdAt: updated.createdAt ? new Date(updated.createdAt).toISOString() : undefined,
+        medical: updated.medical ?? undefined,
+        generalInfo: updated.generalInfo ?? undefined,
+        id: updated.id,
+        year: updated.year,
+        dob: updated.dob ?? undefined,
+        emergencyName: updated.consentEmergencyName ?? undefined,
+        emergencyContact: updated.consentEmergencyContact ?? undefined,
+        medicalAidName: updated.consentMedicalAidName ?? undefined,
+        medicalAidNumber: updated.consentMedicalAidNumber ?? undefined,
+        consentDate: updated.consentDate ?? undefined,
+        consentAccepted: !!updated.consentAcceptedAt,
       }),
       [4]
     ).catch((err) => console.error('Leader sheet sync failed (register):', err));

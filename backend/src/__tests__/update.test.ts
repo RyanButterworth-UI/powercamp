@@ -111,74 +111,91 @@ describe('POST /update', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.id).toBe(7);
+    // Already a current-year row → a true edit.
+    expect(res.body.action).toBe('updated');
     expect(updateMock).toHaveBeenCalledTimes(1);
     expect(insertMock).not.toHaveBeenCalled();
     // Only the linked lookup ran — no "first row by parent email" fallback.
     expect(selectMock).toHaveBeenCalledTimes(1);
   });
 
-  it('falls back to the current-year row for the parent when the link points at a prior-year record (re-registration)', async () => {
-    selectMock
-      .mockResolvedValueOnce([{ id: 5, year: 2025, deletedAt: null }]) // linked row is last year's
-      .mockResolvedValueOnce([{ id: 99 }]); // family already has a current-year row
-    updateMock.mockResolvedValueOnce([{ id: 99 }]);
+  it('updates the linked row in place even when it is a prior-year record (carried forward, never a new row)', async () => {
+    // A returning family clicks a prior-year sign-in link. We update THAT row
+    // (re-tagged to the current year via the payload) — we never insert a
+    // second row or hunt by parent email. One link → one row → edited.
+    selectMock.mockResolvedValueOnce([{ id: 5, year: 2025, deletedAt: null }]);
+    updateMock.mockResolvedValueOnce([{ id: 5 }]);
 
     const token = signMagicToken(5);
     const res = await request(buildApp()).post('/update').send(validBody(token));
 
     expect(res.status).toBe(200);
-    expect(res.body.id).toBe(99);
+    expect(res.body.id).toBe(5);
+    // Prior-year row carried forward into the current year → a registration.
+    expect(res.body.action).toBe('registered');
     expect(updateMock).toHaveBeenCalledTimes(1);
     expect(insertMock).not.toHaveBeenCalled();
-    expect(selectMock).toHaveBeenCalledTimes(2);
+    // Exactly one lookup — the linked row by id. No parent-email fallback.
+    expect(selectMock).toHaveBeenCalledTimes(1);
   });
 
-  it('INSERTs a fresh current-year row when the link is prior-year and the family has none yet', async () => {
-    selectMock
-      .mockResolvedValueOnce([{ id: 5, year: 2025, deletedAt: null }]) // prior-year link
-      .mockResolvedValueOnce([]); // no current-year row for this parent
-    insertMock.mockResolvedValueOnce([{ id: 200 }]);
+  it('returns 404 (and NEVER inserts) when the magic link points at a row that no longer exists', async () => {
+    selectMock.mockResolvedValueOnce([]); // linked id resolves to nothing
 
-    const token = signMagicToken(5);
+    const token = signMagicToken(123);
     const res = await request(buildApp()).post('/update').send(validBody(token));
 
-    expect(res.status).toBe(200);
-    expect(res.body.id).toBe(200);
-    expect(insertMock).toHaveBeenCalledTimes(1);
+    expect(res.status).toBe(404);
+    expect(insertMock).not.toHaveBeenCalled();
     expect(updateMock).not.toHaveBeenCalled();
   });
 
-  it('UPSERTs the Registrations row (keyed on name + parent email) so an edit updates in place, not appends a duplicate', async () => {
-    selectMock.mockResolvedValue([]); // no linked row, no current-year row → insert
-    insertMock.mockResolvedValueOnce([{ id: 1 }]);
+  it('returns 404 when the linked row is soft-deleted (never resurrects or inserts)', async () => {
+    selectMock.mockResolvedValueOnce([{ id: 5, deletedAt: new Date() }]);
 
-    const token = signMagicToken(7);
+    const token = signMagicToken(5);
+    const res = await request(buildApp()).post('/update').send(validBody(token));
+
+    expect(res.status).toBe(404);
+    expect(insertMock).not.toHaveBeenCalled();
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it('UPSERTs the Registrations row (id-primary key) so an edit updates in place, not appends a duplicate', async () => {
+    selectMock.mockResolvedValue([{ id: 1, deletedAt: null }]); // linked row exists
+    updateMock.mockResolvedValueOnce([{ id: 1 }]);
+
+    const token = signMagicToken(1);
     await request(buildApp()).post('/update').send(validBody(token));
     await new Promise((resolve) => setImmediate(resolve));
 
     expect(sheetMock).toHaveBeenCalledTimes(1);
     const [tab, row, keyCols, fallbackCols] = sheetMock.mock.calls[0]!;
     expect(tab).toBe('Registrations');
-    expect(row).toHaveLength(18);
+    expect(row).toHaveLength(24);
     expect(row[0]).toBe('Ryan');
     expect(row[1]).toBe('Butterworth');
     expect(row[4]).toBe('camper@example.com');
     expect(row[11]).toBe('parent@example.com');
     // Col Q is index 16: 'TRUE' once consent is accepted.
     expect(row[16]).toBe('TRUE');
-    // Col R is index 17: the camper's stable DB id (here the inserted id 1).
+    // Col R is index 17: the camper's stable DB id (here id 1).
     expect(row[17]).toBe(1);
-    // Primary key is the id column (R / 17); fallback is the A/B/L composite
-    // for legacy rows written before the id column existed.
+    // New columns: emergency contact, medical aid, consent date, year.
+    expect(row[18]).toBe('Test Contact');   // S emergency name
+    expect(row[19]).toBe('0820000099');      // T emergency number
+    expect(row[22]).toBe('2026-05-02');      // W consent date
+    expect(row[23]).toBe(2026);              // X year
+    // Primary key is the id column (R / 17); fallback is the A/B/L composite.
     expect(keyCols).toEqual([17]);
     expect(fallbackCols).toEqual([0, 1, 11]);
   });
 
   it('sends the registration-received email to the parent_email (lowercased)', async () => {
-    selectMock.mockResolvedValue([]);
-    insertMock.mockResolvedValueOnce([{ id: 1 }]);
+    selectMock.mockResolvedValue([{ id: 1, deletedAt: null }]);
+    updateMock.mockResolvedValueOnce([{ id: 1 }]);
 
-    const token = signMagicToken(7);
+    const token = signMagicToken(1);
     await request(buildApp()).post('/update').send(validBody(token));
     await new Promise((resolve) => setImmediate(resolve));
 
@@ -186,8 +203,8 @@ describe('POST /update', () => {
   });
 
   it('still returns 200 if sheet sync or email fails (DB is source of truth)', async () => {
-    selectMock.mockResolvedValue([]);
-    insertMock.mockResolvedValueOnce([{ id: 1 }]);
+    selectMock.mockResolvedValue([{ id: 1, deletedAt: null }]);
+    updateMock.mockResolvedValueOnce([{ id: 1 }]);
     sheetMock.mockRejectedValueOnce(new Error('sheets down'));
     emailMock.mockRejectedValueOnce(new Error('SMTP down'));
     const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {});

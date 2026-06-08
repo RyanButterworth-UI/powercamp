@@ -1,11 +1,16 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { db } from '../db/client';
 import { campers } from '../db/schema';
 import { env } from '../env';
 import { verifyMagicToken } from '../services/auth';
 import { upsertToSheet } from '../services/sheets';
+import {
+  registrationSheetRow,
+  REGISTRATION_SHEET_KEY,
+  REGISTRATION_SHEET_FALLBACK_KEY,
+} from '../lib/registration-sheet';
 import { sendRegistrationReceived } from '../services/email';
 import { ensureSubscription } from '../services/subscriptions';
 
@@ -107,84 +112,62 @@ updateRouter.post('/update', async (req, res) => {
   };
 
   let camperId: number;
+  // 'updated' = the row was already a current-year registration (a true edit);
+  // 'registered' = a returning family carried a prior-year row forward into the
+  // current year. Drives the "Successfully edited" vs "Registered" wording on
+  // the confirmation screen.
+  let action: 'updated' | 'registered';
   try {
-    // The magic link identifies a specific camper row (claims.camperId). If
-    // that row is a current-year registration, update exactly it — never
-    // "first row by parent email", which silently clobbers a sibling when two
-    // children share one parent email (our implicit family key). Only when the
-    // link points at a prior-year record (a returning family) or a row that's
-    // since been removed do we fall back to the current-year find-or-insert
-    // that powers cross-year re-registration.
+    // An edit must only ever EDIT. The magic link identifies one specific
+    // camper row (claims.camperId); update exactly that row and nothing else.
+    // We deliberately do NOT fall back to "find by parent email" (which would
+    // clobber a sibling) or to inserting a new row (which silently created
+    // duplicate registrations + a spurious "registration received" email when
+    // a stale link pointed at a since-removed id). If the link no longer
+    // resolves, say so and let them request a fresh one. The payload re-tags
+    // the row to the current camp year, so a returning family editing a
+    // prior-year link is carried forward in place — still no new row.
     const [linked] = await db
       .select({ id: campers.id, year: campers.year, deletedAt: campers.deletedAt })
       .from(campers)
       .where(eq(campers.id, claims.camperId))
       .limit(1);
 
-    if (linked && !linked.deletedAt && linked.year === env.CAMP_YEAR) {
-      const [updated] = await db
-        .update(campers)
-        .set(camperPayload)
-        .where(eq(campers.id, linked.id))
-        .returning({ id: campers.id });
-      camperId = updated.id;
-    } else {
-      const [existing] = await db
-        .select({ id: campers.id })
-        .from(campers)
-        .where(
-          and(eq(campers.parentEmail, parentEmail), eq(campers.year, env.CAMP_YEAR))
-        )
-        .limit(1);
-
-      if (existing) {
-        const [updated] = await db
-          .update(campers)
-          .set(camperPayload)
-          .where(eq(campers.id, existing.id))
-          .returning({ id: campers.id });
-        camperId = updated.id;
-      } else {
-        const [inserted] = await db
-          .insert(campers)
-          .values(camperPayload)
-          .returning({ id: campers.id });
-        camperId = inserted.id;
-      }
+    if (!linked || linked.deletedAt) {
+      return res
+        .status(404)
+        .json({ error: 'Registration not found — please request a new sign-in link.' });
     }
+
+    action = linked.year === env.CAMP_YEAR ? 'updated' : 'registered';
+
+    const [updated] = await db
+      .update(campers)
+      .set(camperPayload)
+      .where(eq(campers.id, linked.id))
+      .returning({ id: campers.id });
+    camperId = updated.id;
   } catch (err) {
     console.error('update DB error:', err);
     return res.status(500).json({ error: 'Failed to save registration' });
   }
 
-  // Sheet upsert (best-effort). This is an EDIT, so update the camper's
-  // existing Registrations row in place rather than appending — otherwise
-  // every edit spawns a duplicate row. Keyed PRIMARILY on the stable camper
-  // id (col R / index 17) so changing a name or email can't orphan the row;
-  // falls back to the A/B/L composite (firstName, lastName, parentEmail) for
-  // rows written before the id column existed, and to append if neither
-  // matches. Cols A..P match the existing sheet layout; col Q is the
-  // consent-accepted flag; col R is the id key.
-  upsertToSheet('Registrations', [
-    c.firstName,
-    c.lastName,
-    c.camperCell ?? '',
-    c.gender ?? '',
-    camperEmail ?? '',
-    c.age ?? '',
-    c.grade ?? '',
-    (c.friends ?? []).join(', '),
-    c.medical ?? '',
-    c.parentName ?? '',
-    c.parentPhone ?? '',
-    parentEmail,
-    c.church ?? '',
-    c.tshirt ?? '',
-    c.generalInfo ?? '',
-    c.dob ?? '',
-    'TRUE',
-    camperId,
-  ], [17], [0, 1, 11]).catch((err) => {
+  // Sheet upsert (best-effort) via the shared builder — same layout as /submit,
+  // so an edit overwrites the exact same columns. Keyed PRIMARILY on the stable
+  // camper id (col R / index 17) so changing a name or email can't orphan the
+  // row; falls back to the firstName+lastName+parentEmail composite for rows
+  // written before the id column existed, and to append if neither matches.
+  upsertToSheet(
+    'Registrations',
+    registrationSheetRow(
+      { ...c, parentEmail, email: camperEmail },
+      consentForm,
+      camperId,
+      env.CAMP_YEAR
+    ),
+    REGISTRATION_SHEET_KEY,
+    REGISTRATION_SHEET_FALLBACK_KEY
+  ).catch((err) => {
     console.error('Sheet sync failed (DB write succeeded):', err);
   });
 
@@ -193,5 +176,5 @@ updateRouter.post('/update', async (req, res) => {
     console.error('Registration-received email failed:', err);
   });
 
-  res.json({ id: camperId, consentAcceptedAt: acceptedAt.toISOString() });
+  res.json({ id: camperId, consentAcceptedAt: acceptedAt.toISOString(), action });
 });
