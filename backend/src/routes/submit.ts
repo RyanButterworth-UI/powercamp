@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { db } from '../db/client';
 import { campers } from '../db/schema';
 import { env } from '../env';
@@ -59,10 +60,9 @@ const submitBody = z.object({
 
 type CamperInput = z.infer<typeof camperBody>;
 
-// Column order MUST match the existing sheet so the Mailchimp Apps Script
-// (processNewRows) keeps reading firstName from A, lastName from B,
-// email from E, parentName from J, parentEmail from L. Q='TRUE' since
-// /submit only fires after the mandatory consent step.
+// Column order MUST match the existing sheet's layout: firstName in A,
+// lastName in B, email in E, parentName in J, parentEmail in L. Q='TRUE'
+// since /submit only fires after the mandatory consent step.
 function toSheetRow(d: CamperInput): (string | number | null)[] {
   return [
     d.firstName,                  // A
@@ -107,12 +107,47 @@ submitRouter.post('/submit', async (req, res) => {
   console.log('Received registration:', c);
 
   try {
+    // Duplicate guard. A magic-link edit (POST /update) is the only intended
+    // way to change an existing registration. A second POST /submit for the
+    // same child is almost always an accidental resubmit — a stale browser
+    // draft restored into the form, a double-tap, or a back-button replay.
+    // Reject it rather than insert a duplicate row, and never overwrite, so a
+    // fresh edit can't be clobbered by an older draft. Siblings are
+    // unaffected: they share a parent email (our implicit family key) but
+    // have a different name, so this name-scoped lookup misses them.
+    const [duplicate] = await db
+      .select({ id: campers.id })
+      .from(campers)
+      .where(
+        and(
+          eq(campers.year, env.CAMP_YEAR),
+          eq(campers.parentEmail, parentEmail),
+          sql`lower(${campers.firstName}) = ${c.firstName.trim().toLowerCase()}`,
+          sql`lower(${campers.lastName}) = ${c.lastName.trim().toLowerCase()}`,
+          isNull(campers.deletedAt)
+        )
+      )
+      .limit(1);
+
+    if (duplicate) {
+      return res.status(409).json({
+        error: 'already-registered',
+        message:
+          `${c.firstName} is already registered for Power Camp ${env.CAMP_YEAR}. ` +
+          `To change any details, use the edit link from your confirmation email — ` +
+          `or search your name on the home page and we'll send you a fresh one.`,
+        id: duplicate.id,
+      });
+    }
+
     const [row] = await db
       .insert(campers)
       .values({
         year: env.CAMP_YEAR,
-        firstName: c.firstName,
-        lastName: c.lastName,
+        // Store trimmed so the duplicate guard above (which compares
+        // trimmed/lowercased names) can reliably match a re-submission.
+        firstName: c.firstName.trim(),
+        lastName: c.lastName.trim(),
         dob: c.dob,
         gender: c.gender,
         age: c.age,
@@ -143,7 +178,14 @@ submitRouter.post('/submit', async (req, res) => {
       })
       .returning({ id: campers.id });
 
-    appendToSheet('Registrations', toSheetRow({ ...c, parentEmail, email: camperEmail })).catch((err) => {
+    // Col R (index 17) carries the camper's stable DB id so the edit flow's
+    // sheet upsert can match this row by id — surviving later name/email edits
+    // that would otherwise spawn a duplicate row. It sits after the A..Q block
+    // the sheet already relies on, so nothing upstream shifts.
+    appendToSheet('Registrations', [
+      ...toSheetRow({ ...c, parentEmail, email: camperEmail }),
+      row.id,
+    ]).catch((err) => {
       console.error('Sheet sync failed (DB write succeeded):', err);
     });
 

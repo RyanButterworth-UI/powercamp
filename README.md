@@ -9,9 +9,7 @@ leaders, teams, bunks, bulk email).
 - **Frontend:** Angular 19 + Tailwind, standalone components, signals.
 - **Backend:** Express on `tsx` (no compile step), Drizzle ORM against Neon Postgres.
 - **Email:** Nodemailer + Gmail SMTP (app password).
-- **Sheets:** Google Sheets API write-through after each DB commit;
-  a separate Apps Script in the camp's Google account fans the sheet
-  out to Mailchimp.
+- **Sheets:** Google Sheets API write-through after each DB commit.
 - **Tests:** Jest (`npm test`) for the Angular side, Jest + supertest
   (`cd backend && npm test`) for the API. Playwright (`npx playwright test`)
   for end-to-end browser flows.

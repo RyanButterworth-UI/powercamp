@@ -8,7 +8,8 @@ import { campers, leaders } from '../db/schema';
 import { signAdminToken, signLeaderInviteToken } from '../services/auth';
 import { env } from '../env';
 import { requireAdmin } from '../middleware/require-admin';
-import { appendToSheet } from '../services/sheets';
+import { appendToSheet, upsertToSheet } from '../services/sheets';
+import { leaderRow } from './leaders';
 import {
   sendPaymentConfirmed,
   renderBlocksToHtml,
@@ -17,6 +18,7 @@ import {
   EmailBlock,
   sendLeaderInvite,
   sendInviteSentReceipt,
+  sendLeaderRejection,
 } from '../services/email';
 import {
   filterToSubscribed,
@@ -263,6 +265,40 @@ const leaderDecisionBody = z.object({
   neilPassword: z.string(),
 });
 
+// Reflect a leader's new status in the Leaders sheet tab. The apply flow
+// appended a 'pending' row; approve/reject must UPDATE that row in place
+// (keyed on the email column, E / index 4) instead of leaving the sheet
+// stale or appending a duplicate. Best-effort — never blocks the decision.
+type LeaderDecisionRow = typeof leaders.$inferSelect;
+function syncLeaderSheetRow(
+  leader: LeaderDecisionRow,
+  status: 'approved' | 'rejected',
+  approvedByNeil: boolean
+): Promise<void> {
+  return upsertToSheet(
+    'Leaders',
+    leaderRow({
+      firstName: leader.firstName,
+      lastName: leader.lastName,
+      cell: leader.cell ?? undefined,
+      gender: leader.gender ?? undefined,
+      email: leader.email,
+      age: leader.age ?? undefined,
+      grade: leader.grade ?? undefined,
+      church: leader.church ?? undefined,
+      tshirt: leader.tshirt ?? undefined,
+      parentName: leader.parentName ?? undefined,
+      parentPhone: leader.parentPhone ?? undefined,
+      parentEmail: leader.parentEmail ?? undefined,
+      applicationNotes: leader.applicationNotes ?? undefined,
+      status,
+      approvedByNeil,
+      createdAt: leader.createdAt ? new Date(leader.createdAt).toISOString() : undefined,
+    }),
+    [4]
+  );
+}
+
 adminRouter.post('/admin/leaders/:id/approve', requireAdmin, async (req, res) => {
   if (!(await isNeilOk(req.body))) {
     return res.status(401).json({ error: 'Wrong Neil password' });
@@ -272,6 +308,18 @@ adminRouter.post('/admin/leaders/:id/approve', requireAdmin, async (req, res) =>
     return res.status(400).json({ error: 'Invalid leader id' });
   }
   try {
+    // Idempotency guard: if the leader is already approved, don't update or
+    // re-send the invite. Otherwise a double-click (or an accidental re-press)
+    // fires a second invite email and a second sheet write. Re-sending an
+    // invite on purpose is what the dedicated /invite endpoint is for.
+    const [existing] = await db.select().from(leaders).where(eq(leaders.id, id));
+    if (!existing || existing.deletedAt) {
+      return res.status(404).json({ error: 'Leader not found' });
+    }
+    if (existing.status === 'approved') {
+      return res.json({ id: existing.id, status: 'approved', invitedTo: existing.email, alreadyApproved: true });
+    }
+
     const [row] = await db
       .update(leaders)
       .set({
@@ -281,9 +329,24 @@ adminRouter.post('/admin/leaders/:id/approve', requireAdmin, async (req, res) =>
         updatedAt: new Date(),
       })
       .where(eq(leaders.id, id))
-      .returning({ id: leaders.id });
+      .returning();
     if (!row) return res.status(404).json({ error: 'Leader not found' });
-    res.json({ id: row.id, status: 'approved' });
+
+    // Approval now emails the leader their registration link directly, so a
+    // single click both approves and invites — no separate manual step. The
+    // standalone "Send invite" action remains as a re-send. Best-effort: a
+    // Gmail hiccup shouldn't roll back the approval (Neil can re-send).
+    const token = signLeaderInviteToken(row.id);
+    const url = `${env.APP_BASE_URL.replace(/\/$/, '')}/leader-register?token=${encodeURIComponent(token)}`;
+    sendLeaderInvite(row.email, row.firstName, url).catch((err) =>
+      console.error('Approval invite email failed:', err)
+    );
+
+    syncLeaderSheetRow(row, 'approved', true).catch((err) =>
+      console.error('Leader sheet status sync failed (approve):', err)
+    );
+
+    res.json({ id: row.id, status: 'approved', invitedTo: row.email });
   } catch (err) {
     console.error('approve error:', err);
     res.status(500).json({ error: 'Failed to approve' });
@@ -340,12 +403,32 @@ adminRouter.post('/admin/leaders/:id/reject', requireAdmin, async (req, res) => 
     return res.status(400).json({ error: 'Invalid leader id' });
   }
   try {
+    // Idempotency guard — same reasoning as approve: a repeat click must not
+    // fire a second decline email or a second sheet write.
+    const [existing] = await db.select().from(leaders).where(eq(leaders.id, id));
+    if (!existing || existing.deletedAt) {
+      return res.status(404).json({ error: 'Leader not found' });
+    }
+    if (existing.status === 'rejected') {
+      return res.json({ id: existing.id, status: 'rejected', alreadyRejected: true });
+    }
+
     const [row] = await db
       .update(leaders)
       .set({ status: 'rejected', updatedAt: new Date() })
       .where(eq(leaders.id, id))
-      .returning({ id: leaders.id });
+      .returning();
     if (!row) return res.status(404).json({ error: 'Leader not found' });
+
+    // Let the applicant know — a warm, brief decline. Best-effort.
+    sendLeaderRejection(row.email, row.firstName).catch((err) =>
+      console.error('Leader rejection email failed:', err)
+    );
+
+    syncLeaderSheetRow(row, 'rejected', false).catch((err) =>
+      console.error('Leader sheet status sync failed (reject):', err)
+    );
+
     res.json({ id: row.id, status: 'rejected' });
   } catch (err) {
     console.error('reject error:', err);

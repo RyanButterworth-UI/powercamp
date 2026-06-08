@@ -4,9 +4,13 @@ import { eq } from 'drizzle-orm';
 import { db } from '../db/client';
 import { leaders } from '../db/schema';
 import { env } from '../env';
-import { appendToSheet } from '../services/sheets';
+import { appendToSheet, upsertToSheet } from '../services/sheets';
 import { ensureSubscription } from '../services/subscriptions';
-import { sendLeaderApplicationNotice } from '../services/email';
+import {
+  sendLeaderApplicationNotice,
+  sendLeaderApplicationReceived,
+  sendLeaderRegistrationComplete,
+} from '../services/email';
 import { verifyLeaderInviteToken } from '../services/auth';
 
 // Leaders sheet tab column order:
@@ -29,6 +33,10 @@ function leaderRow(d: {
   applicationNotes?: string;
   status: 'pending' | 'approved' | 'rejected';
   approvedByNeil: boolean;
+  // Original application timestamp. Passed through on later updates (approve/
+  // reject sheet sync) so re-writing the row in place doesn't reset col P to
+  // "now". Defaults to now for a fresh application row.
+  createdAt?: string;
 }): (string | number | null)[] {
   return [
     d.firstName,
@@ -46,7 +54,7 @@ function leaderRow(d: {
     d.applicationNotes ?? '',
     d.status,
     d.approvedByNeil ? 'TRUE' : 'FALSE',
-    new Date().toISOString(),
+    d.createdAt ?? new Date().toISOString(),
   ];
 }
 
@@ -124,6 +132,12 @@ leadersRouter.post('/leaders/apply', async (req, res) => {
       church: data.church,
       applicationNotes: data.applicationNotes,
     }).catch((err) => console.error('Neil notification email failed:', err));
+
+    // Acknowledge the applicant straight away ("we've got it, you're awaiting
+    // approval — remember to email Neil your motivation"). Best-effort.
+    sendLeaderApplicationReceived(data.email.toLowerCase(), data.firstName).catch((err) =>
+      console.error('Leader application-received email failed:', err)
+    );
 
     res.json({ id: row.id });
   } catch (err) {
@@ -204,6 +218,18 @@ leadersRouter.post('/leaders/register', async (req, res) => {
 
   const { token: _token, ...patch } = parsed.data;
   try {
+    // A valid 7-day token isn't enough on its own: re-check the leader is
+    // still approved and not removed before saving. Otherwise someone
+    // approved, then rejected/deleted, could still complete registration
+    // within the token window. Mirrors the guard in /leaders/verify-invite.
+    const [leader] = await db.select().from(leaders).where(eq(leaders.id, claims.leaderId));
+    if (!leader || leader.deletedAt) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+    if (leader.status !== 'approved') {
+      return res.status(403).json({ error: 'Application is not approved' });
+    }
+
     const [updated] = await db
       .update(leaders)
       .set({
@@ -219,8 +245,42 @@ leadersRouter.post('/leaders/register', async (req, res) => {
         updatedAt: new Date(),
       })
       .where(eq(leaders.id, claims.leaderId))
-      .returning({ id: leaders.id });
+      .returning();
     if (!updated) return res.status(404).json({ error: 'Leader not found' });
+
+    // Confirm completion to the leader — closes the email chain (apply ack →
+    // approval+link → done). Best-effort: a Gmail hiccup mustn't fail the save.
+    sendLeaderRegistrationComplete(updated.email, updated.firstName).catch((err) =>
+      console.error('Leader registration-complete email failed:', err)
+    );
+
+    // Reflect the now-complete details (cell, age, t-shirt, emergency contact)
+    // in the Leaders sheet by updating the leader's existing row in place,
+    // keyed on the email column (E / index 4) — so the sheet no longer shows
+    // the blanks captured at apply time. Best-effort.
+    upsertToSheet(
+      'Leaders',
+      leaderRow({
+        firstName: updated.firstName,
+        lastName: updated.lastName,
+        cell: updated.cell ?? undefined,
+        gender: updated.gender ?? undefined,
+        email: updated.email,
+        age: updated.age ?? undefined,
+        grade: updated.grade ?? undefined,
+        church: updated.church ?? undefined,
+        tshirt: updated.tshirt ?? undefined,
+        parentName: updated.parentName ?? undefined,
+        parentPhone: updated.parentPhone ?? undefined,
+        parentEmail: updated.parentEmail ?? undefined,
+        applicationNotes: updated.applicationNotes ?? undefined,
+        status: updated.status as 'pending' | 'approved' | 'rejected',
+        approvedByNeil: updated.approvedByNeil,
+        createdAt: updated.createdAt ? new Date(updated.createdAt).toISOString() : undefined,
+      }),
+      [4]
+    ).catch((err) => console.error('Leader sheet sync failed (register):', err));
+
     res.json({ id: updated.id });
   } catch (err) {
     console.error('leaders/register error:', err);

@@ -22,7 +22,7 @@ test.describe('Camper registration — entry surface', () => {
     await page.getByRole('button', { name: /register as a new camper/i }).click();
     await expect(page.getByRole('heading', { name: /^power camp 2026$/i })).toBeVisible();
     await expect(page.getByText(/yfc magaliesburg/i)).toBeVisible();
-    await expect(page.getByText(/r1300/i)).toBeVisible();
+    await expect(page.getByText(/r1350/i)).toBeVisible();
   });
 
   test('Start Registration on the Intro lands on the CamperInfo step (first name input)', async ({ page }) => {

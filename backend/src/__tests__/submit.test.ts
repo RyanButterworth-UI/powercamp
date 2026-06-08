@@ -6,8 +6,10 @@ jest.mock('../env', () => ({
 }));
 
 const insertMock = jest.fn();
+const selectMock = jest.fn();
 jest.mock('../db/client', () => ({
   db: {
+    select: () => ({ from: () => ({ where: () => ({ limit: () => selectMock() }) }) }),
     insert: () => ({
       values: (vals: unknown) => ({
         returning: () => insertMock(vals),
@@ -81,9 +83,40 @@ const validBody = {
 describe('POST /submit', () => {
   beforeEach(() => {
     insertMock.mockResolvedValue([{ id: 42 }]);
+    // Default: no existing camper matches → the duplicate guard lets the
+    // insert through. Individual tests override this to simulate a dup.
+    selectMock.mockReset().mockResolvedValue([]);
     mockAppend.mockResolvedValue(undefined);
     mockEmail.mockResolvedValue(undefined);
     mockRegOpen.mockResolvedValue(true);
+  });
+
+  it('rejects an exact re-registration (same name + parent email + year) with 409 and does NOT insert', async () => {
+    // A stale browser draft, a double-tap, or a back-button replay can POST
+    // the same child twice. The guard must reject — never insert a second
+    // row, and never overwrite (a fresh edit must not be clobbered by an
+    // older draft).
+    selectMock.mockResolvedValueOnce([{ id: 7 }]); // existing camper found
+
+    const res = await request(buildApp()).post('/submit').send(validBody);
+
+    expect(res.status).toBe(409);
+    expect(res.body.error).toBe('already-registered');
+    expect(insertMock).not.toHaveBeenCalled();
+    expect(mockAppend).not.toHaveBeenCalled();
+  });
+
+  it('treats a sibling (same parent email, different name) as a new registration', async () => {
+    // Siblings share one parent email — our implicit family key — but have a
+    // different name, so the name-scoped lookup returns nothing and the
+    // insert proceeds. This is what makes "Register another child" safe.
+    selectMock.mockResolvedValueOnce([]); // no match for this child's name
+
+    const res = await request(buildApp()).post('/submit').send(validBody);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ id: 42 });
+    expect(insertMock).toHaveBeenCalledTimes(1);
   });
 
   it('rejects new registrations with 403 when registrations are closed', async () => {
@@ -115,7 +148,7 @@ describe('POST /submit', () => {
     );
   });
 
-  it('appends a 17-column row to Registrations with Q=TRUE since consent is mandatory', async () => {
+  it('appends an 18-column row to Registrations with Q=TRUE and the camper id in col R', async () => {
     await request(buildApp()).post('/submit').send(validBody);
     await new Promise((resolve) => setImmediate(resolve));
 
@@ -137,6 +170,7 @@ describe('POST /submit', () => {
       '',                    // O generalInfo
       '2010-01-01',          // P dob
       'TRUE',                // Q Consent Accepted — gated by ConsentStep
+      42,                    // R camper id (stable key for the edit upsert)
     ]);
   });
 
