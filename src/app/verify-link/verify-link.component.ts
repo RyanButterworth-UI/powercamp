@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
-import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { environment } from '../../environments/environment';
 import { SkeletonComponent } from '../skeleton/skeleton.component';
 import { SagaSelectComponent, SagaSelectOption } from '../saga-select/saga-select.component';
@@ -348,6 +348,41 @@ interface VerifiedCamper {
               <label class="flex flex-col gap-1.5 text-sm sm:col-span-2">Anything else
                 <input formControlName="generalInfo" class="w-full px-3 py-2" />
               </label>
+
+              <!-- Friend / roommate requests — editable list. -->
+              <div class="sm:col-span-2 flex flex-col gap-1.5 text-sm">
+                <span>Friend requests</span>
+                <div formArrayName="friends" class="flex flex-col gap-2">
+                  @for (ctrl of friendsArray.controls; track $index) {
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs font-medium whitespace-nowrap" style="color: var(--color-saga-text-muted); min-width: 4.5rem;">
+                        Friend {{ $index + 1 }}
+                      </span>
+                      <input [formControlName]="$index" placeholder="Their name" class="w-full px-3 py-2" />
+                      @if (friendsArray.controls.length > 1) {
+                        <button
+                          type="button"
+                          (click)="removeFriend($index)"
+                          aria-label="Remove this friend"
+                          class="cursor-pointer rounded-md p-1.5"
+                          style="background: none; border: 1px solid var(--color-saga-border); color: var(--color-saga-text-muted);"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        </button>
+                      }
+                    </div>
+                  }
+                </div>
+                <button
+                  type="button"
+                  (click)="addFriend()"
+                  class="mt-1 cursor-pointer rounded-full self-start inline-flex items-center justify-center"
+                  style="width: 32px; height: 32px; background: var(--color-saga-action-soft); border: 1px solid var(--color-saga-action); color: var(--color-saga-action);"
+                  aria-label="Add another friend"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
+              </div>
             </div>
           </fieldset>
 
@@ -589,7 +624,10 @@ export class VerifyLinkComponent {
         gender: [c.gender ?? ''],
         age: [c.age ?? ''],
         grade: [c.grade ?? ''],
-        friends: [c.friends ?? []],
+        // Editable list — seed from the saved names, or one empty row.
+        friends: this.fb.array(
+          (c.friends && c.friends.length > 0 ? c.friends : ['']).map((f) => this.fb.control(f))
+        ),
         medical: [c.medical ?? ''],
         parentName: [c.parentName ?? ''],
         parentPhone: [c.parentPhone ?? ''],
@@ -677,6 +715,17 @@ export class VerifyLinkComponent {
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  // Editable friend-request list (a FormArray on the camper group).
+  get friendsArray(): FormArray {
+    return this.form?.get('camper')?.get('friends') as FormArray;
+  }
+  addFriend(): void {
+    this.friendsArray?.push(this.fb.control(''));
+  }
+  removeFriend(i: number): void {
+    if (this.friendsArray && this.friendsArray.length > 1) this.friendsArray.removeAt(i);
+  }
+
   // Read a camper field for the read-only review screen. Arrays (friends)
   // are joined; empty values render as an em dash.
   camperVal(key: string): string {
@@ -703,6 +752,13 @@ export class VerifyLinkComponent {
       camper: Record<string, unknown>;
       consent: Record<string, unknown>;
     };
+
+    // Drop blank friend rows so empty inputs aren't saved as names.
+    if (Array.isArray(raw.camper['friends'])) {
+      raw.camper['friends'] = (raw.camper['friends'] as string[])
+        .map((f) => (f ?? '').trim())
+        .filter(Boolean);
+    }
 
     // Map boolean checkbox values to 'accept' strings for the consent fields.
     const consentBools = ['general', 'location', 'risk', 'powerCamp', 'behaviour', 'photo'];
