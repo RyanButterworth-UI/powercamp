@@ -5,7 +5,7 @@ import { db } from '../db/client';
 import { campers } from '../db/schema';
 import { env } from '../env';
 import { verifyMagicToken } from '../services/auth';
-import { appendToSheet } from '../services/sheets';
+import { upsertToSheet } from '../services/sheets';
 import { sendRegistrationReceived } from '../services/email';
 import { ensureSubscription } from '../services/subscriptions';
 
@@ -157,9 +157,15 @@ updateRouter.post('/update', async (req, res) => {
     return res.status(500).json({ error: 'Failed to save registration' });
   }
 
-  // Sheet append (best-effort). Cols A..P match the existing Mailchimp script's
-  // expectations; col Q gets the consent-accepted timestamp.
-  appendToSheet('Registrations', [
+  // Sheet upsert (best-effort). This is an EDIT, so update the camper's
+  // existing Registrations row in place rather than appending — otherwise
+  // every edit spawns a duplicate row. Keyed PRIMARILY on the stable camper
+  // id (col R / index 17) so changing a name or email can't orphan the row;
+  // falls back to the A/B/L composite (firstName, lastName, parentEmail) for
+  // rows written before the id column existed, and to append if neither
+  // matches. Cols A..P match the existing sheet layout; col Q is the
+  // consent-accepted flag; col R is the id key.
+  upsertToSheet('Registrations', [
     c.firstName,
     c.lastName,
     c.camperCell ?? '',
@@ -177,7 +183,8 @@ updateRouter.post('/update', async (req, res) => {
     c.generalInfo ?? '',
     c.dob ?? '',
     'TRUE',
-  ]).catch((err) => {
+    camperId,
+  ], [17], [0, 1, 11]).catch((err) => {
     console.error('Sheet sync failed (DB write succeeded):', err);
   });
 

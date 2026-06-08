@@ -711,6 +711,12 @@ export class VerifyLinkComponent {
         next: (res) => {
           this.submittedAt.set(res.consentAcceptedAt);
           this.submitting.set(false);
+          // This is an existing registration that has just been saved, so any
+          // half-finished NEW-registration draft sitting in the browser is now
+          // stale. Clear it — otherwise tapping "Done" returns to the main form,
+          // which auto-restores that draft and drops the user mid-flow (the
+          // "it created a new camper / took me to the T-shirt step" bug).
+          this.clearMainFormDraft();
         },
         error: (err) => {
           this.submitting.set(false);
@@ -725,6 +731,20 @@ export class VerifyLinkComponent {
 
   goHome(): void {
     this.router.navigate(['/']);
+  }
+
+  // The main registration form persists an in-progress draft under this key
+  // and silently resumes it whenever it loads. After an edit there is nothing
+  // legitimate to resume, so we clear it. Kept as the literal string (matching
+  // FormComponent.STORAGE_KEY and LookupComponent) — these three are the only
+  // touchpoints for the draft and a shared constant isn't worth the coupling.
+  private clearMainFormDraft(): void {
+    if (typeof localStorage === 'undefined') return;
+    try {
+      localStorage.removeItem('powercamp.form.draft');
+    } catch {
+      // private mode / quota — nothing actionable.
+    }
   }
 
   // Mirrors the camper consent step: "Not on medical aid" is derived from

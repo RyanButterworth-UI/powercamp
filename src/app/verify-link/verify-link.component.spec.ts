@@ -147,6 +147,37 @@ describe('VerifyLinkComponent', () => {
     http.verify();
   });
 
+  it('clears any stale main-form draft from localStorage after a successful edit submit', () => {
+    // Reproduces the "edit created a new camper / landed on T-shirt" bug:
+    // a leftover new-registration draft must not survive an edit, or tapping
+    // "Done" returns to the main form which auto-resumes it mid-flow.
+    localStorage.setItem('powercamp.form.draft', JSON.stringify({ firstName: 'Lexi' }));
+
+    const fixture = createFixture('a-valid-token');
+    const http = TestBed.inject(HttpTestingController);
+    fixture.detectChanges();
+    http.expectOne(`${environment.baseApi}/verify-link`).flush({ camper: mockCamper });
+    fixture.detectChanges();
+
+    const consent = fixture.componentInstance.form!.get('consent')!;
+    consent.patchValue({
+      general: true, location: true, risk: true,
+      powerCamp: true, behaviour: true, photo: true,
+      emergencyName: 'X', emergencyContact: '0820000099',
+      medicalAidName: 'NONE', medicalAidNumber: 'NONE',
+      date: '2026-05-02',
+    });
+
+    fixture.componentInstance.submit();
+    http
+      .expectOne(`${environment.baseApi}/update`)
+      .flush({ id: 7, consentAcceptedAt: '2026-05-02T10:00:00.000Z' });
+    fixture.detectChanges();
+
+    expect(localStorage.getItem('powercamp.form.draft')).toBeNull();
+    http.verify();
+  });
+
   it('shows the review/summary screen before submitting and confirms from there', () => {
     const fixture = createFixture('a-valid-token');
     const http = TestBed.inject(HttpTestingController);

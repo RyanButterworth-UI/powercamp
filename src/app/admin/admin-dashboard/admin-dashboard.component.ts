@@ -114,7 +114,7 @@ const COLUMN_GROUPS: ColumnGroup[] = GROUP_ORDER.map((g) => ({
         </button>
       </div>
 
-      <nav class="flex gap-4 mb-4 text-sm overflow-x-auto whitespace-nowrap" style="border-bottom: 1px solid var(--color-saga-border); -webkit-overflow-scrolling: touch;">
+      <nav class="flex gap-4 mb-4 text-sm flex-wrap" style="border-bottom: 1px solid var(--color-saga-border); -webkit-overflow-scrolling: touch;">
         <span class="saga-tab is-active">Campers</span>
         <a routerLink="/admin/leaders" class="saga-tab no-underline">Leaders</a>
         <a routerLink="/admin/bulk-email" class="saga-tab no-underline">Bulk email</a>

@@ -27,7 +27,7 @@ jest.mock('../db/client', () => ({
 
 const sheetMock = jest.fn();
 jest.mock('../services/sheets', () => ({
-  appendToSheet: (...args: unknown[]) => sheetMock(...args),
+  upsertToSheet: (...args: unknown[]) => sheetMock(...args),
 }));
 
 const emailMock = jest.fn();
@@ -148,7 +148,7 @@ describe('POST /update', () => {
     expect(updateMock).not.toHaveBeenCalled();
   });
 
-  it('appends to the Registrations sheet with the consent timestamp in column Q', async () => {
+  it('UPSERTs the Registrations row (keyed on name + parent email) so an edit updates in place, not appends a duplicate', async () => {
     selectMock.mockResolvedValue([]); // no linked row, no current-year row → insert
     insertMock.mockResolvedValueOnce([{ id: 1 }]);
 
@@ -157,15 +157,21 @@ describe('POST /update', () => {
     await new Promise((resolve) => setImmediate(resolve));
 
     expect(sheetMock).toHaveBeenCalledTimes(1);
-    const [tab, row] = sheetMock.mock.calls[0]!;
+    const [tab, row, keyCols, fallbackCols] = sheetMock.mock.calls[0]!;
     expect(tab).toBe('Registrations');
-    expect(row).toHaveLength(17);
+    expect(row).toHaveLength(18);
     expect(row[0]).toBe('Ryan');
     expect(row[1]).toBe('Butterworth');
     expect(row[4]).toBe('camper@example.com');
     expect(row[11]).toBe('parent@example.com');
     // Col Q is index 16: 'TRUE' once consent is accepted.
     expect(row[16]).toBe('TRUE');
+    // Col R is index 17: the camper's stable DB id (here the inserted id 1).
+    expect(row[17]).toBe(1);
+    // Primary key is the id column (R / 17); fallback is the A/B/L composite
+    // for legacy rows written before the id column existed.
+    expect(keyCols).toEqual([17]);
+    expect(fallbackCols).toEqual([0, 1, 11]);
   });
 
   it('sends the registration-received email to the parent_email (lowercased)', async () => {

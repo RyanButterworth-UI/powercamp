@@ -48,7 +48,7 @@ import { Component, input, Input, output } from '@angular/core';
               <div class="mt-4 text-center">
                 <h3 class="text-lg font-semibold">
                   @if (!consent() && !feedback()) {
-                    {{ status === 'success' ? "You're in!" : "Hmm, that didn't go through" }}
+                    {{ status === 'success' ? "You're in!" : (errorTitle || "Hmm, that didn't go through") }}
                   } @else if (feedback()) {
                     {{ status === 'success' ? 'Got it — thank you!' : "We didn't catch that" }}
                   } @else {
@@ -67,6 +67,8 @@ import { Component, input, Input, output } from '@angular/core';
                         list. Every campaign email has a one-click unsubscribe.
                       </p>
                       <p class="mt-2">If you have another child to register, hit the button below — we'll keep your parent details prefilled.</p>
+                    } @else if (errorMessage) {
+                      <p>{{ errorMessage }}</p>
                     } @else {
                       <p>
                         {{ camperName }}, our gremlins ate that submission. Try again, and if it
@@ -114,6 +116,12 @@ import { Component, input, Input, output } from '@angular/core';
 export class SuccessDialogComponent {
   @Input() camperName = '';
   @Input() status: 'success' | 'error' = 'success';
+  // Optional overrides for specific error cases (e.g. the /submit 409
+  // "already registered" response). When set, they replace the generic
+  // "gremlins ate it" copy so the parent gets actionable guidance instead
+  // of a retry loop.
+  @Input() errorTitle = '';
+  @Input() errorMessage = '';
   consent = input<boolean>(false);
   feedback = input<boolean>(false);
   refreshApp = output();

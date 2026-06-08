@@ -50,6 +50,8 @@ import { ResetRegistrationService } from '../reset-registration.service';
             <app-success-dialog
               [camperName]="submittedCamperName()"
               [status]="submissionStatus()"
+              [errorTitle]="submitErrorTitle()"
+              [errorMessage]="submitErrorMessage()"
               (refreshApp)="refreshApp()"
               (registerAnother)="registerAnotherChild()"
             ></app-success-dialog>
@@ -412,6 +414,10 @@ export class FormComponent {
   showDialog = signal(false);
   submissionStatus = signal<'success' | 'error'>('success');
   submittedCamperName = signal('Dear Camper');
+  // Populated only for the /submit 409 "already registered" case so the
+  // dialog can show actionable copy instead of the generic retry message.
+  submitErrorTitle = signal('');
+  submitErrorMessage = signal('');
 
 
 
@@ -447,6 +453,8 @@ export class FormComponent {
     this.http.post(url, { camper, consent }).subscribe({
       next: () => {
         this.submissionStatus.set('success');
+        this.submitErrorTitle.set('');
+        this.submitErrorMessage.set('');
         this.showDialog.set(true);
         this.isSubmitting.set(false);
         // Clear the draft on success so the next session starts fresh — but
@@ -456,6 +464,21 @@ export class FormComponent {
       error: (err: any) => {
         console.error('Error:', err);
         this.submissionStatus.set('error');
+        // A 409 means this child is already registered for the year (the
+        // server's duplicate guard). Show actionable copy + the edit path
+        // instead of the generic "try again", which would just loop.
+        if (err?.status === 409) {
+          this.submitErrorTitle.set("You're already registered");
+          this.submitErrorMessage.set(
+            err?.error?.message ??
+              `${this.submittedCamperName()} is already registered for Power Camp 2026. ` +
+                'To change any details, use the edit link from your confirmation email, or ' +
+                'search your name on the home page to get a fresh one.'
+          );
+        } else {
+          this.submitErrorTitle.set('');
+          this.submitErrorMessage.set('');
+        }
         this.showDialog.set(true);
         this.isSubmitting.set(false);
       },

@@ -32,6 +32,18 @@ jest.mock('../services/auth', () => ({
   verifyLeaderInviteToken: (token: string) => verifyMock(token),
 }));
 
+// /leaders/register now sends a completion email and upserts the Leaders
+// sheet — stub both so the route under test makes no real Gmail / Sheets calls.
+jest.mock('../services/email', () => ({
+  sendLeaderApplicationNotice: jest.fn().mockResolvedValue(undefined),
+  sendLeaderApplicationReceived: jest.fn().mockResolvedValue(undefined),
+  sendLeaderRegistrationComplete: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock('../services/sheets', () => ({
+  appendToSheet: jest.fn().mockResolvedValue(undefined),
+  upsertToSheet: jest.fn().mockResolvedValue(undefined),
+}));
+
 import { leadersRouter } from '../routes/leaders';
 
 function buildApp() {
@@ -118,8 +130,11 @@ describe('POST /leaders/verify-invite', () => {
 
 describe('POST /leaders/register', () => {
   beforeEach(() => {
+    selectMock.mockReset();
     updateMock.mockReset();
     verifyMock.mockReset();
+    // Default: the leader is still approved and not deleted, so register runs.
+    selectMock.mockResolvedValue([{ id: 5, status: 'approved', deletedAt: null }]);
   });
 
   it('returns 401 when the token is invalid', async () => {
@@ -133,7 +148,7 @@ describe('POST /leaders/register', () => {
 
   it('updates the leader row and tags it with the current camp year on success', async () => {
     verifyMock.mockReturnValueOnce({ leaderId: 5, kind: 'leader-invite' });
-    updateMock.mockResolvedValueOnce([{ id: 5 }]);
+    updateMock.mockResolvedValueOnce([{ id: 5, email: 'leader@real.co.za', firstName: 'Sam' }]);
     const res = await request(buildApp())
       .post('/leaders/register')
       .send({
@@ -149,10 +164,11 @@ describe('POST /leaders/register', () => {
 
   it('returns 404 when the leader id from the token has no matching row', async () => {
     verifyMock.mockReturnValueOnce({ leaderId: 99, kind: 'leader-invite' });
-    updateMock.mockResolvedValueOnce([]);
+    selectMock.mockResolvedValueOnce([]); // re-check finds no leader → 404
     const res = await request(buildApp())
       .post('/leaders/register')
       .send({ token: 'a'.repeat(20), tshirt: 'large' });
     expect(res.status).toBe(404);
+    expect(updateMock).not.toHaveBeenCalled();
   });
 });

@@ -542,6 +542,212 @@ function inviteSentReceiptHtml(leader: {
 </html>`;
 }
 
+// Sent to a leader applicant the moment they submit /leaders/apply, so they
+// get an immediate acknowledgement instead of silence while they wait for
+// Neil to review. Reminds them to email Neil their motivation — without that,
+// Neil can't approve them.
+export async function sendLeaderApplicationReceived(
+  to: string,
+  firstName: string
+): Promise<void> {
+  const fromName = env.FROM_NAME ?? 'Power Camp';
+  const neilEmail = env.NEIL_EMAIL ?? env.GMAIL_USER;
+  await safeSendMail({
+    from: `"${fromName}" <${env.GMAIL_USER}>`,
+    to,
+    subject: 'Power Camp 2026 — we received your leader application',
+    text: [
+      `Hi ${firstName || 'there'},`,
+      '',
+      "Thanks for applying to lead at Power Camp 2026! Your application is now",
+      "with Neil for review.",
+      '',
+      `One important next step: please email Neil at ${neilEmail} and tell him`,
+      "why you'd like to lead this year. He can't approve your application without it.",
+      '',
+      "Once you're approved, you'll get a follow-up email with a link to finish",
+      'your registration.',
+      '',
+      '— Power Camp',
+    ].join('\n'),
+    html: leaderApplicationReceivedHtml(firstName || 'there', neilEmail),
+  });
+}
+
+function leaderApplicationReceivedHtml(firstName: string, neilEmail: string): string {
+  return `<!doctype html>
+<html lang="en">
+  <body style="margin:0; padding:0; background-color:#f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f3f4f6; padding:24px 0;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px; background-color:#ffffff; border-radius:12px; overflow:hidden;">
+            <tr>
+              <td style="padding:32px 32px 8px 32px;">
+                <h1 style="margin:0 0 8px 0; font-size:22px; color:#111827;">Application received</h1>
+                <p style="margin:0; color:#374151; font-size:15px; line-height:22px;">
+                  Hi ${escapeHtml(firstName)}, thanks for applying to lead at Power Camp 2026. Your application is now with Neil for review.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:8px 32px 8px 32px;">
+                <div style="background-color:#fef9c3; border-left:4px solid #ca8a04; padding:12px 16px; border-radius:6px;">
+                  <p style="margin:0; color:#713f12; font-size:14px; line-height:20px;">
+                    <strong>One more step:</strong> email Neil at
+                    <a href="mailto:${escapeHtml(neilEmail)}" style="color:#854d0e;">${escapeHtml(neilEmail)}</a>
+                    and tell him why you'd like to lead. He can't approve your application without it.
+                  </p>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 32px 24px 32px;">
+                <p style="margin:0; color:#374151; font-size:14px; line-height:22px;">
+                  Once you're approved, you'll get a follow-up email with a link to finish your registration.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 32px 24px 32px; border-top:1px solid #e5e7eb;">
+                <p style="margin:0; color:#9ca3af; font-size:12px;">— Power Camp</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
+
+// Sent to a leader applicant when Neil rejects their application. Kept warm
+// and brief — a decline, not a door slammed.
+export async function sendLeaderRejection(
+  to: string,
+  firstName: string
+): Promise<void> {
+  const fromName = env.FROM_NAME ?? 'Power Camp';
+  const neilEmail = env.NEIL_EMAIL ?? env.GMAIL_USER;
+  await safeSendMail({
+    from: `"${fromName}" <${env.GMAIL_USER}>`,
+    to,
+    subject: 'Power Camp 2026 — your leader application',
+    text: [
+      `Hi ${firstName || 'there'},`,
+      '',
+      'Thank you for applying to lead at Power Camp 2026. After review, we are not',
+      "able to offer you a leader place this year. This isn't a reflection of your",
+      'heart for the camp, and we hope you will stay involved.',
+      '',
+      `If you'd like to talk it through, reply to this email or contact Neil at ${neilEmail}.`,
+      '',
+      'We would still love to see you at camp.',
+      '',
+      '— Power Camp',
+    ].join('\n'),
+    html: leaderRejectionHtml(firstName || 'there', neilEmail),
+  });
+}
+
+function leaderRejectionHtml(firstName: string, neilEmail: string): string {
+  return `<!doctype html>
+<html lang="en">
+  <body style="margin:0; padding:0; background-color:#f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f3f4f6; padding:24px 0;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px; background-color:#ffffff; border-radius:12px; overflow:hidden;">
+            <tr>
+              <td style="padding:32px 32px 16px 32px;">
+                <h1 style="margin:0 0 8px 0; font-size:22px; color:#111827;">Your leader application</h1>
+                <p style="margin:0 0 12px 0; color:#374151; font-size:15px; line-height:22px;">
+                  Hi ${escapeHtml(firstName)}, thank you for applying to lead at Power Camp 2026. After review, we're not able to offer you a leader place this year.
+                </p>
+                <p style="margin:0; color:#374151; font-size:15px; line-height:22px;">
+                  This isn't a reflection of your heart for the camp, and we'd still love to see you there. If you'd like to talk it through, reply to this email or contact Neil at
+                  <a href="mailto:${escapeHtml(neilEmail)}" style="color:#16a34a;">${escapeHtml(neilEmail)}</a>.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 32px 24px 32px; border-top:1px solid #e5e7eb;">
+                <p style="margin:0; color:#9ca3af; font-size:12px;">— Power Camp</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
+
+// Sent when a leader completes /leaders/register (fills in cell/age/t-shirt/
+// emergency contact after approval). Closes the loop so they know the camp
+// has their full details and nothing else is outstanding.
+export async function sendLeaderRegistrationComplete(
+  to: string,
+  firstName: string
+): Promise<void> {
+  const fromName = env.FROM_NAME ?? 'Power Camp';
+  await safeSendMail({
+    from: `"${fromName}" <${env.GMAIL_USER}>`,
+    to,
+    subject: 'Power Camp 2026 — your leader registration is complete',
+    text: [
+      `Hi ${firstName || 'there'},`,
+      '',
+      "You're all set — your Power Camp 2026 leader registration is complete and we",
+      'have your details. Thank you for stepping up to lead!',
+      '',
+      "Neil will be in touch closer to the date (31 July – 2 August 2026) with",
+      'logistics. If anything changes, just reply to this email.',
+      '',
+      'See you at camp.',
+      '',
+      '— Power Camp',
+    ].join('\n'),
+    html: leaderRegistrationCompleteHtml(firstName || 'there'),
+  });
+}
+
+function leaderRegistrationCompleteHtml(firstName: string): string {
+  return `<!doctype html>
+<html lang="en">
+  <body style="margin:0; padding:0; background-color:#f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f3f4f6; padding:24px 0;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px; background-color:#ffffff; border-radius:12px; overflow:hidden;">
+            <tr>
+              <td style="padding:32px 32px 8px 32px;">
+                <h1 style="margin:0 0 8px 0; font-size:22px; color:#111827;">You're all set to lead 🎉</h1>
+                <p style="margin:0; color:#374151; font-size:15px; line-height:22px;">
+                  Hi ${escapeHtml(firstName)}, your Power Camp 2026 leader registration is complete and we have your details. Thank you for stepping up to lead!
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 32px 24px 32px;">
+                <p style="margin:0; color:#374151; font-size:14px; line-height:22px;">
+                  Neil will be in touch closer to the date (31 July – 2 August 2026) with logistics. If anything changes, just reply to this email. See you at camp.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 32px 24px 32px; border-top:1px solid #e5e7eb;">
+                <p style="margin:0; color:#9ca3af; font-size:12px;">— Power Camp</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
+
 // =====================================================================
 // Bulk email — admin composer.
 // =====================================================================
