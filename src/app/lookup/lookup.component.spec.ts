@@ -49,7 +49,7 @@ describe('LookupComponent', () => {
 
   it('POSTs to /lookup with the trimmed query and renders results', () => {
     const fakeResults: LookupResult[] = [
-      { id: 1, firstName: 'Emma', lastName: 'Cable', year: 2025, parentEmailMasked: 'ji***@me.com' },
+      { id: 1, firstName: 'Emma', lastName: 'Cable', year: 2025, kind: 'camper', parentEmailMasked: 'ji***@me.com' },
     ];
 
     component.queryControl.setValue('  emma  ');
@@ -97,7 +97,7 @@ describe('LookupComponent', () => {
 
   it('emits selectedCamper, POSTs to /request-link, and shows "Check your email" on success', () => {
     const result: LookupResult = {
-      id: 7, firstName: 'Emma', lastName: 'Cable', year: 2025, parentEmailMasked: 'ji***@me.com',
+      id: 7, firstName: 'Emma', lastName: 'Cable', year: 2025, kind: 'camper', parentEmailMasked: 'ji***@me.com',
     };
     let emitted: LookupResult | undefined;
     component.selectedCamper.subscribe((r) => (emitted = r));
@@ -120,7 +120,7 @@ describe('LookupComponent', () => {
 
   it('shows an error message if /request-link fails', () => {
     const result: LookupResult = {
-      id: 7, firstName: 'Emma', lastName: 'Cable', year: 2025, parentEmailMasked: 'ji***@me.com',
+      id: 7, firstName: 'Emma', lastName: 'Cable', year: 2025, kind: 'camper', parentEmailMasked: 'ji***@me.com',
     };
     component.select(result);
 

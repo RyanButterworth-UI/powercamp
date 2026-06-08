@@ -222,6 +222,37 @@ type Filter = 'all' | 'paid' | 'unpaid' | 'consent' | 'no-consent';
             >
               {{ sending() ? 'Sending…' : 'Send to ' + selected().size + ' recipient' + (selected().size === 1 ? '' : 's') }}
             </button>
+
+            <!-- Send to a specific pasted list, independent of the checkboxes.
+                 This is the reliable way to resend to the exact addresses that
+                 failed last time (paste them here → only they get it, no
+                 duplicates), since it survives page reloads / redeploys. -->
+            <details class="text-xs mt-1">
+              <summary class="cursor-pointer" style="color: var(--color-saga-text-muted)">
+                Or paste specific addresses (e.g. the ones that failed)
+              </summary>
+              <textarea
+                [value]="pasteRecipients()"
+                (input)="pasteRecipients.set($any($event.target).value)"
+                rows="4"
+                placeholder="Paste emails — separated by commas, spaces, or new lines"
+                class="w-full mt-2 px-3 py-2 text-sm"
+                data-testid="paste-recipients"
+              ></textarea>
+              <button
+                type="button"
+                (click)="sendToPasted()"
+                [disabled]="sending() || parsePasted().length === 0 || !canCompose()"
+                class="saga-btn saga-btn-secondary !py-1 !px-3 !text-xs mt-1"
+                data-testid="send-pasted"
+              >
+                {{ sending() ? 'Sending…' : 'Send to ' + parsePasted().length + ' pasted address' + (parsePasted().length === 1 ? '' : 'es') }}
+              </button>
+              @if (!canCompose()) {
+                <p class="mt-1" style="color: var(--color-saga-text-muted)">Compose a subject + body above first.</p>
+              }
+            </details>
+
             @if (lastResult(); as r) {
               <p class="text-xs" style="color: var(--color-saga-success)">
                 ✓ Accepted by Gmail for {{ r.sent }} of {{ r.totalRecipients }}.
@@ -245,6 +276,15 @@ type Filter = 'all' | 'paid' | 'unpaid' | 'consent' | 'no-consent';
                     }
                   </ul>
                 </details>
+                <button
+                  type="button"
+                  (click)="resendToFailed()"
+                  [disabled]="sending()"
+                  class="saga-btn saga-btn-secondary !py-1 !px-3 !text-xs mt-1"
+                  data-testid="resend-failed"
+                >
+                  {{ sending() ? 'Resending…' : 'Resend to the ' + r.failed.length + ' that failed' }}
+                </button>
               }
               @if (r.failed.length === 0) {
                 <p class="text-xs mt-0.5" style="color: var(--color-saga-text-muted)">
@@ -505,7 +545,59 @@ export class BulkEmailComponent {
   }
 
   canSend(): boolean {
-    return this.subject.trim().length > 0 && this.blocks().length > 0 && this.selected().size > 0;
+    return this.canCompose() && this.selected().size > 0;
+  }
+
+  // A subject + at least one body block — enough to send, independent of how
+  // recipients are chosen (checkboxes vs pasted list).
+  canCompose(): boolean {
+    return this.subject.trim().length > 0 && this.blocks().length > 0;
+  }
+
+  // Free-text address box — split on commas / whitespace / semicolons,
+  // lowercase, dedupe, keep only things that look like emails.
+  pasteRecipients = signal('');
+  parsePasted(): string[] {
+    return Array.from(
+      new Set(
+        this.pasteRecipients()
+          .split(/[\s,;]+/)
+          .map((s) => s.trim().toLowerCase())
+          .filter((s) => s.includes('@') && s.includes('.'))
+      )
+    );
+  }
+
+  // Send the composed email to exactly the pasted addresses — the reliable way
+  // to resend to the ones that failed (no duplicates, survives a reload).
+  async sendToPasted(): Promise<void> {
+    const recipients = this.parsePasted();
+    if (recipients.length === 0 || !this.canCompose()) return;
+    const ok = await this.ui.confirm(
+      `Send "${this.subject}" to the ${recipients.length} pasted address(es)? Only these get it.`,
+      'Send',
+      'Cancel'
+    );
+    if (!ok) return;
+
+    const blocks = this.blocks().map(({ id: _id, ...rest }) => rest as EmailBlock);
+    this.sending.set(true);
+    this.lastResult.set(null);
+    this.admin.bulkEmailSend(this.subject, blocks, recipients).subscribe({
+      next: (res) => {
+        this.sending.set(false);
+        this.lastResult.set(res);
+        if (res.failed.length === 0) {
+          this.ui.toast(`✓ Sent to all ${res.sent}.`, 'success', 5000);
+        } else {
+          this.ui.toast(`Sent ${res.sent}; ${res.failed.length} failed.`, 'error', 8000);
+        }
+      },
+      error: (err) => {
+        this.sending.set(false);
+        this.ui.toast(err?.status === 401 ? 'Session expired — sign in again.' : 'Send failed.', 'error');
+      },
+    });
   }
 
   async send(): Promise<void> {
@@ -544,6 +636,41 @@ export class BulkEmailComponent {
       error: (err) => {
         this.sending.set(false);
         this.ui.toast(err?.status === 401 ? 'Session expired — sign in again.' : 'Bulk send failed.', 'error');
+      },
+    });
+  }
+
+  // Resend the SAME email to only the addresses that failed last time. Safe to
+  // use after a partial failure (e.g. Gmail's "too many login attempts"): the
+  // ones who already received it are not included, so no duplicates.
+  async resendToFailed(): Promise<void> {
+    const failed = this.lastResult()?.failed ?? [];
+    const recipients = failed.map((f) => f.to).filter(Boolean);
+    if (recipients.length === 0) return;
+
+    const ok = await this.ui.confirm(
+      `Resend "${this.subject}" to the ${recipients.length} address(es) that failed last time? Anyone who already received it is NOT included.`,
+      'Resend to failed',
+      'Cancel'
+    );
+    if (!ok) return;
+
+    const blocks = this.blocks().map(({ id: _id, ...rest }) => rest as EmailBlock);
+    this.sending.set(true);
+    this.lastResult.set(null);
+    this.admin.bulkEmailSend(this.subject, blocks, recipients).subscribe({
+      next: (res) => {
+        this.sending.set(false);
+        this.lastResult.set(res);
+        if (res.failed.length === 0) {
+          this.ui.toast(`✓ Resent to all ${res.sent}.`, 'success', 5000);
+        } else {
+          this.ui.toast(`Resent ${res.sent}; ${res.failed.length} still failed.`, 'error', 8000);
+        }
+      },
+      error: (err) => {
+        this.sending.set(false);
+        this.ui.toast(err?.status === 401 ? 'Session expired — sign in again.' : 'Resend failed.', 'error');
       },
     });
   }
