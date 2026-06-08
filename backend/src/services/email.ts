@@ -157,6 +157,75 @@ export async function sendRegistrationReceived(
   });
 }
 
+// Sent when an EXISTING current-year registration is edited (vs a brand-new
+// one). Reassures the family the change saved, without re-stating "we've
+// received your registration" — which reads as a confusing duplicate.
+export async function sendRegistrationUpdated(
+  to: string,
+  firstName: string,
+  cc?: string | null
+): Promise<void> {
+  const fromName = env.FROM_NAME ?? 'Power Camp';
+  const ccList = cc && cc.trim().toLowerCase() !== to.trim().toLowerCase() ? cc : undefined;
+  const infoUrl = `${env.APP_BASE_URL.replace(/\/$/, '')}/info`;
+  await safeSendMail({
+    from: `"${fromName}" <${env.GMAIL_USER}>`,
+    to,
+    cc: ccList,
+    subject: 'Power Camp 2026 — your details were updated',
+    text: [
+      `Hi ${firstName || 'there'},`,
+      '',
+      'Your Power Camp 2026 registration details have been updated — thank you.',
+      '',
+      "Nothing else is needed. Your spot remains held; it's confirmed once payment is",
+      'complete. Payment details and camp info are here:',
+      infoUrl,
+      '',
+      "If you didn't make this change, request a sign-in link from the registration page",
+      'and review your details.',
+      '',
+      '— Power Camp',
+    ].join('\n'),
+    html: registrationUpdatedHtml(firstName || 'there', infoUrl),
+  });
+}
+
+function registrationUpdatedHtml(firstName: string, infoUrl: string): string {
+  return `<!doctype html>
+<html lang="en">
+  <body style="margin:0; padding:0; background-color:#f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f3f4f6; padding:24px 0;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px; background-color:#ffffff; border-radius:12px; overflow:hidden;">
+            <tr>
+              <td style="padding:32px;">
+                <h1 style="margin:0 0 8px 0; font-size:22px; color:#111827;">Your details were updated</h1>
+                <p style="margin:0 0 16px 0; color:#374151; font-size:15px; line-height:22px;">
+                  Hi ${escapeHtml(firstName)}, your Power Camp 2026 registration details have been updated — thank you. Nothing else is needed; your spot remains held and is confirmed once payment is complete.
+                </p>
+                <a href="${infoUrl}" style="display:inline-block; background-color:#16a34a; color:#ffffff; text-decoration:none; font-weight:600; font-size:15px; padding:12px 24px; border-radius:8px;">
+                  View camp info &amp; payment details
+                </a>
+                <p style="margin:16px 0 0 0; color:#6b7280; font-size:13px; line-height:20px;">
+                  If you didn't make this change, request a sign-in link from the registration page and review your details.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 32px 24px 32px; border-top:1px solid #e5e7eb;">
+                <p style="margin:16px 0 0 0; color:#9ca3af; font-size:12px;">— Power Camp</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
+
 function registrationReceivedHtml(firstName: string, infoUrl: string): string {
   return `<!doctype html>
 <html lang="en">

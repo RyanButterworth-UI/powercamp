@@ -11,7 +11,7 @@ import {
   REGISTRATION_SHEET_KEY,
   REGISTRATION_SHEET_FALLBACK_KEY,
 } from '../lib/registration-sheet';
-import { sendRegistrationReceived } from '../services/email';
+import { sendRegistrationReceived, sendRegistrationUpdated } from '../services/email';
 import { ensureSubscription } from '../services/subscriptions';
 
 const optionalString = z.string().optional().nullable().transform((v) => v ?? undefined);
@@ -171,9 +171,16 @@ updateRouter.post('/update', async (req, res) => {
     console.error('Sheet sync failed (DB write succeeded):', err);
   });
 
-  // Registration-received email — best-effort.
-  sendRegistrationReceived(parentEmail, c.firstName).catch((err) => {
-    console.error('Registration-received email failed:', err);
+  // Best-effort email. A true edit of an existing current-year registration
+  // gets a "your details were updated" note; a returning family carried
+  // forward from a prior year gets the normal "registration received". Sending
+  // the "received" mail on every edit reads as a confusing duplicate.
+  const notify =
+    action === 'updated'
+      ? sendRegistrationUpdated(parentEmail, c.firstName, camperEmail)
+      : sendRegistrationReceived(parentEmail, c.firstName, camperEmail);
+  notify.catch((err) => {
+    console.error('Registration email failed:', err);
   });
 
   res.json({ id: camperId, consentAcceptedAt: acceptedAt.toISOString(), action });
