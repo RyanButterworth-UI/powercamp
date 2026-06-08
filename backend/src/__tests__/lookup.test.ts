@@ -30,16 +30,12 @@ describe('POST /lookup', () => {
     queryMock.mockReset();
   });
 
-  it('returns mapped results with masked parent emails on a match', async () => {
-    queryMock.mockResolvedValueOnce([
-      {
-        id: 7,
-        firstName: 'Emma',
-        lastName: 'Cable',
-        year: 2025,
-        parentEmail: 'jill.cable@me.com',
-      },
-    ]);
+  it('returns campers tagged kind:camper with masked parent emails', async () => {
+    queryMock
+      .mockResolvedValueOnce([
+        { id: 7, firstName: 'Emma', lastName: 'Cable', year: 2025, email: 'jill.cable@me.com' },
+      ]) // campers
+      .mockResolvedValueOnce([]); // leaders
 
     const res = await request(buildApp()).post('/lookup').send({ q: 'emma' });
 
@@ -51,14 +47,43 @@ describe('POST /lookup', () => {
           firstName: 'Emma',
           lastName: 'Cable',
           year: 2025,
+          kind: 'camper',
           parentEmailMasked: 'ji***@me.com',
         },
       ],
     });
   });
 
+  it('includes returning leaders, tagged kind:leader, with their own email masked', async () => {
+    queryMock
+      .mockResolvedValueOnce([]) // campers
+      .mockResolvedValueOnce([
+        { id: 3, firstName: 'Sam', lastName: 'Lead', year: 2025, email: 'sam@leader.com' },
+      ]); // leaders
+
+    const res = await request(buildApp()).post('/lookup').send({ q: 'sam' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.results).toEqual([
+      { id: 3, firstName: 'Sam', lastName: 'Lead', year: 2025, kind: 'leader', parentEmailMasked: 'sa***@leader.com' },
+    ]);
+  });
+
+  it('sorts the combined camper + leader results by year desc then name', async () => {
+    queryMock
+      .mockResolvedValueOnce([{ id: 1, firstName: 'Zara', lastName: 'Young', year: 2026, email: 'z@x.com' }]) // campers
+      .mockResolvedValueOnce([{ id: 2, firstName: 'Amy', lastName: 'Allen', year: 2025, email: 'a@y.com' }]); // leaders
+
+    const res = await request(buildApp()).post('/lookup').send({ q: 'a' });
+
+    expect(res.body.results.map((r: { firstName: string; kind: string }) => `${r.firstName}:${r.kind}`)).toEqual([
+      'Zara:camper',
+      'Amy:leader',
+    ]);
+  });
+
   it('returns an empty results array when nothing matches', async () => {
-    queryMock.mockResolvedValueOnce([]);
+    queryMock.mockResolvedValue([]); // both camper + leader selects return empty
 
     const res = await request(buildApp()).post('/lookup').send({ q: 'zzz' });
 
