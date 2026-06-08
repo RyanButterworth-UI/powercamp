@@ -156,8 +156,9 @@ export async function sendRegistrationReceived(
       `For payment details and everything you need to know, head to the camp info page:`,
       infoUrl,
       '',
-      'If anything looks wrong, request a sign-in link from the registration page',
-      'and update your details.',
+      'Need to change something later? You can update your details anytime — go back to the',
+      'registration page, search your name, and request a sign-in link. Editing does NOT affect',
+      'your registration or your spot.',
       '',
       '— Power Camp',
     ].join('\n'),
@@ -267,9 +268,11 @@ function registrationReceivedHtml(firstName: string, infoUrl: string): string {
             </tr>
             <tr>
               <td style="padding:0 32px 24px 32px;">
-                <p style="margin:0; color:#6b7280; font-size:13px; line-height:20px;">
-                  If anything looks wrong, request a sign-in link from the registration page
-                  and update your details.
+                <p style="margin:0; color:#374151; font-size:14px; line-height:21px;">
+                  <strong>Need to change something later?</strong> You can update your details
+                  anytime — go back to the registration page, search your name, and request a
+                  sign-in link. Editing your details does <strong>not</strong> affect your
+                  registration or your spot.
                 </p>
               </td>
             </tr>

@@ -31,9 +31,15 @@ interface StatsResponse {
       <p class="mb-1 text-sm" style="color: var(--color-saga-text-muted)">
         Purity · Obedience · Worship · Endurance · Righteousness
       </p>
-      <p class="mb-4 text-sm" style="color: var(--color-saga-text-muted)">
+      <p class="mb-2 text-sm" style="color: var(--color-saga-text-muted)">
         Been to Power Camp before? Search for your name and we'll pick up where you left off.
         Registering also adds you to our mailing list (one-click unsubscribe on every email).
+      </p>
+      <p class="mb-4 text-sm" style="color: var(--color-saga-text)">
+        <strong>Already registered for 2026?</strong> Search your name to update your child's
+        details anytime — it won't affect your registration or your spot. You can also install
+        this site as an app on your phone: open your browser's <em>Share</em> menu and tap
+        <em>Add to Home Screen</em>.
       </p>
 
       <!-- Capacity widget. While /stats is in flight we render a skeleton

@@ -691,6 +691,21 @@ export class AdminDashboardComponent {
         const dir = this.sortDir();
         rows = [...rows].sort((a, b) => compareValues(valueOf(a), valueOf(b), dir));
       }
+    } else {
+      // Default ordering when no column is explicitly chosen: grade, then
+      // name, then age. Numeric-aware so 8 < 9 < 10 < 12; non-numeric grades
+      // (e.g. "Leader") sort to the end.
+      const num = (v: string | null | undefined): number => {
+        const n = parseInt(String(v ?? ''), 10);
+        return Number.isNaN(n) ? Number.POSITIVE_INFINITY : n;
+      };
+      rows = [...rows].sort(
+        (a, b) =>
+          num(a.grade) - num(b.grade) ||
+          String(a.grade ?? '').localeCompare(String(b.grade ?? ''), undefined, { sensitivity: 'base' }) ||
+          `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`, undefined, { sensitivity: 'base' }) ||
+          num(a.age) - num(b.age)
+      );
     }
     return rows;
   });
