@@ -52,10 +52,10 @@ import { PageGhostComponent } from '../skeleton/page-ghost.component';
             <dt style="color: var(--color-saga-text-muted)">Account type</dt><dd>Current</dd>
             <dt style="color: var(--color-saga-text-muted)">Bank</dt><dd>First National Bank</dd>
             <dt style="color: var(--color-saga-text-muted)">Branch code</dt><dd>252 242</dd>
-            <dt style="color: var(--color-saga-text-muted)">Reference</dt><dd>PowerCamp &lt;Surname&gt;</dd>
+            <dt style="color: var(--color-saga-text-muted)">Reference</dt><dd>PC26 &lt;FirstName&gt; &lt;Surname&gt;</dd>
           </dl>
           <p class="text-xs mt-3" style="color: var(--color-saga-text-muted)">
-            Replace &lt;Surname&gt; with the camper's surname, e.g. <span class="font-mono">PowerCamp Smith</span>.
+            Replace &lt;FirstName&gt; &lt;Surname&gt; with the camper's name, e.g. <span class="font-mono">PC26 John Smith</span>.
           </p>
         </details>
       </div>

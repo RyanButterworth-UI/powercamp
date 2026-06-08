@@ -71,6 +71,11 @@ export const envSchema = z.object({
   // The previous hardcoded literal in admin.ts has been removed and must be
   // considered burned — rotate to a fresh password before deploying.
   NEIL_PASSWORD_HASH: z.string().min(1),
+  // Bcrypt hash of the inline-edit second-factor password. Only Ryan + Shayln
+  // know the plaintext; re-entering it unlocks editing a camper's row from the
+  // admin dashboard for the session. Generated the same way as the other
+  // hashes: `npm run hash:admin-password -- '<pw>'`.
+  EDITOR_PASSWORD_HASH: z.string().min(1),
   GMAIL_USER: z.string().email(),
   GMAIL_APP_PASSWORD: z.string().min(1),
   FROM_NAME: z.string().default('Power Camp'),

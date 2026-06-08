@@ -4,6 +4,49 @@ import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 const TOKEN_KEY = 'powercamp.admin.token';
+// The inline-edit second factor. Kept separate from the admin token so locking
+// editing (or it expiring) never logs the admin out of the dashboard. Session-
+// scoped: closing the tab re-locks editing, matching "unlock once per session".
+const EDITOR_TOKEN_KEY = 'powercamp.editor.token';
+
+// The fields the inline editor may change. Mirrors the backend's editable set —
+// notably it excludes the six consent agreements + consent date, which are
+// never editable here.
+export interface CamperEditPayload {
+  firstName: string;
+  lastName: string;
+  parentEmail: string;
+  dob?: string;
+  gender?: string;
+  age?: string;
+  grade?: string;
+  email?: string;
+  camperCell?: string;
+  medical?: string;
+  tshirt?: string;
+  church?: string;
+  generalInfo?: string;
+  friends?: string[];
+  parentName?: string;
+  parentPhone?: string;
+  consentEmergencyName?: string;
+  consentEmergencyContact?: string;
+  consentMedicalAidName?: string;
+  consentMedicalAidNumber?: string;
+}
+
+export interface CamperChange {
+  field: string;
+  label: string;
+  from: string;
+  to: string;
+}
+
+export interface CamperEditResult {
+  id: number;
+  changed: number;
+  changes: CamperChange[];
+}
 
 export interface AdminCamper {
   id: number;
@@ -91,10 +134,56 @@ export class AdminService {
 
   clearToken(): void {
     sessionStorage.removeItem(TOKEN_KEY);
+    // Signing out must also re-lock editing.
+    sessionStorage.removeItem(EDITOR_TOKEN_KEY);
   }
 
   private authHeaders(): HttpHeaders {
     return new HttpHeaders({ Authorization: `Bearer ${this.getToken() ?? ''}` });
+  }
+
+  // ----- Inline-edit second factor -----
+  getEditorToken(): string | null {
+    return sessionStorage.getItem(EDITOR_TOKEN_KEY);
+  }
+
+  setEditorToken(token: string): void {
+    sessionStorage.setItem(EDITOR_TOKEN_KEY, token);
+  }
+
+  clearEditorToken(): void {
+    sessionStorage.removeItem(EDITOR_TOKEN_KEY);
+  }
+
+  isEditorUnlocked(): boolean {
+    return !!this.getEditorToken();
+  }
+
+  // Admin Bearer token + the editor token in its own header. Used only by the
+  // gated edit endpoint.
+  private editorHeaders(): HttpHeaders {
+    return new HttpHeaders({
+      Authorization: `Bearer ${this.getToken() ?? ''}`,
+      'X-Editor-Token': this.getEditorToken() ?? '',
+    });
+  }
+
+  // Exchange the edit password for a short-lived editor token. The caller is
+  // responsible for storing it via setEditorToken on success.
+  unlockEditor(password: string): Observable<{ token: string }> {
+    return this.http.post<{ token: string }>(
+      `${environment.baseApi}/admin/editor/unlock`,
+      { password },
+      { headers: this.authHeaders() }
+    );
+  }
+
+  editCamper(id: number, payload: CamperEditPayload): Observable<CamperEditResult> {
+    return this.http.post<CamperEditResult>(
+      `${environment.baseApi}/admin/campers/${id}/edit`,
+      payload,
+      { headers: this.editorHeaders() }
+    );
   }
 
   login(password: string): Observable<{ token: string }> {

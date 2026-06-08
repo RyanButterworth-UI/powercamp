@@ -18,6 +18,16 @@ export interface AdminClaims {
   kind: 'admin';
 }
 
+// A short-lived capability granted after an admin re-enters the inline-edit
+// password (EDITOR_PASSWORD_HASH). It rides ALONGSIDE the admin token rather
+// than replacing it: the admin session proves "you may see this page", the
+// editor token proves "you, specifically, unlocked editing this session".
+// Same TTL as the admin session so the two expire together and a single
+// browser-tab close clears both.
+export interface EditorClaims {
+  kind: 'editor';
+}
+
 export interface LeaderInviteClaims {
   leaderId: number;
   kind: 'leader-invite';
@@ -48,6 +58,20 @@ export function verifyAdminToken(token: string): AdminClaims | null {
     const decoded = jwt.verify(token, env.JWT_SECRET) as Partial<AdminClaims>;
     if (decoded?.kind !== 'admin') return null;
     return { kind: 'admin' };
+  } catch {
+    return null;
+  }
+}
+
+export function signEditorToken(): string {
+  return jwt.sign({ kind: 'editor' }, env.JWT_SECRET, { expiresIn: `${ADMIN_TTL_HR}h` });
+}
+
+export function verifyEditorToken(token: string): EditorClaims | null {
+  try {
+    const decoded = jwt.verify(token, env.JWT_SECRET) as Partial<EditorClaims>;
+    if (decoded?.kind !== 'editor') return null;
+    return { kind: 'editor' };
   } catch {
     return null;
   }

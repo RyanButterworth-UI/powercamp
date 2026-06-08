@@ -1,10 +1,11 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
-import { AdminService, AdminCamper } from '../admin.service';
+import { AdminService, AdminCamper, CamperEditPayload } from '../admin.service';
 import { environment } from '../../../environments/environment';
 import { UiService } from '../../ui/ui.service';
 import { SkeletonComponent } from '../../skeleton/skeleton.component';
+import { CamperEditComponent } from '../camper-edit/camper-edit.component';
 
 export type ColumnGroupKey = 'camper' | 'contact' | 'emergency' | 'status' | 'meta';
 
@@ -104,7 +105,7 @@ const COLUMN_GROUPS: ColumnGroup[] = GROUP_ORDER.map((g) => ({
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink, SkeletonComponent],
+  imports: [CommonModule, RouterLink, SkeletonComponent, CamperEditComponent],
   template: `
     <div class="container mx-auto p-6 max-w-5xl">
       <div class="flex items-center justify-between mb-4">
@@ -375,6 +376,7 @@ const COLUMN_GROUPS: ColumnGroup[] = GROUP_ORDER.map((g) => ({
           <table class="saga-table text-sm" style="min-width: max-content;">
             <thead>
               <tr data-testid="campers-columns-header">
+                <th style="width:0;"></th>
                 @for (col of visibleColumns(); track col.key) {
                   <th
                     (click)="toggleSort(col.key)"
@@ -392,6 +394,21 @@ const COLUMN_GROUPS: ColumnGroup[] = GROUP_ORDER.map((g) => ({
             <tbody data-testid="campers-rows">
               @for (c of visibleCampers(); track c.id) {
                 <tr>
+                  <td style="white-space:nowrap;">
+                    <button
+                      type="button"
+                      (click)="openEditor(c)"
+                      class="text-xs px-2 py-1 rounded saga-btn saga-btn-secondary inline-flex items-center gap-1 cursor-pointer"
+                      [title]="'Edit ' + c.firstName + ' ' + c.lastName"
+                      [attr.data-testid]="'edit-' + c.id"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </svg>
+                      Edit
+                    </button>
+                  </td>
                   @for (col of visibleColumns(); track col.key) {
                     <td [class]="col.tdClass ?? ''">
                       @switch (col.key) {
@@ -472,7 +489,7 @@ const COLUMN_GROUPS: ColumnGroup[] = GROUP_ORDER.map((g) => ({
                 </tr>
               } @empty {
                 <tr>
-                  <td [attr.colspan]="visibleColumns().length" class="text-center py-6" style="color: var(--color-saga-text-muted)">
+                  <td [attr.colspan]="visibleColumns().length + 1" class="text-center py-6" style="color: var(--color-saga-text-muted)">
                     No campers in this year.
                   </td>
                 </tr>
@@ -482,6 +499,13 @@ const COLUMN_GROUPS: ColumnGroup[] = GROUP_ORDER.map((g) => ({
         </div>
         }
       }
+
+      <app-camper-edit
+        [camper]="editingCamper()"
+        [saving]="savingEdit()"
+        (submitForm)="saveEdit($event)"
+        (cancel)="closeEditor()"
+      />
     </div>
   `,
   styles: ``,
@@ -497,6 +521,10 @@ export class AdminDashboardComponent {
   markingPaidFor = signal<number | null>(null);
   searchQuery = signal('');
   campYear = signal<number | null>(null);
+  // Inline edit: the camper whose row is open in the drawer (null = closed),
+  // and whether a save is in flight.
+  editingCamper = signal<AdminCamper | null>(null);
+  savingEdit = signal(false);
   copiedEmail = signal<string | null>(null);
   readonly allColumns = ALL_COLUMNS;
   visibleColumnKeys = signal<string[]>(this.loadVisibleColumnKeys());
@@ -856,5 +884,111 @@ export class AdminDashboardComponent {
         }
       },
     });
+  }
+
+  // ----- Inline edit -----
+
+  // Row "Edit" click. Gated by the per-session editor unlock: if editing isn't
+  // unlocked yet, prompt for the edit password once and exchange it for an
+  // editor token; only then open the drawer. If already unlocked, open straight
+  // away. The raw password is never stored — only the returned token is.
+  async openEditor(c: AdminCamper): Promise<void> {
+    if (!this.admin.isEditorUnlocked()) {
+      const pw = await this.ui.prompt({
+        text: 'Enter the edit password to unlock editing for this session. Only Ryan & Shayln have this.',
+        placeholder: 'Edit password',
+        inputType: 'password',
+        confirmLabel: 'Unlock editing',
+      });
+      if (!pw) return;
+      try {
+        const res = await new Promise<{ token: string }>((resolve, reject) =>
+          this.admin.unlockEditor(pw).subscribe({ next: resolve, error: reject })
+        );
+        this.admin.setEditorToken(res.token);
+        this.ui.toast('🔓 Editing unlocked for this session.', 'success');
+      } catch (err: unknown) {
+        const status = (err as { status?: number })?.status;
+        this.ui.toast(
+          status === 401 ? 'Wrong edit password.' : 'Could not unlock editing.',
+          'error'
+        );
+        return;
+      }
+    }
+    this.editingCamper.set(c);
+  }
+
+  closeEditor(): void {
+    if (this.savingEdit()) return;
+    this.editingCamper.set(null);
+  }
+
+  saveEdit(payload: CamperEditPayload): void {
+    const c = this.editingCamper();
+    if (!c) return;
+    this.savingEdit.set(true);
+    this.admin.editCamper(c.id, payload).subscribe({
+      next: (res) => {
+        this.savingEdit.set(false);
+        // Optimistically patch the row from the payload we just sent so the
+        // table reflects the edit without a full refetch.
+        this.campers.set(
+          this.campers().map((row) =>
+            row.id === c.id ? { ...row, ...this.applyPayload(row, payload) } : row
+          )
+        );
+        this.editingCamper.set(null);
+        if (res.changed === 0) {
+          this.ui.toast('No changes to save.', 'info');
+        } else {
+          this.ui.toast(
+            `✓ Saved ${res.changed} change${res.changed === 1 ? '' : 's'} — family emailed & sheet synced.`,
+            'success'
+          );
+        }
+      },
+      error: (err) => {
+        this.savingEdit.set(false);
+        const status = err?.status;
+        if (status === 401) {
+          this.ui.toast('Session expired — sign in again.', 'error');
+        } else if (status === 403) {
+          // Editor token expired/invalid — re-lock so the next edit re-prompts.
+          this.admin.clearEditorToken();
+          this.ui.toast('Editing locked — unlock again to save.', 'error');
+        } else {
+          this.ui.toast('Failed to save changes.', 'error');
+        }
+      },
+    });
+  }
+
+  // Maps an edit payload back onto an AdminCamper row for the optimistic UI
+  // patch. Blank optionals become null (matching how the server persists them).
+  private applyPayload(row: AdminCamper, p: CamperEditPayload): Partial<AdminCamper> {
+    const n = (v: string | undefined): string | null => (v && v.trim() ? v : null);
+    return {
+      firstName: p.firstName,
+      lastName: p.lastName,
+      parentEmail: p.parentEmail,
+      friends: p.friends ?? [],
+      dob: n(p.dob),
+      gender: n(p.gender),
+      age: n(p.age),
+      grade: n(p.grade),
+      email: n(p.email),
+      camperCell: n(p.camperCell),
+      medical: n(p.medical),
+      tshirt: n(p.tshirt),
+      church: n(p.church),
+      generalInfo: n(p.generalInfo),
+      parentName: n(p.parentName),
+      parentPhone: n(p.parentPhone),
+      consentEmergencyName: n(p.consentEmergencyName),
+      consentEmergencyContact: n(p.consentEmergencyContact),
+      consentMedicalAidName: n(p.consentMedicalAidName),
+      consentMedicalAidNumber: n(p.consentMedicalAidNumber),
+    };
   }
 }

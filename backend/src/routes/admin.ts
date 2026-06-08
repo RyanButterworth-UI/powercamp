@@ -5,11 +5,18 @@ import { and, desc, eq, isNull } from 'drizzle-orm';
 import * as XLSX from 'xlsx';
 import { db } from '../db/client';
 import { campers, leaders } from '../db/schema';
-import { signAdminToken, signLeaderInviteToken } from '../services/auth';
+import { signAdminToken, signEditorToken, signLeaderInviteToken } from '../services/auth';
 import { env } from '../env';
 import { requireAdmin } from '../middleware/require-admin';
+import { requireEditor } from '../middleware/require-editor';
 import { appendToSheet, upsertToSheet } from '../services/sheets';
 import { leaderRow } from './leaders';
+import {
+  registrationSheetRow,
+  REGISTRATION_SHEET_KEY,
+  REGISTRATION_SHEET_FALLBACK_KEY,
+} from '../lib/registration-sheet';
+import { diffCamper } from '../lib/camper-diff';
 import {
   sendPaymentConfirmed,
   renderBlocksToHtml,
@@ -19,6 +26,7 @@ import {
   sendLeaderInvite,
   sendInviteSentReceipt,
   sendLeaderRejection,
+  sendRegistrationUpdated,
 } from '../services/email';
 import {
   filterToSubscribed,
@@ -167,6 +175,207 @@ adminRouter.post('/admin/campers/:id/update-email', requireAdmin, async (req, re
   } catch (err) {
     console.error('update-email error:', err);
     res.status(500).json({ error: 'Failed to update email' });
+  }
+});
+
+// ---------- Inline edit (second-factor gated) ----------
+
+// Step 1: an already-logged-in admin re-enters the inline-edit password to
+// unlock editing for the session. Returns a short-lived editor token the FE
+// sends back on each /edit call (in the X-Editor-Token header). We never
+// store or echo the raw password — only Ryan + Shayln know it.
+const editorUnlockBody = z.object({ password: z.string().min(1).max(200) });
+
+adminRouter.post('/admin/editor/unlock', requireAdmin, async (req, res) => {
+  const parsed = editorUnlockBody.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid request' });
+  }
+  const ok = await bcrypt.compare(parsed.data.password, env.EDITOR_PASSWORD_HASH);
+  if (!ok) {
+    return res.status(401).json({ error: 'Wrong edit password' });
+  }
+  res.json({ token: signEditorToken() });
+});
+
+// Step 2: edit a single camper's details. Gated by requireAdmin (you're on the
+// dashboard) AND requireEditor (you unlocked editing this session). Edits every
+// field EXCEPT the six consent agreements + consent date + consentAcceptedAt —
+// the signed consent record is never touched here. On a real change we re-sync
+// the Google Sheet (same builder/keys as the public /update flow, so the same
+// row is overwritten) and email the family a "your details were updated" note
+// listing exactly what changed, old → new.
+const editOptionalString = z
+  .union([z.string(), z.number()])
+  .optional()
+  .nullable()
+  .transform((v) => (v === null || v === undefined ? undefined : String(v)));
+
+const editCamperBody = z.object({
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  parentEmail: z.string().email(),
+  dob: editOptionalString,
+  gender: editOptionalString,
+  age: editOptionalString,
+  grade: editOptionalString,
+  email: z.union([z.string().email(), z.literal('')]).optional().nullable()
+    .transform((v) => (v ? v : undefined)),
+  camperCell: editOptionalString,
+  medical: editOptionalString,
+  tshirt: editOptionalString,
+  church: editOptionalString,
+  generalInfo: editOptionalString,
+  friends: z.array(z.string()).optional(),
+  parentName: editOptionalString,
+  parentPhone: editOptionalString,
+  consentEmergencyName: editOptionalString,
+  consentEmergencyContact: editOptionalString,
+  consentMedicalAidName: editOptionalString,
+  consentMedicalAidNumber: editOptionalString,
+});
+
+adminRouter.post('/admin/campers/:id/edit', requireAdmin, requireEditor, async (req, res) => {
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'Invalid camper id' });
+  }
+  const parsed = editCamperBody.safeParse(req.body);
+  if (!parsed.success) {
+    return res
+      .status(400)
+      .json({ error: 'Invalid request', details: parsed.error.flatten() });
+  }
+  const p = parsed.data;
+
+  try {
+    const [existing] = await db
+      .select()
+      .from(campers)
+      .where(eq(campers.id, id))
+      .limit(1);
+    if (!existing || existing.deletedAt) {
+      return res.status(404).json({ error: 'Camper not found' });
+    }
+
+    const camperEmail = p.email ? p.email.toLowerCase() : undefined;
+    const parentEmail = p.parentEmail.toLowerCase();
+
+    // The normalised set of editable values we're about to write. Keys match
+    // the camper columns so diffCamper can compare like-for-like.
+    const after = {
+      firstName: p.firstName,
+      lastName: p.lastName,
+      dob: p.dob,
+      gender: p.gender,
+      age: p.age,
+      grade: p.grade,
+      email: camperEmail,
+      camperCell: p.camperCell,
+      medical: p.medical,
+      tshirt: p.tshirt,
+      church: p.church,
+      generalInfo: p.generalInfo,
+      friends: p.friends ?? [],
+      parentName: p.parentName,
+      parentPhone: p.parentPhone,
+      parentEmail,
+      consentEmergencyName: p.consentEmergencyName,
+      consentEmergencyContact: p.consentEmergencyContact,
+      consentMedicalAidName: p.consentMedicalAidName,
+      consentMedicalAidNumber: p.consentMedicalAidNumber,
+    };
+
+    const changes = diffCamper(existing as Record<string, unknown>, after);
+
+    // No real change → don't write, don't email, don't touch the sheet. Saving
+    // an unchanged form shouldn't spam the family a "your details changed" note.
+    if (changes.length === 0) {
+      return res.json({ id: existing.id, changed: 0, changes: [] });
+    }
+
+    // Persist. Note: consent agreement columns + consentDate + consentAcceptedAt
+    // are deliberately NOT in this set — the signed consent record is immutable
+    // from this endpoint. Optional blanks are coalesced to null so CLEARING a
+    // field actually nulls the column (drizzle silently SKIPS `undefined`, which
+    // would leave a "cleared" field stale and out of sync with the diff/email).
+    const nullable = <T>(v: T | undefined): T | null => (v === undefined ? null : v);
+    await db
+      .update(campers)
+      .set({
+        firstName: after.firstName,
+        lastName: after.lastName,
+        parentEmail: after.parentEmail,
+        friends: after.friends,
+        dob: nullable(after.dob),
+        gender: nullable(after.gender),
+        age: nullable(after.age),
+        grade: nullable(after.grade),
+        email: nullable(after.email),
+        camperCell: nullable(after.camperCell),
+        medical: nullable(after.medical),
+        tshirt: nullable(after.tshirt),
+        church: nullable(after.church),
+        generalInfo: nullable(after.generalInfo),
+        parentName: nullable(after.parentName),
+        parentPhone: nullable(after.parentPhone),
+        consentEmergencyName: nullable(after.consentEmergencyName),
+        consentEmergencyContact: nullable(after.consentEmergencyContact),
+        consentMedicalAidName: nullable(after.consentMedicalAidName),
+        consentMedicalAidNumber: nullable(after.consentMedicalAidNumber),
+        updatedAt: new Date(),
+      })
+      .where(eq(campers.id, id));
+
+    // Best-effort sheet re-sync — same builder + keys as /submit and /update so
+    // the camper's existing row is overwritten in place, never duplicated. The
+    // consent date carries over from the stored record (we don't edit it).
+    upsertToSheet(
+      'Registrations',
+      registrationSheetRow(
+        {
+          firstName: after.firstName,
+          lastName: after.lastName,
+          camperCell: after.camperCell,
+          gender: after.gender,
+          email: after.email,
+          age: after.age,
+          grade: after.grade,
+          friends: after.friends,
+          medical: after.medical,
+          parentName: after.parentName,
+          parentPhone: after.parentPhone,
+          parentEmail: after.parentEmail,
+          church: after.church,
+          tshirt: after.tshirt,
+          generalInfo: after.generalInfo,
+          dob: after.dob,
+        },
+        {
+          emergencyName: after.consentEmergencyName,
+          emergencyContact: after.consentEmergencyContact,
+          medicalAidName: after.consentMedicalAidName,
+          medicalAidNumber: after.consentMedicalAidNumber,
+          date: existing.consentDate ?? undefined,
+        },
+        existing.id,
+        existing.year
+      ),
+      REGISTRATION_SHEET_KEY,
+      REGISTRATION_SHEET_FALLBACK_KEY
+    ).catch((err) => {
+      console.error('Sheet sync failed (admin edit; DB write succeeded):', err);
+    });
+
+    // Best-effort "your details were updated" email, with the old → new list.
+    sendRegistrationUpdated(parentEmail, after.firstName, camperEmail, changes).catch((err) => {
+      console.error('Admin-edit update email failed:', err);
+    });
+
+    res.json({ id: existing.id, changed: changes.length, changes });
+  } catch (err) {
+    console.error('camper edit error:', err);
+    res.status(500).json({ error: 'Failed to save changes' });
   }
 });
 

@@ -7,7 +7,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 
 import { AdminDashboardComponent } from './admin-dashboard.component';
-import { AdminCamper } from '../admin.service';
+import { AdminCamper, AdminService, CamperEditPayload } from '../admin.service';
 import { environment } from '../../../environments/environment';
 
 const COLUMNS_STORAGE_KEY = 'powercamp.admin.columns.v1';
@@ -136,7 +136,8 @@ describe('AdminDashboardComponent — column registry & toggle', () => {
     const headers: HTMLElement[] = fixture.nativeElement.querySelectorAll(
       '[data-testid="campers-columns-header"] th'
     );
-    expect(headers.length).toBe(c.visibleColumns().length);
+    // +1 for the leading (label-less) Edit action column.
+    expect(headers.length).toBe(c.visibleColumns().length + 1);
   });
 
   it('renders a column pill for every column above the table', () => {
@@ -707,5 +708,72 @@ describe('AdminDashboardComponent — view mode persistence on init', () => {
     // selectedGroup is no longer persisted — every page load starts on the
     // Camper group so the active context is always "who is this row".
     expect(fixture.componentInstance.selectedGroup()).toBe('camper');
+  });
+});
+
+describe('AdminDashboardComponent — inline edit', () => {
+  let fixture: ComponentFixture<AdminDashboardComponent>;
+  let http: HttpTestingController;
+  let admin: AdminService;
+
+  const editUrl = (id: number) => `${environment.baseApi}/admin/campers/${id}/edit`;
+
+  beforeEach(() => {
+    ({ fixture, http } = setupDashboard());
+    http.expectOne(`${environment.baseApi}/admin/campers`).flush({
+      total: 1,
+      campers: [makeCamper({ id: 1, firstName: 'Ada', grade: '10' })],
+    });
+    fixture.detectChanges();
+    admin = TestBed.inject(AdminService);
+    // Pretend editing is already unlocked this session so openEditor skips the
+    // password prompt (the unlock exchange is covered separately by the service).
+    admin.setEditorToken('editor.jwt.token');
+  });
+
+  afterEach(() => http.verify());
+
+  it('opens the drawer for the clicked camper when already unlocked', async () => {
+    await fixture.componentInstance.openEditor(makeCamper({ id: 1 }));
+    fixture.detectChanges();
+    expect(fixture.componentInstance.editingCamper()?.id).toBe(1);
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="camper-edit-panel"]')
+    ).not.toBeNull();
+  });
+
+  it('POSTs the edit with the X-Editor-Token header and patches the row', () => {
+    fixture.componentInstance.editingCamper.set(makeCamper({ id: 1, grade: '10' }));
+    const payload: CamperEditPayload = {
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      parentEmail: 'parent@example.com',
+      grade: '11',
+      friends: [],
+    };
+    fixture.componentInstance.saveEdit(payload);
+
+    const req = http.expectOne(editUrl(1));
+    expect(req.request.headers.get('X-Editor-Token')).toBe('editor.jwt.token');
+    expect((req.request.body as CamperEditPayload).grade).toBe('11');
+    req.flush({ id: 1, changed: 1, changes: [{ field: 'grade', label: 'Grade', from: '10', to: '11' }] });
+
+    expect(fixture.componentInstance.editingCamper()).toBeNull();
+    expect(fixture.componentInstance.campers().find((c) => c.id === 1)?.grade).toBe('11');
+  });
+
+  it('re-locks editing on a 403 (expired editor token)', () => {
+    fixture.componentInstance.editingCamper.set(makeCamper({ id: 1 }));
+    fixture.componentInstance.saveEdit({
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      parentEmail: 'parent@example.com',
+      friends: [],
+    });
+    http.expectOne(editUrl(1)).flush(
+      { error: 'locked' },
+      { status: 403, statusText: 'Forbidden' }
+    );
+    expect(admin.isEditorUnlocked()).toBe(false);
   });
 });

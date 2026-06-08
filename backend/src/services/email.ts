@@ -1,5 +1,6 @@
 import nodemailer, { Transporter, SendMailOptions } from 'nodemailer';
 import { env } from '../env';
+import type { CamperChange } from '../lib/camper-diff';
 
 let cached: Transporter | null = null;
 
@@ -172,11 +173,17 @@ export async function sendRegistrationReceived(
 export async function sendRegistrationUpdated(
   to: string,
   firstName: string,
-  cc?: string | null
+  cc?: string | null,
+  changes?: CamperChange[]
 ): Promise<void> {
   const fromName = env.FROM_NAME ?? 'Power Camp';
   const ccList = cc && cc.trim().toLowerCase() !== to.trim().toLowerCase() ? cc : undefined;
   const infoUrl = `${env.APP_BASE_URL.replace(/\/$/, '')}/info`;
+  const list = changes ?? [];
+  // Plain-text "what changed" block — only when we have changes to show.
+  const changeLines = list.length
+    ? ['', "Here's what changed:", ...list.map((c) => `  • ${c.label}: ${c.from || '(blank)'} → ${c.to || '(blank)'}`), '']
+    : [];
   await safeSendMail({
     from: `"${fromName}" <${env.GMAIL_USER}>`,
     to,
@@ -186,7 +193,7 @@ export async function sendRegistrationUpdated(
       `Hi ${firstName || 'there'},`,
       '',
       'Your Power Camp 2026 registration details have been updated — thank you.',
-      '',
+      ...changeLines,
       "Nothing else is needed. Your spot remains held; it's confirmed once payment is",
       'complete. Payment details and camp info are here:',
       infoUrl,
@@ -196,11 +203,39 @@ export async function sendRegistrationUpdated(
       '',
       '— Power Camp',
     ].join('\n'),
-    html: registrationUpdatedHtml(firstName || 'there', infoUrl),
+    html: registrationUpdatedHtml(firstName || 'there', infoUrl, list),
   });
 }
 
-function registrationUpdatedHtml(firstName: string, infoUrl: string): string {
+// Renders the "what changed" rows as an HTML table (old → new). Empty values
+// render as a muted "(blank)" so a cleared field reads sensibly. Returns ''
+// when there's nothing to show, so the email simply omits the section.
+function changesHtml(changes: CamperChange[]): string {
+  if (!changes.length) return '';
+  const blank = '<span style="color:#9ca3af;">(blank)</span>';
+  const rows = changes
+    .map(
+      (c) => `<tr>
+        <td style="padding:6px 12px 6px 0; color:#6b7280; font-size:13px; vertical-align:top; white-space:nowrap;">${escapeHtml(c.label)}</td>
+        <td style="padding:6px 0; color:#374151; font-size:14px;">
+          ${c.from ? escapeHtml(c.from) : blank}
+          <span style="color:#9ca3af;">&rarr;</span>
+          <strong>${c.to ? escapeHtml(c.to) : blank}</strong>
+        </td>
+      </tr>`
+    )
+    .join('\n');
+  return `<div style="margin:0 0 16px 0; background-color:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:12px 16px;">
+    <p style="margin:0 0 6px 0; color:#111827; font-size:14px; font-weight:600;">What changed</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">${rows}</table>
+  </div>`;
+}
+
+function registrationUpdatedHtml(
+  firstName: string,
+  infoUrl: string,
+  changes: CamperChange[] = []
+): string {
   return `<!doctype html>
 <html lang="en">
   <body style="margin:0; padding:0; background-color:#f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
@@ -214,6 +249,7 @@ function registrationUpdatedHtml(firstName: string, infoUrl: string): string {
                 <p style="margin:0 0 16px 0; color:#374151; font-size:15px; line-height:22px;">
                   Hi ${escapeHtml(firstName)}, your Power Camp 2026 registration details have been updated — thank you. Nothing else is needed; your spot remains held and is confirmed once payment is complete.
                 </p>
+                ${changesHtml(changes)}
                 <a href="${infoUrl}" style="display:inline-block; background-color:#16a34a; color:#ffffff; text-decoration:none; font-weight:600; font-size:15px; padding:12px 24px; border-radius:8px;">
                   View camp info &amp; payment details
                 </a>

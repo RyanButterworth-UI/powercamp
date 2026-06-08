@@ -3,7 +3,13 @@ jest.mock('../env', () => ({
 }));
 
 import jwt from 'jsonwebtoken';
-import { signMagicToken, verifyMagicToken } from '../services/auth';
+import {
+  signMagicToken,
+  verifyMagicToken,
+  signEditorToken,
+  verifyEditorToken,
+  signAdminToken,
+} from '../services/auth';
 
 describe('magic token', () => {
   it('signs a token that verifies back to the same camperId', () => {
@@ -46,5 +52,34 @@ describe('magic token', () => {
   it('rejects garbage strings', () => {
     expect(verifyMagicToken('not-a-token')).toBeNull();
     expect(verifyMagicToken('')).toBeNull();
+  });
+});
+
+describe('editor token', () => {
+  it('signs a token that verifies back to the editor kind', () => {
+    const token = signEditorToken();
+    expect(verifyEditorToken(token)).toEqual({ kind: 'editor' });
+  });
+
+  it('does not accept an admin token as an editor token', () => {
+    // The whole point of the second factor: a logged-in admin is NOT
+    // automatically an editor — they must unlock separately.
+    expect(verifyEditorToken(signAdminToken())).toBeNull();
+  });
+
+  it('rejects an expired editor token', () => {
+    const expired = jwt.sign(
+      { kind: 'editor' },
+      'test-secret-must-be-at-least-32-chars-long',
+      { expiresIn: '-1m' }
+    );
+    expect(verifyEditorToken(expired)).toBeNull();
+  });
+
+  it('rejects a tampered or garbage token', () => {
+    const token = signEditorToken();
+    expect(verifyEditorToken(token.slice(0, -2) + 'aa')).toBeNull();
+    expect(verifyEditorToken('not-a-token')).toBeNull();
+    expect(verifyEditorToken('')).toBeNull();
   });
 });
