@@ -636,13 +636,12 @@ export async function sendLeaderRejection(
     text: [
       `Hi ${firstName || 'there'},`,
       '',
-      'Thank you for applying to lead at Power Camp 2026. After review, we are not',
-      "able to offer you a leader place this year. This isn't a reflection of your",
-      'heart for the camp, and we hope you will stay involved.',
+      'Thank you for applying to lead at Power Camp 2026. After careful',
+      'consideration, we are not able to offer you a leader place this year.',
       '',
-      `If you'd like to talk it through, reply to this email or contact Neil at ${neilEmail}.`,
+      'We appreciate the time you took to apply and wish you everything of the best.',
       '',
-      'We would still love to see you at camp.',
+      `If you have any questions, you can contact Neil at ${neilEmail}.`,
       '',
       '— Power Camp',
     ].join('\n'),
@@ -662,10 +661,10 @@ function leaderRejectionHtml(firstName: string, neilEmail: string): string {
               <td style="padding:32px 32px 16px 32px;">
                 <h1 style="margin:0 0 8px 0; font-size:22px; color:#111827;">Your leader application</h1>
                 <p style="margin:0 0 12px 0; color:#374151; font-size:15px; line-height:22px;">
-                  Hi ${escapeHtml(firstName)}, thank you for applying to lead at Power Camp 2026. After review, we're not able to offer you a leader place this year.
+                  Hi ${escapeHtml(firstName)}, thank you for applying to lead at Power Camp 2026. After careful consideration, we are not able to offer you a leader place this year.
                 </p>
                 <p style="margin:0; color:#374151; font-size:15px; line-height:22px;">
-                  This isn't a reflection of your heart for the camp, and we'd still love to see you there. If you'd like to talk it through, reply to this email or contact Neil at
+                  We appreciate the time you took to apply and wish you everything of the best. If you have any questions, you can contact Neil at
                   <a href="mailto:${escapeHtml(neilEmail)}" style="color:#16a34a;">${escapeHtml(neilEmail)}</a>.
                 </p>
               </td>

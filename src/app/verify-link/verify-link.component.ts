@@ -101,12 +101,17 @@ interface VerifiedCamper {
           style="border-color: var(--color-saga-success); background-color: var(--color-saga-primary-soft)"
         >
           <h2 class="font-semibold mb-1" style="color: var(--color-saga-success)">
-            Registration received
+            {{ action() === 'updated' ? 'Details updated' : 'Registration received' }}
           </h2>
           <p class="text-sm mb-3" style="color: var(--color-saga-text)">
-            Thanks {{ camper()?.firstName }}! Your spot is provisionally held — we'll send a
-            confirmation once your payment is complete. Check your inbox at
-            <span class="font-mono">{{ camper()?.parentEmail }}</span>.
+            @if (action() === 'updated') {
+              Thanks {{ camper()?.firstName }}! Your details for Power Camp 2026 have been
+              successfully updated.
+            } @else {
+              Thanks {{ camper()?.firstName }}! You're registered for Power Camp 2026 — your spot is
+              provisionally held, and we'll confirm once your payment is complete. Check your inbox at
+              <span class="font-mono">{{ camper()?.parentEmail }}</span>.
+            }
           </p>
           <button type="button" (click)="goHome()" class="saga-btn saga-btn-primary">
             Done
@@ -473,6 +478,9 @@ export class VerifyLinkComponent {
   submitting = signal(false);
   submitError = signal<string | null>(null);
   submittedAt = signal<string | null>(null);
+  // 'updated' = edited an existing current-year registration; 'registered' = a
+  // returning family carried forward into 2026. Drives the confirmation wording.
+  action = signal<'updated' | 'registered'>('updated');
   // When true we show the read-only review/summary screen instead of the
   // edit form, mirroring the "Review" step new registrations get on the main
   // flow. Returning families flagged that editing went straight from the form
@@ -702,13 +710,14 @@ export class VerifyLinkComponent {
     for (const k of consentBools) consent[k] = consent[k] ? 'accept' : '';
 
     this.http
-      .post<{ id: number; consentAcceptedAt: string }>(`${environment.baseApi}/update`, {
+      .post<{ id: number; consentAcceptedAt: string; action?: 'updated' | 'registered' }>(`${environment.baseApi}/update`, {
         token: this.token,
         camper: raw.camper,
         consent,
       })
       .subscribe({
         next: (res) => {
+          this.action.set(res.action ?? 'updated');
           this.submittedAt.set(res.consentAcceptedAt);
           this.submitting.set(false);
           // This is an existing registration that has just been saved, so any

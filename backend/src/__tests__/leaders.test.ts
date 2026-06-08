@@ -150,6 +150,13 @@ describe('POST /leaders/apply', () => {
 
 describe('POST /leaders/register', () => {
   const validToken = 'a-valid-invite-token-string';
+  // Consent is now mandatory on the leader register form.
+  const validConsent = {
+    general: 'accept', location: 'accept', risk: 'accept', powerCamp: 'accept',
+    behaviour: 'accept', photo: 'accept', emergencyName: 'Emergency Person',
+    emergencyContact: '0820000099', medicalAidName: 'NONE', medicalAidNumber: 'NONE',
+    date: '2026-07-01',
+  };
 
   beforeEach(() => {
     updateMock.mockReset();
@@ -164,7 +171,7 @@ describe('POST /leaders/register', () => {
     mockVerifyToken.mockReturnValueOnce(null);
     const res = await request(buildApp())
       .post('/leaders/register')
-      .send({ token: validToken, cell: '0820000001' });
+      .send({ token: validToken, cell: '0820000001', consent: validConsent });
     expect(res.status).toBe(401);
     expect(updateMock).not.toHaveBeenCalled();
     expect(completeMock).not.toHaveBeenCalled();
@@ -174,7 +181,7 @@ describe('POST /leaders/register', () => {
     mockRowSelect.mockResolvedValueOnce([{ id: 7, status: 'rejected', deletedAt: null }]);
     const res = await request(buildApp())
       .post('/leaders/register')
-      .send({ token: validToken, cell: '0820000001' });
+      .send({ token: validToken, cell: '0820000001', consent: validConsent });
     expect(res.status).toBe(403);
     expect(updateMock).not.toHaveBeenCalled();
     expect(completeMock).not.toHaveBeenCalled();
@@ -184,7 +191,7 @@ describe('POST /leaders/register', () => {
     mockRowSelect.mockResolvedValueOnce([{ id: 7, status: 'approved', deletedAt: new Date() }]);
     const res = await request(buildApp())
       .post('/leaders/register')
-      .send({ token: validToken, cell: '0820000001' });
+      .send({ token: validToken, cell: '0820000001', consent: validConsent });
     expect(res.status).toBe(404);
     expect(updateMock).not.toHaveBeenCalled();
     expect(completeMock).not.toHaveBeenCalled();
@@ -209,7 +216,7 @@ describe('POST /leaders/register', () => {
 
     const res = await request(buildApp())
       .post('/leaders/register')
-      .send({ token: validToken, cell: '0820000001', tshirt: 'large' });
+      .send({ token: validToken, cell: '0820000001', tshirt: 'large', consent: validConsent });
     await new Promise((resolve) => setImmediate(resolve));
 
     expect(res.status).toBe(200);
@@ -232,7 +239,7 @@ describe('POST /leaders/register', () => {
     updateMock.mockResolvedValueOnce([]);
     const res = await request(buildApp())
       .post('/leaders/register')
-      .send({ token: validToken, cell: '0820000001' });
+      .send({ token: validToken, cell: '0820000001', consent: validConsent });
     expect(res.status).toBe(404);
     expect(completeMock).not.toHaveBeenCalled();
   });

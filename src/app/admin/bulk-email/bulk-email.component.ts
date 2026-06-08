@@ -224,7 +224,7 @@ type Filter = 'all' | 'paid' | 'unpaid' | 'consent' | 'no-consent';
             </button>
             @if (lastResult(); as r) {
               <p class="text-xs" style="color: var(--color-saga-success)">
-                ✓ Sent to {{ r.sent }} of {{ r.totalRecipients }}.
+                ✓ Accepted by Gmail for {{ r.sent }} of {{ r.totalRecipients }}.
                 @if (r.unsubscribedSkipped > 0) {
                   <span style="color: var(--color-saga-text-muted)">
                     {{ r.unsubscribedSkipped }} unsubscribed (skipped).
@@ -234,6 +234,24 @@ type Filter = 'all' | 'paid' | 'unpaid' | 'consent' | 'no-consent';
                   <span style="color: var(--color-saga-danger)">{{ r.failed.length }} failed.</span>
                 }
               </p>
+              @if (r.failed.length > 0) {
+                <details class="text-xs mt-1" data-testid="bulk-failed-list">
+                  <summary class="cursor-pointer" style="color: var(--color-saga-danger)">
+                    Show the {{ r.failed.length }} that didn't send
+                  </summary>
+                  <ul class="mt-1 ml-1 flex flex-col gap-0.5" style="color: var(--color-saga-text-muted)">
+                    @for (f of r.failed; track f.to) {
+                      <li><span class="font-mono">{{ f.to }}</span> — {{ f.error }}</li>
+                    }
+                  </ul>
+                </details>
+              }
+              @if (r.failed.length === 0) {
+                <p class="text-xs mt-0.5" style="color: var(--color-saga-text-muted)">
+                  All {{ r.sent }} were accepted for delivery. Any later bounces (wrong address, full
+                  mailbox) will arrive as bounce-back emails in your Gmail inbox.
+                </p>
+              }
             }
           </div>
         </section>

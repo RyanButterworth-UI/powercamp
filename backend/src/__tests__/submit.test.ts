@@ -148,7 +148,7 @@ describe('POST /submit', () => {
     );
   });
 
-  it('appends an 18-column row to Registrations with Q=TRUE and the camper id in col R', async () => {
+  it('appends the full 24-column row to Registrations (incl. id, emergency, medical-aid, consent date, year)', async () => {
     await request(buildApp()).post('/submit').send(validBody);
     await new Promise((resolve) => setImmediate(resolve));
 
@@ -171,6 +171,12 @@ describe('POST /submit', () => {
       '2010-01-01',          // P dob
       'TRUE',                // Q Consent Accepted — gated by ConsentStep
       42,                    // R camper id (stable key for the edit upsert)
+      'Emergency Contact',   // S emergency contact name
+      '0820000099',          // T emergency contact number
+      'NONE',                // U medical aid name
+      'NONE',                // V medical aid number
+      '2026-05-02',          // W consent date
+      2026,                  // X year
     ]);
   });
 

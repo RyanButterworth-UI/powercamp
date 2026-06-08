@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
-import { desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, isNull } from 'drizzle-orm';
 import * as XLSX from 'xlsx';
 import { db } from '../db/client';
 import { campers, leaders } from '../db/schema';
@@ -76,11 +76,13 @@ adminRouter.get('/admin/campers', requireAdmin, async (_req, res) => {
 
 adminRouter.get('/admin/export', requireAdmin, async (_req, res) => {
   try {
+    // Export the CURRENT camp year only — the XLSX is the working roster for
+    // this year's camp, not a historical dump of prior cohorts.
     const rows = await db
       .select()
       .from(campers)
-      .where(isNull(campers.deletedAt))
-      .orderBy(desc(campers.year), campers.lastName, campers.firstName);
+      .where(and(eq(campers.year, env.CAMP_YEAR), isNull(campers.deletedAt)))
+      .orderBy(campers.lastName, campers.firstName);
 
     const friendly = rows.map((r) => ({
       ID: r.id,
@@ -294,6 +296,17 @@ function syncLeaderSheetRow(
       status,
       approvedByNeil,
       createdAt: leader.createdAt ? new Date(leader.createdAt).toISOString() : undefined,
+      medical: leader.medical ?? undefined,
+      generalInfo: leader.generalInfo ?? undefined,
+      id: leader.id,
+      year: leader.year,
+      dob: leader.dob ?? undefined,
+      emergencyName: leader.consentEmergencyName ?? undefined,
+      emergencyContact: leader.consentEmergencyContact ?? undefined,
+      medicalAidName: leader.consentMedicalAidName ?? undefined,
+      medicalAidNumber: leader.consentMedicalAidNumber ?? undefined,
+      consentDate: leader.consentDate ?? undefined,
+      consentAccepted: !!leader.consentAcceptedAt,
     }),
     [4]
   );

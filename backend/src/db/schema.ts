@@ -88,6 +88,27 @@ export const leaders = pgTable(
     parentPhone: text('parent_phone'),
     parentEmail: text('parent_email'),
     applicationNotes: text('application_notes'),
+    // The post-approval leader registration form mirrors the camper form
+    // (minus the parent block). These columns hold the same details a camper
+    // gives — date of birth, medical/allergy notes, "anything else", and the
+    // full consent block (six agreements + emergency contact + medical aid),
+    // worded in the first person for an adult registering themselves.
+    dob: text('dob'),
+    medical: text('medical'),
+    dietary: text('dietary'),
+    generalInfo: text('general_info'),
+    consentGeneral: text('consent_general'),
+    consentLocation: text('consent_location'),
+    consentRisk: text('consent_risk'),
+    consentPowerCamp: text('consent_power_camp'),
+    consentBehaviour: text('consent_behaviour'),
+    consentPhoto: text('consent_photo'),
+    consentEmergencyName: text('consent_emergency_name'),
+    consentEmergencyContact: text('consent_emergency_contact'),
+    consentMedicalAidName: text('consent_medical_aid_name'),
+    consentMedicalAidNumber: text('consent_medical_aid_number'),
+    consentDate: text('consent_date'),
+    consentAcceptedAt: timestamp('consent_accepted_at'),
     status: text('status').default('pending').notNull(),
     approvedByNeil: boolean('approved_by_neil').default(false).notNull(),
     approvedAt: timestamp('approved_at'),

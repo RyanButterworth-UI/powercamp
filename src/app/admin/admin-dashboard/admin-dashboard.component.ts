@@ -217,6 +217,14 @@ const COLUMN_GROUPS: ColumnGroup[] = GROUP_ORDER.map((g) => ({
                 data-testid="view-mode-mix"
                 title="Pick any combination of columns yourself"
               >Custom</button>
+              <button
+                type="button"
+                (click)="showAllColumns()"
+                class="column-pill"
+                [class.is-active]="allColumnsShown()"
+                data-testid="view-mode-all"
+                title="Show every available column at once"
+              >All fields</button>
             </div>
           </div>
 
@@ -577,6 +585,19 @@ export class AdminDashboardComponent {
     const next = this.defaultKeysForGroup(this.selectedGroup());
     this.visibleColumnKeys.set(next);
     this.persistVisibleColumnKeys(next);
+  }
+
+  /** "All fields" — switch to custom view with every available column on. */
+  showAllColumns(): void {
+    const next = ALL_COLUMNS.map((c) => c.key);
+    this.viewMode.set('mix');
+    this.visibleColumnKeys.set(next);
+    this.persistVisibleColumnKeys(next);
+  }
+
+  /** True when custom mode is active and every column is currently shown. */
+  allColumnsShown(): boolean {
+    return this.viewMode() === 'mix' && this.visibleColumnKeys().length === ALL_COLUMNS.length;
   }
 
   private defaultKeysForGroup(g: ColumnGroupKey): string[] {
