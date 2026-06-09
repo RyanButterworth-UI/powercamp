@@ -111,6 +111,18 @@ const applyBody = z.object({
 export const leadersRouter = Router();
 
 leadersRouter.post('/leaders/apply', async (req, res) => {
+  // Leadership for 2026 is full of great candidates, so the public application
+  // is closed (LEADER_APPLICATIONS_OPEN defaults to false). Reject before
+  // touching the DB / sheet / email so a direct POST can't slip a new applicant
+  // in behind the now-removed UI. Invite-only completion (/leaders/register)
+  // stays open for already-approved leaders. Flip the env flag to reopen.
+  if (!env.LEADER_APPLICATIONS_OPEN) {
+    return res.status(403).json({
+      error: 'Leader applications are closed',
+      reason: 'full',
+    });
+  }
+
   const parsed = applyBody.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: 'Invalid application', details: parsed.error.flatten() });

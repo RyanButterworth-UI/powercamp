@@ -2,7 +2,7 @@ import { Component, OnInit, inject, input, output, signal } from '@angular/core'
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { LookupResult, StepKey } from '../../models';
 import { environment } from '../../environments/environment';
 import { UiService } from '../ui/ui.service';
@@ -20,7 +20,7 @@ interface StatsResponse {
 @Component({
   selector: 'app-lookup',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, SkeletonComponent],
+  imports: [CommonModule, ReactiveFormsModule, SkeletonComponent],
   template: `
     <div
       class="customer-wrapper p-6"
@@ -140,9 +140,7 @@ interface StatsResponse {
         } @else {
           <p class="text-xs mb-2" style="color: var(--color-saga-text-muted)">
             For campers, we send a sign-in link to the email already on file (only that inbox can
-            edit the registration) — you can change any detail once you click the link. Leaders
-            re-apply each year, so "Apply again" takes you to a fresh application with your name
-            pre-filled.
+            edit the registration) — you can change any detail once you click the link.
           </p>
           <ul
             class="saga-card divide-y mb-6"
@@ -165,14 +163,24 @@ interface StatsResponse {
                     {{ r.year }} · {{ r.parentEmailMasked }}
                   </div>
                 </div>
-                <button
-                  type="button"
-                  class="saga-btn saga-btn-primary !py-1 !px-3 !text-xs"
-                  [disabled]="sendingLinkFor() === r.id && r.kind === 'camper'"
-                  (click)="select(r)"
-                >
-                  {{ (sendingLinkFor() === r.id && r.kind === 'camper') ? 'Sending…' : (r.kind === 'leader' ? 'Apply again' : 'Register / Edit') }}
-                </button>
+                @if (r.kind === 'leader') {
+                  <span
+                    class="text-xs text-right"
+                    data-testid="leader-full-note"
+                    style="color: var(--color-saga-text-muted)"
+                  >
+                    Leadership is full for 2026
+                  </span>
+                } @else {
+                  <button
+                    type="button"
+                    class="saga-btn saga-btn-primary !py-1 !px-3 !text-xs"
+                    [disabled]="sendingLinkFor() === r.id"
+                    (click)="select(r)"
+                  >
+                    {{ sendingLinkFor() === r.id ? 'Sending…' : 'Register / Edit' }}
+                  </button>
+                }
               </li>
             }
           </ul>
@@ -196,12 +204,6 @@ interface StatsResponse {
           >
             Register as a new camper
           </button>
-          <a
-            routerLink="/leader-apply"
-            class="saga-btn saga-btn-secondary no-underline w-full sm:w-auto"
-          >
-            Apply as a leader
-          </a>
         </div>
       </div>
 
@@ -316,14 +318,12 @@ export class LookupComponent implements OnInit {
   select(r: LookupResult) {
     this.error.set(null);
 
-    // Returning leaders don't use the camper magic-link edit — they go back
-    // through the (open) leader application, pre-filled with their name. We
-    // deliberately don't pass the email (it's masked for privacy); they re-enter
-    // it themselves, same as any applicant.
+    // Leadership for 2026 is full, so leader rows no longer expose an action
+    // button (the template shows a "Leadership is full" note instead). This
+    // guard stays as a defensive backstop: if a leader row ever reaches select()
+    // again, send them to /leader-apply, which now shows the "we're full" page.
     if (r.kind === 'leader') {
-      this.router.navigate(['/leader-apply'], {
-        queryParams: { firstName: r.firstName, lastName: r.lastName, returning: '1' },
-      });
+      this.router.navigate(['/leader-apply']);
       return;
     }
 

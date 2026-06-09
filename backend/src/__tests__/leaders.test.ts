@@ -5,6 +5,9 @@ jest.mock('../env', () => ({
   env: {
     CAMP_YEAR: 2026,
     GMAIL_USER: 'powercamp@example.com',
+    // Applications are closed by default (the 2026 team is full). Individual
+    // tests flip this on `env` to exercise the open branch.
+    LEADER_APPLICATIONS_OPEN: false,
   },
 }));
 
@@ -61,6 +64,8 @@ jest.mock('../services/auth', () => ({
 }));
 
 import { leadersRouter } from '../routes/leaders';
+// The mocked env object — mutated in tests to toggle LEADER_APPLICATIONS_OPEN.
+import { env } from '../env';
 
 function buildApp() {
   const app = express();
@@ -69,13 +74,61 @@ function buildApp() {
   return app;
 }
 
-describe('POST /leaders/apply', () => {
+describe('POST /leaders/apply — applications CLOSED (default)', () => {
   beforeEach(() => {
+    (env as { LEADER_APPLICATIONS_OPEN: boolean }).LEADER_APPLICATIONS_OPEN = false;
     insertMock.mockReset();
     sheetMock.mockReset().mockResolvedValue(undefined);
     noticeMock.mockReset().mockResolvedValue(undefined);
     applicantAckMock.mockReset().mockResolvedValue(undefined);
     subscribeMock.mockReset().mockResolvedValue(undefined);
+  });
+
+  it('rejects with 403 and a "full" reason without touching the DB, sheet, or email', async () => {
+    const res = await request(buildApp()).post('/leaders/apply').send({
+      firstName: 'Sam',
+      lastName: 'Smith',
+      email: 'sam@example.com',
+      church: 'Hope',
+    });
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(res.status).toBe(403);
+    expect(res.body).toEqual({ error: 'Leader applications are closed', reason: 'full' });
+    // Nothing should have run — the gate is the first thing in the handler.
+    expect(insertMock).not.toHaveBeenCalled();
+    expect(sheetMock).not.toHaveBeenCalled();
+    expect(applicantAckMock).not.toHaveBeenCalled();
+    expect(noticeMock).not.toHaveBeenCalled();
+    expect(subscribeMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects even a well-formed body (the gate runs before validation)', async () => {
+    const res = await request(buildApp()).post('/leaders/apply').send({
+      firstName: 'Sam',
+      lastName: 'Smith',
+      email: 'sam@example.com',
+      grade: 'leader',
+      church: 'Hope',
+    });
+    expect(res.status).toBe(403);
+    expect(insertMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('POST /leaders/apply — applications OPEN (reopened via env flag)', () => {
+  beforeEach(() => {
+    (env as { LEADER_APPLICATIONS_OPEN: boolean }).LEADER_APPLICATIONS_OPEN = true;
+    insertMock.mockReset();
+    sheetMock.mockReset().mockResolvedValue(undefined);
+    noticeMock.mockReset().mockResolvedValue(undefined);
+    applicantAckMock.mockReset().mockResolvedValue(undefined);
+    subscribeMock.mockReset().mockResolvedValue(undefined);
+  });
+
+  afterAll(() => {
+    // Leave the shared mock back in its default (closed) state.
+    (env as { LEADER_APPLICATIONS_OPEN: boolean }).LEADER_APPLICATIONS_OPEN = false;
   });
 
   it('emails the applicant an awaiting-approval acknowledgement (to their lowercased address)', async () => {

@@ -28,9 +28,8 @@ import { SkeletonComponent } from '../../skeleton/skeleton.component';
 
       <div class="flex items-center gap-3 mb-6 flex-wrap">
         <span class="text-sm" style="color: var(--color-saga-text-muted)">
-          {{ total() }} leaders in the database — applications come in via the public
-          <a routerLink="/leader-apply" style="color: var(--color-saga-action)">leader-apply</a>
-          form.
+          {{ total() }} leaders in the database. Public leader applications are closed for 2026
+          (the team is full) — to reopen, set LEADER_APPLICATIONS_OPEN=true on the backend.
         </span>
       </div>
 

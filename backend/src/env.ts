@@ -109,6 +109,16 @@ export const envSchema = z.object({
   // notified. Defaults to the camp's public mailbox so a fresh deploy
   // works without extra config.
   REGISTRATION_ADMIN_EMAIL: z.string().email().default('powercamplife@gmail.com'),
+  // Master switch for the public leader-application flow (POST /leaders/apply).
+  // The 2026 leadership team is full, so applications are CLOSED by default —
+  // the endpoint returns 403 and the /leader-apply page shows a "leadership is
+  // full" message. To reopen in a future year, set LEADER_APPLICATIONS_OPEN=true
+  // in the Render dashboard (no code change / redeploy of source needed).
+  // Accepts "true"/"1" (case-insensitive) as open; anything else is closed.
+  LEADER_APPLICATIONS_OPEN: z
+    .string()
+    .default('false')
+    .transform((s) => s.trim().toLowerCase() === 'true' || s.trim() === '1'),
   PORT: z
     .string()
     .default('3000')

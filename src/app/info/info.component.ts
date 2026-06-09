@@ -29,8 +29,8 @@ import { PageGhostComponent } from '../skeleton/page-ghost.component';
       <div class="saga-card p-6 mb-6">
         <h2 class="text-lg font-semibold mb-2">Who it's for</h2>
         <p class="text-sm mb-2" style="color: var(--color-saga-text-muted)">
-          Grades 8 through 12. We also have a leader programme for 18+ — applications gated by a
-          portal password. Talk to your camp coordinator if you're interested.
+          Grades 8 through 12. We also run a leader programme for 18+, but our 2026 leadership team
+          is now full of great leaders, so leader applications are closed for this year.
         </p>
         <p class="text-sm" style="color: var(--color-saga-text-muted)">
           Cost is R1350 — accommodation, all meals, every activity, and the official camp T-shirt.
