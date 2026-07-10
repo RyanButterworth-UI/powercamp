@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { AdminLeader, AdminService } from '../admin.service';
 import { askToDelete, deleteErrorMessage } from '../confirm-delete';
+import { searchableHay } from '../search';
 import { UiService } from '../../ui/ui.service';
 import { SkeletonComponent } from '../../skeleton/skeleton.component';
 
@@ -29,7 +30,8 @@ import { SkeletonComponent } from '../../skeleton/skeleton.component';
 
       <div class="flex items-center gap-3 mb-6 flex-wrap">
         <span class="text-sm" style="color: var(--color-saga-text-muted)">
-          {{ total() }} leaders in the database. Public leader applications are closed for 2026
+          {{ total() }} leaders in the database@if (searchQuery().trim()) { · {{ visibleLeaders().length }} shown }.
+          Public leader applications are closed for 2026
           (the team is full) — to reopen, set LEADER_APPLICATIONS_OPEN=true on the backend.
         </span>
       </div>
@@ -66,6 +68,15 @@ import { SkeletonComponent } from '../../skeleton/skeleton.component';
             </nav>
           </div>
         }
+
+        <input
+          type="text"
+          [value]="searchQuery()"
+          (input)="searchQuery.set($any($event.target).value)"
+          placeholder="Search any field…"
+          class="rounded-lg w-full px-3 py-2 mb-3"
+          data-testid="leaders-search"
+        />
 
         <div class="overflow-x-auto">
           <table class="saga-table text-sm">
@@ -185,7 +196,11 @@ import { SkeletonComponent } from '../../skeleton/skeleton.component';
               } @empty {
                 <tr>
                   <td colspan="6" class="text-center py-6" style="color: var(--color-saga-text-muted)">
-                    No leaders in this year.
+                    @if (searchQuery().trim()) {
+                      No leaders match “{{ searchQuery().trim() }}”.
+                    } @else {
+                      No leaders in this year.
+                    }
                   </td>
                 </tr>
               }
@@ -203,6 +218,7 @@ export class AdminLeadersComponent {
   loading = signal(true);
   loadError = signal<string | null>(null);
   selectedYear = signal<number | null>(null);
+  searchQuery = signal('');
 
   copiedEmail = signal<string | null>(null);
   invitingFor = signal<number | null>(null);
@@ -222,8 +238,10 @@ export class AdminLeadersComponent {
   });
   visibleLeaders = computed(() => {
     const y = this.selectedYear();
-    if (y === null) return this.leaders();
-    return this.leaders().filter((l) => l.year === y);
+    const q = this.searchQuery().trim().toLowerCase();
+    let rows = y === null ? this.leaders() : this.leaders().filter((l) => l.year === y);
+    if (q) rows = rows.filter((l) => searchableHay(l).includes(q));
+    return rows;
   });
 
   private readonly admin = inject(AdminService);

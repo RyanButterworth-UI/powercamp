@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { AdminService, AdminCamper, CamperEditPayload } from '../admin.service';
 import { askToDelete, deleteErrorMessage } from '../confirm-delete';
+import { searchableHay } from '../search';
 import { environment } from '../../../environments/environment';
 import { UiService } from '../../ui/ui.service';
 import { SkeletonComponent } from '../../skeleton/skeleton.component';
@@ -37,15 +38,6 @@ const COLUMNS_STORAGE_KEY = 'powercamp.admin.columns.v1';
 const VIEW_MODE_STORAGE_KEY = 'powercamp.admin.viewMode.v1';
 
 export type ViewMode = 'mix' | 'group';
-
-function searchableHay(c: AdminCamper): string {
-  const parts: string[] = [];
-  for (const v of Object.values(c) as unknown[]) {
-    if (typeof v === 'string') parts.push(v);
-    else if (Array.isArray(v)) parts.push(v.join(' '));
-  }
-  return parts.join(' ').toLowerCase();
-}
 
 function compareValues(a: unknown, b: unknown, dir: 'asc' | 'desc'): number {
   // Nulls sort last regardless of direction.
