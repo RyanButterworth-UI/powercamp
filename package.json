@@ -12,6 +12,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "build:prod": "ng build --configuration production",
+    "kit-list:pdf": "node tools/build-kit-list.mjs",
     "run:network": "ng serve --host 0.0.0.0 --port 4200 --configuration development",
     "render-build": "npm install && npm run build:prod && cd backend && npm install",
     "render-start": "cd backend && npm start"
