@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { AdminLeader, AdminService } from '../admin.service';
+import { askToDelete, deleteErrorMessage } from '../confirm-delete';
 import { UiService } from '../../ui/ui.service';
 import { SkeletonComponent } from '../../skeleton/skeleton.component';
 
@@ -169,6 +170,15 @@ import { SkeletonComponent } from '../../skeleton/skeleton.component';
                           style="width: 5.5rem;"
                         >Reject</button>
                       }
+                      <button
+                        type="button"
+                        (click)="remove(l)"
+                        [disabled]="deletingFor() === l.id"
+                        class="text-xs px-2 py-1 rounded saga-btn saga-btn-danger inline-flex items-center justify-center"
+                        style="width: 5.5rem;"
+                        title="Remove this leader from the admin entirely"
+                        [attr.data-testid]="'delete-leader-' + l.id"
+                      >{{ deletingFor() === l.id ? 'Deleting…' : 'Delete' }}</button>
                     </span>
                   </td>
                 </tr>
@@ -197,6 +207,7 @@ export class AdminLeadersComponent {
   copiedEmail = signal<string | null>(null);
   invitingFor = signal<number | null>(null);
   markingPaidFor = signal<number | null>(null);
+  deletingFor = signal<number | null>(null);
 
   years = computed(() => {
     const set = new Set(this.leaders().map((l) => l.year));
@@ -279,6 +290,26 @@ export class AdminLeadersComponent {
       },
       error: (err) => {
         this.ui.toast(err?.status === 401 ? 'Wrong Neil password.' : 'Failed to reject.', 'error');
+      },
+    });
+  }
+
+  // "remove", not "delete" — `delete` is a reserved word and reads badly as a
+  // method name on a component.
+  async remove(l: AdminLeader): Promise<void> {
+    const pw = await askToDelete(this.ui, `${l.firstName} ${l.lastName}`);
+    if (!pw) return;
+
+    this.deletingFor.set(l.id);
+    this.admin.deleteLeader(l.id, pw).subscribe({
+      next: () => {
+        this.deletingFor.set(null);
+        this.refresh();
+        this.ui.toast(`${l.firstName} ${l.lastName} deleted.`, 'info');
+      },
+      error: (err) => {
+        this.deletingFor.set(null);
+        this.ui.toast(deleteErrorMessage(err), 'error');
       },
     });
   }

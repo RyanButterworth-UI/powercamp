@@ -252,6 +252,8 @@ export const waitlist = pgTable(
     // admin UI can evolve the workflow without a migration.
     status: text('status').default('waiting').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
+    // Soft delete, matching campers and leaders. Reads filter it out.
+    deletedAt: timestamp('deleted_at'),
   },
   (t) => [index('waitlist_year_idx').on(t.year)]
 );

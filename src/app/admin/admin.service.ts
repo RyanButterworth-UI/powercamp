@@ -35,6 +35,11 @@ export interface CamperEditPayload {
   consentMedicalAidNumber?: string;
 }
 
+export interface DeleteResult {
+  id: number;
+  deleted: boolean;
+}
+
 export interface CamperChange {
   field: string;
   label: string;
@@ -362,6 +367,35 @@ export class AdminService {
     return this.http.post<{ id: number; paymentReceivedAt: string }>(
       `${environment.baseApi}/admin/leaders/${leaderId}/mark-paid`,
       {},
+      { headers: this.authHeaders() }
+    );
+  }
+
+  // ----- Delete (soft) -----
+  // The delete password travels in the body on every call and is never stored,
+  // unlike the editor unlock — there's no "delete is unlocked for this session"
+  // state, so each deletion is deliberate. The server answers 403 for a wrong
+  // delete password and 401 only when the admin session itself has expired.
+  deleteCamper(camperId: number, deletePassword: string): Observable<DeleteResult> {
+    return this.http.post<DeleteResult>(
+      `${environment.baseApi}/admin/campers/${camperId}/delete`,
+      { deletePassword },
+      { headers: this.authHeaders() }
+    );
+  }
+
+  deleteLeader(leaderId: number, deletePassword: string): Observable<DeleteResult> {
+    return this.http.post<DeleteResult>(
+      `${environment.baseApi}/admin/leaders/${leaderId}/delete`,
+      { deletePassword },
+      { headers: this.authHeaders() }
+    );
+  }
+
+  deleteWaitlistEntry(entryId: number, deletePassword: string): Observable<DeleteResult> {
+    return this.http.post<DeleteResult>(
+      `${environment.baseApi}/admin/waitlist/${entryId}/delete`,
+      { deletePassword },
       { headers: this.authHeaders() }
     );
   }

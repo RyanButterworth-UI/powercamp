@@ -22,6 +22,7 @@ const baseEnv: Record<string, string> = {
   LEADER_PASSWORD_HASH: '$2b$10$fakehash',
   NEIL_PASSWORD_HASH: '$2b$10$fakehash',
   EDITOR_PASSWORD_HASH: '$2b$10$fakehash',
+  DELETE_PASSWORD_HASH: '$2b$10$fakehash',
   GMAIL_USER: 'send@example.com',
   GMAIL_APP_PASSWORD: 'fake-pw',
 };

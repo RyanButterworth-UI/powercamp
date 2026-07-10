@@ -105,6 +105,17 @@ export const loginRateLimiter = createRateLimiter({
   message: 'Too many login attempts. Please wait a few minutes and try again.',
 });
 
+// Strict: the delete password is the only thing between a signed-in admin and
+// a vanished registration, so failed attempts are capped like the login. Only
+// failures count, so working through a batch of deletions never locks you out.
+export const deletePasswordRateLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  skipSuccessfulRequests: true,
+  skip: () => limitingDisabled,
+  message: 'Too many delete attempts. Please wait a few minutes and try again.',
+});
+
 // Moderate: spam protection for the public endpoints that write to the DB and
 // trigger emails (registration, waiting list, leader applications, sign-in
 // links). Generous enough for a real family filling in forms, low enough to

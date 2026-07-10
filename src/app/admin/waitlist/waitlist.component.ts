@@ -2,6 +2,8 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { AdminService, WaitlistEntry } from '../admin.service';
+import { askToDelete, deleteErrorMessage } from '../confirm-delete';
+import { UiService } from '../../ui/ui.service';
 import { SkeletonComponent } from '../../skeleton/skeleton.component';
 
 // Admin Waiting List page. Two jobs:
@@ -92,6 +94,7 @@ import { SkeletonComponent } from '../../skeleton/skeleton.component';
                 <th>Grade</th>
                 <th>Note</th>
                 <th>Added</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -106,6 +109,16 @@ import { SkeletonComponent } from '../../skeleton/skeleton.component';
                   <td>{{ e.grade || '—' }}</td>
                   <td>{{ e.note || '—' }}</td>
                   <td>{{ formatDate(e.createdAt) }}</td>
+                  <td style="white-space:nowrap;">
+                    <button
+                      type="button"
+                      (click)="remove(e)"
+                      [disabled]="deletingFor() === e.id"
+                      class="text-xs px-2 py-1 rounded saga-btn saga-btn-danger inline-flex items-center justify-center cursor-pointer"
+                      [title]="'Delete ' + e.camperName + ' from the waiting list'"
+                      [attr.data-testid]="'delete-waitlist-' + e.id"
+                    >{{ deletingFor() === e.id ? 'Deleting…' : 'Delete' }}</button>
+                  </td>
                 </tr>
               }
             </tbody>
@@ -121,12 +134,14 @@ export class AdminWaitlistComponent {
   total = signal(0);
   loading = signal(true);
   loadError = signal<string | null>(null);
+  deletingFor = signal<number | null>(null);
 
   regStatusLoading = signal(true);
   regStatusSaving = signal(false);
   registrationsOpen = signal(true);
 
   private readonly admin = inject(AdminService);
+  private readonly ui = inject(UiService);
   private readonly router = inject(Router);
 
   constructor() {
@@ -154,6 +169,25 @@ export class AdminWaitlistComponent {
         } else {
           this.loadError.set('Failed to load the waiting list.');
         }
+      },
+    });
+  }
+
+  async remove(e: WaitlistEntry): Promise<void> {
+    const pw = await askToDelete(this.ui, `${e.camperName} from the waiting list`);
+    if (!pw) return;
+
+    this.deletingFor.set(e.id);
+    this.admin.deleteWaitlistEntry(e.id, pw).subscribe({
+      next: () => {
+        this.deletingFor.set(null);
+        this.entries.set(this.entries().filter((row) => row.id !== e.id));
+        this.total.update((n) => Math.max(0, n - 1));
+        this.ui.toast(`${e.camperName} removed from the waiting list.`, 'info');
+      },
+      error: (err) => {
+        this.deletingFor.set(null);
+        this.ui.toast(deleteErrorMessage(err), 'error');
       },
     });
   }

@@ -2,6 +2,7 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { AdminService, AdminCamper, CamperEditPayload } from '../admin.service';
+import { askToDelete, deleteErrorMessage } from '../confirm-delete';
 import { environment } from '../../../environments/environment';
 import { UiService } from '../../ui/ui.service';
 import { SkeletonComponent } from '../../skeleton/skeleton.component';
@@ -395,19 +396,36 @@ const COLUMN_GROUPS: ColumnGroup[] = GROUP_ORDER.map((g) => ({
               @for (c of visibleCampers(); track c.id) {
                 <tr>
                   <td style="white-space:nowrap;">
-                    <button
-                      type="button"
-                      (click)="openEditor(c)"
-                      class="text-xs px-2 py-1 rounded saga-btn saga-btn-secondary inline-flex items-center gap-1 cursor-pointer"
-                      [title]="'Edit ' + c.firstName + ' ' + c.lastName"
-                      [attr.data-testid]="'edit-' + c.id"
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                      </svg>
-                      Edit
-                    </button>
+                    <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
+                      <button
+                        type="button"
+                        (click)="openEditor(c)"
+                        class="text-xs px-2 py-1 rounded saga-btn saga-btn-secondary inline-flex items-center gap-1 cursor-pointer"
+                        [title]="'Edit ' + c.firstName + ' ' + c.lastName"
+                        [attr.data-testid]="'edit-' + c.id"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        (click)="deleteCamper(c)"
+                        [disabled]="deletingFor() === c.id"
+                        class="text-xs px-2 py-1 rounded saga-btn saga-btn-danger inline-flex items-center gap-1 cursor-pointer"
+                        [title]="'Delete ' + c.firstName + ' ' + c.lastName"
+                        [attr.data-testid]="'delete-' + c.id"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M3 6h18"/>
+                          <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/>
+                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                        </svg>
+                        {{ deletingFor() === c.id ? 'Deleting…' : 'Delete' }}
+                      </button>
+                    </span>
                   </td>
                   @for (col of visibleColumns(); track col.key) {
                     <td [class]="col.tdClass ?? ''">
@@ -519,6 +537,7 @@ export class AdminDashboardComponent {
   selectedYear = signal<number | null>(null);
   sheetUrl = environment.sheetUrl;
   markingPaidFor = signal<number | null>(null);
+  deletingFor = signal<number | null>(null);
   searchQuery = signal('');
   campYear = signal<number | null>(null);
   // Inline edit: the camper whose row is open in the drawer (null = closed),
@@ -882,6 +901,26 @@ export class AdminDashboardComponent {
         } else {
           this.ui.toast('Failed to mark paid.', 'error');
         }
+      },
+    });
+  }
+
+  async deleteCamper(c: AdminCamper): Promise<void> {
+    const pw = await askToDelete(this.ui, `${c.firstName} ${c.lastName}`);
+    if (!pw) return;
+
+    this.deletingFor.set(c.id);
+    this.admin.deleteCamper(c.id, pw).subscribe({
+      next: () => {
+        this.deletingFor.set(null);
+        // Drop the row locally rather than refetching, matching markPaid.
+        this.campers.set(this.campers().filter((row) => row.id !== c.id));
+        this.total.update((n) => Math.max(0, n - 1));
+        this.ui.toast(`${c.firstName} ${c.lastName} deleted.`, 'info');
+      },
+      error: (err) => {
+        this.deletingFor.set(null);
+        this.ui.toast(deleteErrorMessage(err), 'error');
       },
     });
   }

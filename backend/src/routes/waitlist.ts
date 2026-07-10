@@ -1,10 +1,12 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq, isNull } from 'drizzle-orm';
 import { db } from '../db/client';
 import { waitlist } from '../db/schema';
 import { env } from '../env';
 import { requireAdmin } from '../middleware/require-admin';
+import { requireDeletePassword } from '../middleware/require-delete-password';
+import { deletePasswordRateLimiter } from '../middleware/rate-limit';
 import { appendToSheet } from '../services/sheets';
 import { sendWaitlistNotification } from '../services/email';
 
@@ -84,7 +86,7 @@ waitlistRouter.get('/admin/waitlist', requireAdmin, async (_req, res) => {
     const rows = await db
       .select()
       .from(waitlist)
-      .where(eq(waitlist.year, env.CAMP_YEAR))
+      .where(and(eq(waitlist.year, env.CAMP_YEAR), isNull(waitlist.deletedAt)))
       .orderBy(desc(waitlist.createdAt));
     res.json({ total: rows.length, waitlist: rows });
   } catch (err) {
@@ -92,3 +94,32 @@ waitlistRouter.get('/admin/waitlist', requireAdmin, async (_req, res) => {
     res.status(500).json({ error: 'Failed to load waiting list' });
   }
 });
+
+// Admin: soft-delete a waiting-list entry. Same two gates and same semantics as
+// the camper and leader deletes in routes/admin.ts — see the note there.
+waitlistRouter.post(
+  '/admin/waitlist/:id/delete',
+  requireAdmin,
+  deletePasswordRateLimiter,
+  requireDeletePassword,
+  async (req, res) => {
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ error: 'Invalid waiting-list id' });
+    }
+    try {
+      const [row] = await db
+        .update(waitlist)
+        .set({ deletedAt: new Date() })
+        .where(and(eq(waitlist.id, id), isNull(waitlist.deletedAt)))
+        .returning({ id: waitlist.id, camperName: waitlist.camperName });
+      if (!row) return res.status(404).json({ error: 'Waiting-list entry not found' });
+
+      console.warn(`[delete] waitlist ${row.id} — ${row.camperName}`);
+      res.json({ id: row.id, deleted: true });
+    } catch (err) {
+      console.error('waitlist delete error:', err);
+      res.status(500).json({ error: 'Failed to delete the waiting-list entry' });
+    }
+  }
+);

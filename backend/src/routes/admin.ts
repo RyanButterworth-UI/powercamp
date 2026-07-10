@@ -9,6 +9,8 @@ import { signAdminToken, signEditorToken, signLeaderInviteToken } from '../servi
 import { env } from '../env';
 import { requireAdmin } from '../middleware/require-admin';
 import { requireEditor } from '../middleware/require-editor';
+import { requireDeletePassword } from '../middleware/require-delete-password';
+import { deletePasswordRateLimiter } from '../middleware/rate-limit';
 import { appendToSheet, upsertToSheet } from '../services/sheets';
 import { leaderRow } from './leaders';
 import {
@@ -454,6 +456,83 @@ adminRouter.post('/admin/leaders/:id/mark-paid', requireAdmin, async (req, res) 
     res.status(500).json({ error: 'Failed to mark as paid' });
   }
 });
+
+// ----- Soft delete -----
+//
+// Deleting stamps deleted_at rather than removing the row. Every read path
+// already filters `isNull(deletedAt)`, so the record leaves the dashboard, the
+// XLSX export, the stats and the magic-link lookups the moment it's stamped —
+// and the duplicate guard in POST /submit ignores it too, so a family whose
+// registration was deleted can register again. A mis-click is recoverable
+// straight from the DB: `UPDATE campers SET deleted_at = NULL WHERE id = ...`.
+//
+// Two gates: requireAdmin (signed in) AND the delete password. Admin access on
+// its own cannot destroy data. The Google Sheet mirror is deliberately left
+// untouched — it is an append-only log, not a source of truth.
+
+adminRouter.post(
+  '/admin/campers/:id/delete',
+  requireAdmin,
+  deletePasswordRateLimiter,
+  requireDeletePassword,
+  async (req, res) => {
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ error: 'Invalid camper id' });
+    }
+    try {
+      // isNull(deletedAt) in the WHERE makes a repeat click a 404 instead of
+      // quietly overwriting the original deletion timestamp.
+      const [row] = await db
+        .update(campers)
+        .set({ deletedAt: new Date(), updatedAt: new Date() })
+        .where(and(eq(campers.id, id), isNull(campers.deletedAt)))
+        .returning({
+          id: campers.id,
+          firstName: campers.firstName,
+          lastName: campers.lastName,
+        });
+      if (!row) return res.status(404).json({ error: 'Camper not found' });
+
+      console.warn(`[delete] camper ${row.id} — ${row.firstName} ${row.lastName}`);
+      res.json({ id: row.id, deleted: true });
+    } catch (err) {
+      console.error('camper delete error:', err);
+      res.status(500).json({ error: 'Failed to delete camper' });
+    }
+  }
+);
+
+adminRouter.post(
+  '/admin/leaders/:id/delete',
+  requireAdmin,
+  deletePasswordRateLimiter,
+  requireDeletePassword,
+  async (req, res) => {
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ error: 'Invalid leader id' });
+    }
+    try {
+      const [row] = await db
+        .update(leaders)
+        .set({ deletedAt: new Date(), updatedAt: new Date() })
+        .where(and(eq(leaders.id, id), isNull(leaders.deletedAt)))
+        .returning({
+          id: leaders.id,
+          firstName: leaders.firstName,
+          lastName: leaders.lastName,
+        });
+      if (!row) return res.status(404).json({ error: 'Leader not found' });
+
+      console.warn(`[delete] leader ${row.id} — ${row.firstName} ${row.lastName}`);
+      res.json({ id: row.id, deleted: true });
+    } catch (err) {
+      console.error('leader delete error:', err);
+      res.status(500).json({ error: 'Failed to delete leader' });
+    }
+  }
+);
 
 adminRouter.get('/admin/leaders', requireAdmin, async (_req, res) => {
   try {

@@ -76,6 +76,13 @@ export const envSchema = z.object({
   // admin dashboard for the session. Generated the same way as the other
   // hashes: `npm run hash:admin-password -- '<pw>'`.
   EDITOR_PASSWORD_HASH: z.string().min(1),
+  // Bcrypt hash of the delete second-factor password. Deleting a camper,
+  // leader or waiting-list entry is a soft delete (stamps deleted_at), but it
+  // hides the row from every read path, so it takes a password that being
+  // signed in to the dashboard does not give you. Only Ryan + Shayln know the
+  // plaintext. Generated the same way as the other hashes:
+  // `npm run hash:admin-password -- '<pw>'`.
+  DELETE_PASSWORD_HASH: z.string().min(1),
   GMAIL_USER: z.string().email(),
   GMAIL_APP_PASSWORD: z.string().min(1),
   FROM_NAME: z.string().default('Power Camp'),
