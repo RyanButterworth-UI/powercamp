@@ -5,7 +5,12 @@ import { and, desc, eq, isNull } from 'drizzle-orm';
 import * as XLSX from 'xlsx';
 import { db } from '../db/client';
 import { campers, leaders } from '../db/schema';
-import { signAdminToken, signEditorToken, signLeaderInviteToken } from '../services/auth';
+import {
+  signAdminToken,
+  signEditorToken,
+  signLeaderInviteToken,
+  signConsentLinkToken,
+} from '../services/auth';
 import { env } from '../env';
 import { requireAdmin } from '../middleware/require-admin';
 import { requireEditor } from '../middleware/require-editor';
@@ -29,6 +34,7 @@ import {
   sendInviteSentReceipt,
   sendLeaderRejection,
   sendRegistrationUpdated,
+  sendConsentRequest,
 } from '../services/email';
 import {
   filterToSubscribed,
@@ -416,6 +422,48 @@ adminRouter.post('/admin/campers/:id/mark-paid', requireAdmin, async (req, res) 
   } catch (err) {
     console.error('mark-paid error:', err);
     res.status(500).json({ error: 'Failed to mark as paid' });
+  }
+});
+
+// Email a parent a link to complete the consent block for a camper we already
+// hold the details for — an imported/phone registration, or a family just moved
+// off the waiting list. The link opens the same magic-link edit/consent form
+// used everywhere else, on a 12-hour token so it survives the parent not
+// checking their inbox straight away. The send is awaited so a failure surfaces
+// to the admin as a 500 rather than a silent "sent".
+adminRouter.post('/admin/campers/:id/request-consent', requireAdmin, async (req, res) => {
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'Invalid camper id' });
+  }
+  try {
+    const [camper] = await db
+      .select({
+        id: campers.id,
+        firstName: campers.firstName,
+        parentEmail: campers.parentEmail,
+        deletedAt: campers.deletedAt,
+      })
+      .from(campers)
+      .where(eq(campers.id, id))
+      .limit(1);
+
+    if (!camper || camper.deletedAt) {
+      return res.status(404).json({ error: 'Camper not found' });
+    }
+    if (!camper.parentEmail) {
+      return res.status(400).json({ error: 'Camper has no parent email on file' });
+    }
+
+    const url = `${env.APP_BASE_URL.replace(/\/$/, '')}/verify-link?token=${encodeURIComponent(
+      signConsentLinkToken(camper.id)
+    )}`;
+    await sendConsentRequest(camper.parentEmail, camper.firstName, url);
+
+    res.json({ ok: true, sentTo: camper.parentEmail });
+  } catch (err) {
+    console.error('request-consent error:', err);
+    res.status(500).json({ error: 'Failed to send the consent request' });
   }
 });
 

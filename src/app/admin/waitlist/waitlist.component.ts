@@ -31,6 +31,7 @@ import { SkeletonComponent } from '../../skeleton/skeleton.component';
         <a routerLink="/admin/teams" class="saga-tab no-underline">Teams</a>
         <a routerLink="/admin/bunks" class="saga-tab no-underline">Bunks</a>
         <span class="saga-tab is-active">Waiting list</span>
+        <a routerLink="/admin/reconcile" class="saga-tab no-underline">Sync</a>
       </nav>
 
       <!-- Registrations open/closed master switch. -->
@@ -110,14 +111,24 @@ import { SkeletonComponent } from '../../skeleton/skeleton.component';
                   <td>{{ e.note || '—' }}</td>
                   <td>{{ formatDate(e.createdAt) }}</td>
                   <td style="white-space:nowrap;">
-                    <button
-                      type="button"
-                      (click)="remove(e)"
-                      [disabled]="deletingFor() === e.id"
-                      class="text-xs px-2 py-1 rounded saga-btn saga-btn-danger inline-flex items-center justify-center cursor-pointer"
-                      [title]="'Delete ' + e.camperName + ' from the waiting list'"
-                      [attr.data-testid]="'delete-waitlist-' + e.id"
-                    >{{ deletingFor() === e.id ? 'Deleting…' : 'Delete' }}</button>
+                    <div class="inline-flex gap-1.5">
+                      <button
+                        type="button"
+                        (click)="promote(e)"
+                        [disabled]="promotingFor() === e.id"
+                        class="text-xs px-2 py-1 rounded saga-btn saga-btn-primary inline-flex items-center justify-center cursor-pointer"
+                        [title]="'Move ' + e.camperName + ' to the main camper list and request consent'"
+                        [attr.data-testid]="'promote-waitlist-' + e.id"
+                      >{{ promotingFor() === e.id ? 'Moving…' : 'Move to main list' }}</button>
+                      <button
+                        type="button"
+                        (click)="remove(e)"
+                        [disabled]="deletingFor() === e.id"
+                        class="text-xs px-2 py-1 rounded saga-btn saga-btn-danger inline-flex items-center justify-center cursor-pointer"
+                        [title]="'Delete ' + e.camperName + ' from the waiting list'"
+                        [attr.data-testid]="'delete-waitlist-' + e.id"
+                      >{{ deletingFor() === e.id ? 'Deleting…' : 'Delete' }}</button>
+                    </div>
                   </td>
                 </tr>
               }
@@ -135,6 +146,7 @@ export class AdminWaitlistComponent {
   loading = signal(true);
   loadError = signal<string | null>(null);
   deletingFor = signal<number | null>(null);
+  promotingFor = signal<number | null>(null);
 
   regStatusLoading = signal(true);
   regStatusSaving = signal(false);
@@ -188,6 +200,43 @@ export class AdminWaitlistComponent {
       error: (err) => {
         this.deletingFor.set(null);
         this.ui.toast(deleteErrorMessage(err), 'error');
+      },
+    });
+  }
+
+  // Move an entry onto the main camper list. The backend creates the camper
+  // (or reuses an existing one), adds them to the Registrations sheet if not
+  // already there, emails the parent a consent link, and removes the entry —
+  // so on success we drop the row locally, matching remove().
+  async promote(e: WaitlistEntry): Promise<void> {
+    const ok = await this.ui.confirm(
+      `Move ${e.camperName} to the main camper list?\n\n` +
+        `This creates their camper record and emails ${e.parentEmail} a link to complete consent. ` +
+        `They'll be removed from the waiting list.`,
+      'Move to main list',
+      'Cancel'
+    );
+    if (!ok) return;
+
+    this.promotingFor.set(e.id);
+    this.admin.promoteWaitlistEntry(e.id).subscribe({
+      next: (res) => {
+        this.promotingFor.set(null);
+        this.entries.set(this.entries().filter((row) => row.id !== e.id));
+        this.total.update((n) => Math.max(0, n - 1));
+        const detail = res.alreadyCamper
+          ? 'was already registered — consent link sent'
+          : 'moved to the main list — consent link sent';
+        this.ui.toast(`${e.camperName} ${detail}.`, 'success');
+      },
+      error: (err) => {
+        this.promotingFor.set(null);
+        this.ui.toast(
+          err?.status === 401
+            ? 'Session expired — sign in again.'
+            : 'Failed to move to the main list.',
+          'error'
+        );
       },
     });
   }

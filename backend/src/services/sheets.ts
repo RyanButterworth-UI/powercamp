@@ -132,6 +132,38 @@ export async function upsertToSheet(
   });
 }
 
+// Read every row of a tab (A:Z). Returns [] when the tab doesn't exist yet.
+// The building block for read-only checks and the reconciliation report.
+export async function getSheetValues(tab: SheetTab): Promise<(string | number | null)[][]> {
+  const sheets = getSheetsClient();
+  try {
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: env.GOOGLE_SHEET_ID,
+      range: `${tab}!A:Z`,
+    });
+    return (res.data.values as (string | number | null)[][] | undefined) ?? [];
+  } catch (err) {
+    if (!isMissingRangeError(err)) throw err;
+    return [];
+  }
+}
+
+// Read-only check used by the waiting-list → main-list promotion: is this
+// camper already on the Registrations tab? Matches the same composite the edit
+// upsert falls back to — firstName + lastName + parentEmail (cols A/B/L, indexes
+// 0/1/11), case-insensitively. Lets the caller skip appending a duplicate row.
+// Returns false when the tab doesn't exist yet (nothing to duplicate).
+export async function registrationRowExists(
+  firstName: string,
+  lastName: string,
+  parentEmail: string
+): Promise<boolean> {
+  const norm = (v: unknown) => String(v ?? '').trim().toLowerCase();
+  const target = [norm(firstName), norm(lastName), norm(parentEmail)].join(' ');
+  const existing = await getSheetValues('Registrations');
+  return existing.some((r) => [norm(r[0]), norm(r[1]), norm(r[11])].join(' ') === target);
+}
+
 // Resets the cached client. Test-only seam.
 export function _resetSheetsClient(): void {
   cachedClient = null;

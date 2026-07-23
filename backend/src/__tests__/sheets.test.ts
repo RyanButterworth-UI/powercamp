@@ -22,7 +22,12 @@ jest.mock('googleapis', () => ({
   },
 }));
 
-import { appendToSheet, upsertToSheet, _resetSheetsClient } from '../services/sheets';
+import {
+  appendToSheet,
+  upsertToSheet,
+  registrationRowExists,
+  _resetSheetsClient,
+} from '../services/sheets';
 
 describe('appendToSheet', () => {
   beforeEach(() => {
@@ -240,5 +245,37 @@ describe('upsertToSheet with id-primary key + composite fallback', () => {
 
     expect(appendMock).toHaveBeenCalledTimes(1);
     expect(updateMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('registrationRowExists', () => {
+  const regRow = (first: string, last: string, parentEmail: string): (string | number)[] => {
+    const r: (string | number)[] = new Array(18).fill('');
+    r[0] = first; r[1] = last; r[11] = parentEmail;
+    return r;
+  };
+
+  beforeEach(() => {
+    getMock.mockReset().mockResolvedValue({ data: { values: [] } });
+    _resetSheetsClient();
+  });
+
+  it('matches on firstName + lastName + parentEmail, case-insensitively', async () => {
+    getMock.mockResolvedValueOnce({
+      data: { values: [regRow('Sam', 'Smith', 'pat@example.com')] },
+    });
+    expect(await registrationRowExists('sam', 'SMITH', 'PAT@example.com')).toBe(true);
+  });
+
+  it('returns false when no row matches', async () => {
+    getMock.mockResolvedValueOnce({
+      data: { values: [regRow('Sam', 'Smith', 'pat@example.com')] },
+    });
+    expect(await registrationRowExists('Sam', 'Jones', 'pat@example.com')).toBe(false);
+  });
+
+  it('returns false when the Registrations tab does not exist yet', async () => {
+    getMock.mockRejectedValueOnce(new Error('Unable to parse range: Registrations!A:Z'));
+    expect(await registrationRowExists('Sam', 'Smith', 'pat@example.com')).toBe(false);
   });
 });

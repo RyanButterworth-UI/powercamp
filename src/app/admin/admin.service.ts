@@ -125,6 +125,49 @@ export interface WaitlistEntry {
   createdAt: string;
 }
 
+// ----- Sheet ↔ DB reconciliation report (read-only) -----
+export interface ReconcileFieldDiff {
+  field: string;
+  sheet: string;
+  db: string;
+}
+export interface ReconcileSheetOnly {
+  rowNumber: number;
+  camperId: number | null;
+  firstName: string;
+  lastName: string;
+  parentEmail: string;
+  grade: string;
+}
+export interface ReconcileDbOnly {
+  id: number;
+  firstName: string;
+  lastName: string;
+  parentEmail: string;
+  grade: string;
+}
+export interface ReconcileConflict {
+  camperId: number | null;
+  rowNumber: number;
+  firstName: string;
+  lastName: string;
+  parentEmail: string;
+  diffs: ReconcileFieldDiff[];
+}
+export interface ReconcileResult {
+  counts: {
+    sheetRows: number;
+    dbCampers: number;
+    matched: number;
+    sheetOnly: number;
+    dbOnly: number;
+    conflicts: number;
+  };
+  sheetOnly: ReconcileSheetOnly[];
+  dbOnly: ReconcileDbOnly[];
+  conflicts: ReconcileConflict[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdminService {
   private readonly http = inject(HttpClient);
@@ -215,6 +258,14 @@ export class AdminService {
   listWaitlist(): Observable<{ total: number; waitlist: WaitlistEntry[] }> {
     return this.http.get<{ total: number; waitlist: WaitlistEntry[] }>(
       `${environment.baseApi}/admin/waitlist`,
+      { headers: this.authHeaders() }
+    );
+  }
+
+  // ----- Sheet ↔ DB reconciliation (read-only) -----
+  getReconcile(): Observable<ReconcileResult> {
+    return this.http.get<ReconcileResult>(
+      `${environment.baseApi}/admin/reconcile`,
       { headers: this.authHeaders() }
     );
   }
@@ -358,6 +409,30 @@ export class AdminService {
   markPaid(camperId: number): Observable<{ id: number; paymentReceivedAt: string }> {
     return this.http.post<{ id: number; paymentReceivedAt: string }>(
       `${environment.baseApi}/admin/campers/${camperId}/mark-paid`,
+      {},
+      { headers: this.authHeaders() }
+    );
+  }
+
+  // Email the parent a link to complete the consent form for a camper we already
+  // hold the details for. Used from the campers dashboard when consent is
+  // outstanding.
+  requestConsent(camperId: number): Observable<{ ok: boolean; sentTo: string }> {
+    return this.http.post<{ ok: boolean; sentTo: string }>(
+      `${environment.baseApi}/admin/campers/${camperId}/request-consent`,
+      {},
+      { headers: this.authHeaders() }
+    );
+  }
+
+  // Move a waiting-list entry onto the main camper list: creates the camper (or
+  // reuses an existing one), adds them to the Registrations sheet if not already
+  // there, emails the parent a consent link, and removes the waiting-list entry.
+  promoteWaitlistEntry(
+    entryId: number
+  ): Observable<{ camperId: number; alreadyCamper: boolean; addedToSheet: boolean; ok: boolean }> {
+    return this.http.post<{ camperId: number; alreadyCamper: boolean; addedToSheet: boolean; ok: boolean }>(
+      `${environment.baseApi}/admin/waitlist/${entryId}/promote`,
       {},
       { headers: this.authHeaders() }
     );

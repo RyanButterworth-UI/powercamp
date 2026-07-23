@@ -1,14 +1,16 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import { db } from '../db/client';
-import { waitlist } from '../db/schema';
+import { campers, waitlist } from '../db/schema';
 import { env } from '../env';
 import { requireAdmin } from '../middleware/require-admin';
 import { requireDeletePassword } from '../middleware/require-delete-password';
 import { deletePasswordRateLimiter } from '../middleware/rate-limit';
-import { appendToSheet } from '../services/sheets';
-import { sendWaitlistNotification } from '../services/email';
+import { appendToSheet, registrationRowExists } from '../services/sheets';
+import { registrationSheetRow } from '../lib/registration-sheet';
+import { signConsentLinkToken } from '../services/auth';
+import { sendWaitlistNotification, sendConsentRequest } from '../services/email';
 
 const optionalString = z
   .string()
@@ -92,6 +94,126 @@ waitlistRouter.get('/admin/waitlist', requireAdmin, async (_req, res) => {
   } catch (err) {
     console.error('admin/waitlist error:', err);
     res.status(500).json({ error: 'Failed to load waiting list' });
+  }
+});
+
+// Admin: move a waiting-list entry onto the main camper list. This is the flow
+// for a family who joined the waiting list while registrations were closed and
+// now has a spot. It:
+//   1. creates a camper row from the entry's details (or reuses an existing one
+//      for the same family + name + year, so a double-click can't duplicate);
+//   2. appends them to the Registrations sheet ONLY if they're not already on it
+//      (the Apps Script watches that tab and pushes new rows to Mailchimp — we
+//      must not double-add). Consent is left blank; it flips to TRUE when the
+//      parent completes the consent flow below;
+//   3. emails the parent a 12-hour consent link (the same edit/consent form);
+//   4. removes the entry from the waiting list.
+// Steps 2 and 3 are best-effort — the camper row (step 1) is the source of truth
+// and having been created, the move has succeeded.
+waitlistRouter.post('/admin/waitlist/:id/promote', requireAdmin, async (req, res) => {
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'Invalid waiting-list id' });
+  }
+
+  try {
+    const [entry] = await db
+      .select()
+      .from(waitlist)
+      .where(and(eq(waitlist.id, id), isNull(waitlist.deletedAt)))
+      .limit(1);
+    if (!entry) return res.status(404).json({ error: 'Waiting-list entry not found' });
+
+    // The waiting list stores one free-text camperName; campers need a first +
+    // last name. First token is the first name, the remainder the surname; a
+    // single-word name leaves the surname blank for the admin to fill in later.
+    const nameParts = entry.camperName.trim().split(/\s+/);
+    const firstName = nameParts[0] || entry.camperName.trim();
+    const lastName = nameParts.slice(1).join(' ');
+    const parentEmail = entry.parentEmail.toLowerCase();
+
+    // Duplicate guard — reuse an existing non-deleted camper for this family +
+    // name + year rather than inserting a second row (mirrors POST /submit).
+    const [existing] = await db
+      .select({ id: campers.id })
+      .from(campers)
+      .where(
+        and(
+          eq(campers.year, env.CAMP_YEAR),
+          eq(campers.parentEmail, parentEmail),
+          sql`lower(${campers.firstName}) = ${firstName.toLowerCase()}`,
+          sql`lower(${campers.lastName}) = ${lastName.toLowerCase()}`,
+          isNull(campers.deletedAt)
+        )
+      )
+      .limit(1);
+
+    const alreadyCamper = !!existing;
+    let camperId: number;
+    if (existing) {
+      camperId = existing.id;
+    } else {
+      const [row] = await db
+        .insert(campers)
+        .values({
+          year: env.CAMP_YEAR,
+          firstName,
+          lastName,
+          grade: entry.grade,
+          parentName: entry.parentName,
+          parentPhone: entry.phone,
+          parentEmail,
+          source: 'waitlist',
+        })
+        .returning({ id: campers.id });
+      camperId = row.id;
+    }
+
+    // Append to the Registrations sheet only if they're not already on it.
+    let addedToSheet = false;
+    try {
+      if (!(await registrationRowExists(firstName, lastName, parentEmail))) {
+        const row = registrationSheetRow(
+          {
+            firstName,
+            lastName,
+            grade: entry.grade ?? undefined,
+            parentName: entry.parentName ?? undefined,
+            parentPhone: entry.phone ?? undefined,
+            parentEmail,
+          },
+          {},
+          camperId,
+          env.CAMP_YEAR
+        );
+        row[16] = ''; // col Q — consent not given yet (registrationSheetRow hardcodes 'TRUE')
+        await appendToSheet('Registrations', row);
+        addedToSheet = true;
+      }
+    } catch (err) {
+      console.error('Promote sheet sync failed (DB write succeeded):', err);
+    }
+
+    // Trigger the consent flow — 12-hour link to the edit/consent form.
+    const url = `${env.APP_BASE_URL.replace(/\/$/, '')}/verify-link?token=${encodeURIComponent(
+      signConsentLinkToken(camperId)
+    )}`;
+    sendConsentRequest(parentEmail, firstName, url).catch((err) =>
+      console.error('Consent-request email failed (promote):', err)
+    );
+
+    // Remove from the waiting list. Stamp status too, so a peek at the raw row
+    // shows why it was removed.
+    await db
+      .update(waitlist)
+      .set({ status: 'placed', deletedAt: new Date() })
+      .where(eq(waitlist.id, id));
+
+    console.warn(`[promote] waitlist ${entry.id} — ${entry.camperName} → camper ${camperId}`);
+    res.json({ camperId, alreadyCamper, addedToSheet, ok: true });
+  } catch (err) {
+    console.error('waitlist promote error:', err);
+    res.status(500).json({ error: 'Failed to move the entry to the main list' });
   }
 });
 

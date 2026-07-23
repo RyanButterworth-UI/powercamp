@@ -131,6 +131,86 @@ function escapeHtml(s: string): string {
     .replace(/'/g, '&#39;');
 }
 
+// A consent-focused variant of the magic link, sent when an admin needs a
+// parent to complete the consent block for a camper we already hold the
+// details for (an imported registration, or a family just moved off the
+// waiting list). The link opens the same edit/consent form; the wording makes
+// clear that only consent is outstanding. `url` carries a 12-hour token.
+export async function sendConsentRequest(to: string, firstName: string, url: string): Promise<void> {
+  const fromName = env.FROM_NAME ?? 'Power Camp';
+  await safeSendMail({
+    from: `"${fromName}" <${env.GMAIL_USER}>`,
+    to,
+    subject: 'Power Camp 2026 — action needed: complete your consent',
+    text: [
+      `Hi ${firstName || 'there'},`,
+      '',
+      `We have ${firstName || 'your camper'}'s details for Power Camp 2026 — all that's`,
+      'left is your consent.',
+      '',
+      'Click this link to review the details and complete the consent form:',
+      url,
+      '',
+      'The link expires in 12 hours.',
+      "If you didn't expect this, you can safely ignore this email.",
+      '',
+      '— Power Camp',
+    ].join('\n'),
+    html: consentRequestHtml(firstName || 'there', url),
+  });
+}
+
+function consentRequestHtml(firstName: string, url: string): string {
+  return `<!doctype html>
+<html lang="en">
+  <body style="margin:0; padding:0; background-color:#f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f3f4f6; padding:24px 0;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px; background-color:#ffffff; border-radius:12px; overflow:hidden;">
+            <tr>
+              <td style="padding:32px 32px 16px 32px;">
+                <h1 style="margin:0 0 8px 0; font-size:22px; color:#111827;">Power Camp 2026</h1>
+                <p style="margin:0; color:#374151; font-size:15px; line-height:22px;">
+                  Hi ${escapeHtml(firstName)}, we have your camper's details — all that's left is your consent.
+                  Tap the button below to review and complete the consent form.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding:8px 32px 24px 32px;">
+                <a href="${url}"
+                   style="display:inline-block; background-color:#16a34a; color:#ffffff; text-decoration:none; font-weight:600; font-size:16px; padding:14px 28px; border-radius:8px;">
+                  Complete my consent
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 32px 24px 32px;">
+                <p style="margin:0 0 8px 0; color:#6b7280; font-size:13px; line-height:20px;">
+                  The link expires in 12 hours. If the button doesn't work, copy and paste this URL into your browser:
+                </p>
+                <p style="margin:0; color:#374151; font-size:13px; word-break:break-all;">
+                  <a href="${url}" style="color:#374151;">${url}</a>
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 32px 24px 32px; border-top:1px solid #e5e7eb;">
+                <p style="margin:0; color:#9ca3af; font-size:12px;">
+                  If you didn't expect this, you can safely ignore this email.<br/>
+                  — Power Camp Admin
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
+
 export async function sendRegistrationReceived(
   to: string,
   firstName: string,

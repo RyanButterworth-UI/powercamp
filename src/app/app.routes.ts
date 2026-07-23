@@ -79,6 +79,12 @@ export const routes: Routes = [
     canActivate: [adminGuard],
   },
   {
+    path: 'admin/reconcile',
+    loadComponent: () =>
+      import('./admin/reconcile/reconcile.component').then((m) => m.AdminReconcileComponent),
+    canActivate: [adminGuard],
+  },
+  {
     path: 'leader-apply',
     loadComponent: () =>
       import('./leader-apply/leader-apply.component').then((m) => m.LeaderApplyComponent),

@@ -39,6 +39,17 @@ export function signMagicToken(camperId: number): string {
   });
 }
 
+// A consent-request link. Same 'magic' kind as a self-serve sign-in link — so it
+// verifies through the identical edit/consent form (verifyMagicToken) — but with
+// a much longer life. An admin sends this deliberately and the parent may not
+// open their inbox for hours; a 30-minute link would often be dead on arrival.
+const CONSENT_LINK_TTL_HR = 12;
+export function signConsentLinkToken(camperId: number): string {
+  return jwt.sign({ camperId, kind: 'magic' }, env.JWT_SECRET, {
+    expiresIn: `${CONSENT_LINK_TTL_HR}h`,
+  });
+}
+
 export function verifyMagicToken(token: string): MagicClaims | null {
   try {
     const decoded = jwt.verify(token, env.JWT_SECRET) as Partial<MagicClaims>;

@@ -17,6 +17,7 @@ import { teamsRouter } from './routes/teams';
 import { publicConfigRouter } from './routes/public-config';
 import { registrationStatusRouter } from './routes/registration-status';
 import { waitlistRouter } from './routes/waitlist';
+import { reconcileRouter } from './routes/reconcile';
 import { loginRateLimiter, publicFormRateLimiter } from './middleware/rate-limit';
 
 const app = express();
@@ -95,6 +96,7 @@ app.use(teamsRouter);
 app.use(publicConfigRouter);
 app.use(registrationStatusRouter);
 app.use(waitlistRouter);
+app.use(reconcileRouter);
 
 app.use(express.static(distDir));
 app.get('*', (_req, res) => {

@@ -115,6 +115,7 @@ const COLUMN_GROUPS: ColumnGroup[] = GROUP_ORDER.map((g) => ({
         <a routerLink="/admin/teams" class="saga-tab no-underline">Teams</a>
         <a routerLink="/admin/bunks" class="saga-tab no-underline">Bunks</a>
         <a routerLink="/admin/waitlist" class="saga-tab no-underline">Waiting list</a>
+        <a routerLink="/admin/reconcile" class="saga-tab no-underline">Sync</a>
       </nav>
 
       <div class="flex items-center gap-3 mb-4 flex-wrap">
@@ -464,11 +465,23 @@ const COLUMN_GROUPS: ColumnGroup[] = GROUP_ORDER.map((g) => ({
                               [attr.data-testid]="'consent-badge-' + c.id"
                             >✓</span>
                           } @else {
-                            <span
-                              class="status-pill is-bad"
-                              title="Outstanding"
-                              [attr.data-testid]="'consent-badge-' + c.id"
-                            >!</span>
+                            <span class="inline-flex items-center gap-1.5">
+                              <span
+                                class="status-pill is-bad"
+                                title="Outstanding"
+                                [attr.data-testid]="'consent-badge-' + c.id"
+                              >!</span>
+                              <button
+                                type="button"
+                                (click)="requestConsent(c)"
+                                [disabled]="requestingConsentFor() === c.id"
+                                class="text-xs px-2 py-1 rounded saga-btn saga-btn-secondary inline-flex items-center justify-center cursor-pointer"
+                                title="Email the parent a link to complete consent"
+                                [attr.data-testid]="'request-consent-' + c.id"
+                              >
+                                {{ requestingConsentFor() === c.id ? 'Sending…' : 'Request consent' }}
+                              </button>
+                            </span>
                           }
                         }
                         @case ('payment') {
@@ -529,6 +542,7 @@ export class AdminDashboardComponent {
   selectedYear = signal<number | null>(null);
   sheetUrl = environment.sheetUrl;
   markingPaidFor = signal<number | null>(null);
+  requestingConsentFor = signal<number | null>(null);
   deletingFor = signal<number | null>(null);
   searchQuery = signal('');
   campYear = signal<number | null>(null);
@@ -893,6 +907,32 @@ export class AdminDashboardComponent {
         } else {
           this.ui.toast('Failed to mark paid.', 'error');
         }
+      },
+    });
+  }
+
+  async requestConsent(c: AdminCamper): Promise<void> {
+    const ok = await this.ui.confirm(
+      `Email ${c.parentEmail} a link for ${c.firstName} ${c.lastName} to complete their consent? The link is valid for 12 hours.`,
+      'Send consent request',
+      'Cancel'
+    );
+    if (!ok) return;
+
+    this.requestingConsentFor.set(c.id);
+    this.admin.requestConsent(c.id).subscribe({
+      next: (res) => {
+        this.requestingConsentFor.set(null);
+        this.ui.toast(`✓ Consent link sent to ${res.sentTo}.`, 'success');
+      },
+      error: (err) => {
+        this.requestingConsentFor.set(null);
+        this.ui.toast(
+          err?.status === 401
+            ? 'Session expired — sign in again.'
+            : 'Failed to send the consent request.',
+          'error'
+        );
       },
     });
   }
