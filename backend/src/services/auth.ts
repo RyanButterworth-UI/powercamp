@@ -60,6 +60,21 @@ export function verifyMagicToken(token: string): MagicClaims | null {
   }
 }
 
+// Verify a magic token's SIGNATURE but tolerate an expired one. Used only by the
+// consent-link resend: a parent lands on a dead link and we re-issue a fresh one
+// to the email already on their registration. The signature check still means we
+// only ever act on a token WE issued (a forged token yields null) — we simply
+// don't care that this particular one has lapsed.
+export function verifyMagicTokenAllowingExpiry(token: string): MagicClaims | null {
+  try {
+    const decoded = jwt.verify(token, env.JWT_SECRET, { ignoreExpiration: true }) as Partial<MagicClaims>;
+    if (decoded?.kind !== 'magic' || typeof decoded.camperId !== 'number') return null;
+    return { camperId: decoded.camperId, kind: 'magic' };
+  } catch {
+    return null;
+  }
+}
+
 export function signAdminToken(): string {
   return jwt.sign({ kind: 'admin' }, env.JWT_SECRET, { expiresIn: `${ADMIN_TTL_HR}h` });
 }

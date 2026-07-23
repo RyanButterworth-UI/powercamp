@@ -90,9 +90,28 @@ interface VerifiedCamper {
             Link no longer works
           </h2>
           <p class="text-sm mb-3" style="color: var(--color-saga-text)">{{ verifyError() }}</p>
-          <button type="button" (click)="goHome()" class="saga-btn saga-btn-secondary">
-            Go back to search
-          </button>
+          @if (resent()) {
+            <p class="text-sm mb-3" data-testid="resend-done" style="color: var(--color-saga-success)">
+              Done — we've emailed a fresh consent link to the address on your registration. It's
+              valid for 12 hours. You can close this page.
+            </p>
+          }
+          <div class="flex flex-col-reverse sm:flex-row gap-2 sm:justify-start">
+            <button type="button" (click)="goHome()" class="saga-btn saga-btn-secondary">
+              Go back to search
+            </button>
+            @if (linkExpired() && !resent()) {
+              <button
+                type="button"
+                (click)="resendConsent()"
+                [disabled]="resending()"
+                class="saga-btn saga-btn-primary"
+                data-testid="resend-consent"
+              >
+                {{ resending() ? 'Sending…' : 'Email me a fresh consent link' }}
+              </button>
+            }
+          </div>
         </div>
       } @else if (submittedAt()) {
         <div
@@ -509,6 +528,11 @@ export class VerifyLinkComponent {
   loading = signal(true);
   camper = signal<VerifiedCamper | null>(null);
   verifyError = signal<string | null>(null);
+  // Set when the link failed because it EXPIRED (401) — drives the self-service
+  // "email me a fresh consent link" button on the error card.
+  linkExpired = signal(false);
+  resending = signal(false);
+  resent = signal(false);
 
   submitting = signal(false);
   submitError = signal<string | null>(null);
@@ -603,7 +627,8 @@ export class VerifyLinkComponent {
         error: (err) => {
           this.loading.set(false);
           if (err?.status === 401) {
-            this.verifyError.set('This link is invalid or has expired. Please request a new one.');
+            this.linkExpired.set(true);
+            this.verifyError.set('This link is invalid or has expired. Request a fresh one below.');
           } else if (err?.status === 404) {
             this.verifyError.set('We could not find your registration. Please contact the camp organisers.');
           } else {
@@ -796,6 +821,30 @@ export class VerifyLinkComponent {
 
   goHome(): void {
     this.router.navigate(['/']);
+  }
+
+  // Self-service resend from the expired-link screen. Posts the dead token back;
+  // the backend checks its signature (ignoring expiry) and emails a fresh 12h
+  // consent link to the address on file. We show the same "sent" confirmation
+  // whether or not the token resolved — the server never reveals which — so a
+  // stale link can't be used to probe whether a registration exists.
+  resendConsent(): void {
+    if (!this.token || this.resending()) return;
+    this.resending.set(true);
+    this.http
+      .post(`${environment.baseApi}/request-consent-resend`, { token: this.token })
+      .subscribe({
+        next: () => {
+          this.resending.set(false);
+          this.resent.set(true);
+        },
+        error: () => {
+          // Best-effort: treat a transient failure the same as success from the
+          // family's point of view — they can always retry from the same screen.
+          this.resending.set(false);
+          this.resent.set(true);
+        },
+      });
   }
 
   // The main registration form persists an in-progress draft under this key

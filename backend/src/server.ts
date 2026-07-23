@@ -80,6 +80,7 @@ app.use('/submit', publicFormRateLimiter);
 app.use('/waitlist', publicFormRateLimiter);
 app.use('/leaders/apply', publicFormRateLimiter);
 app.use('/request-link', publicFormRateLimiter);
+app.use('/request-consent-resend', publicFormRateLimiter);
 
 app.use(submitRouter);
 app.use(consentRouter);
