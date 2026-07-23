@@ -10,9 +10,9 @@ jest.mock('../env', () => ({
   },
 }));
 
-// Flexible db mock: select().from().where().limit() drains a queue so the two
-// selects in the handler (load entry, then duplicate-guard) can return
-// different results; insert/update capture their payloads.
+// Flexible db mock: select().from().where().limit() drains a queue so the
+// handlers' successive selects can return different results; insert/update
+// capture their payloads.
 const limitMock = jest.fn();
 const insertValuesMock = jest.fn();
 const updateSetMock = jest.fn();
@@ -41,9 +41,12 @@ jest.mock('../services/sheets', () => ({
   registrationRowExists: (...a: unknown[]) => rowExistsMock(...a),
 }));
 const sendConsentMock = jest.fn();
+const sendReceivedMock = jest.fn();
 jest.mock('../services/email', () => ({
   sendWaitlistNotification: jest.fn(),
+  sendWaitlistConfirmation: jest.fn(),
   sendConsentRequest: (...a: unknown[]) => sendConsentMock(...a),
+  sendRegistrationReceived: (...a: unknown[]) => sendReceivedMock(...a),
 }));
 
 import { signAdminToken } from '../services/auth';
@@ -57,17 +60,32 @@ function buildApp() {
 }
 
 const authed = () => `Bearer ${signAdminToken()}`;
-const entry = {
+
+// A legacy MINIMAL entry: only camperName + parent details, no consent.
+const minimalEntry = {
   id: 3,
   year: 2026,
   camperName: 'Sam Smith',
+  firstName: null,
+  lastName: null,
   parentName: 'Pat Smith',
   parentEmail: 'PAT@Example.com',
   phone: '0821234567',
   grade: '9',
-  note: null,
+  friends: [],
+  consentAcceptedAt: null,
   status: 'waiting',
   deletedAt: null,
+};
+
+// A full entry with consent captured at join.
+const fullEntry = {
+  ...minimalEntry,
+  firstName: 'Sam',
+  lastName: 'Smith',
+  consentAcceptedAt: new Date(),
+  consentGeneral: 'accept',
+  consentEmergencyName: 'Pat Smith',
 };
 
 describe('POST /admin/waitlist/:id/promote', () => {
@@ -78,6 +96,7 @@ describe('POST /admin/waitlist/:id/promote', () => {
     appendMock.mockReset().mockResolvedValue(undefined);
     rowExistsMock.mockReset().mockResolvedValue(false);
     sendConsentMock.mockReset().mockResolvedValue(undefined);
+    sendReceivedMock.mockReset().mockResolvedValue(undefined);
   });
 
   it('requires an admin token', async () => {
@@ -86,76 +105,69 @@ describe('POST /admin/waitlist/:id/promote', () => {
     expect(insertValuesMock).not.toHaveBeenCalled();
   });
 
-  it('creates the camper, appends to the sheet, emails consent, and removes the entry', async () => {
-    limitMock.mockResolvedValueOnce([entry]).mockResolvedValueOnce([]); // entry found, no duplicate
+  it('legacy entry (no consent): creates camper, blanks sheet consent, sends the consent request', async () => {
+    limitMock.mockResolvedValueOnce([minimalEntry]).mockResolvedValueOnce([]); // entry, no duplicate
 
     const res = await request(buildApp())
       .post('/admin/waitlist/3/promote')
       .set('Authorization', authed());
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ camperId: 42, alreadyCamper: false, addedToSheet: true, ok: true });
-
-    // Camper created from the split name + carried-over details.
+    expect(res.body).toEqual({
+      camperId: 42,
+      alreadyCamper: false,
+      addedToSheet: true,
+      consentCaptured: false,
+      ok: true,
+    });
     expect(insertValuesMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        year: 2026,
-        firstName: 'Sam',
-        lastName: 'Smith',
-        grade: '9',
-        parentName: 'Pat Smith',
-        parentPhone: '0821234567',
-        parentEmail: 'pat@example.com',
-        source: 'waitlist',
-      })
+      expect.objectContaining({ firstName: 'Sam', lastName: 'Smith', source: 'waitlist' })
     );
+    const [, row] = appendMock.mock.calls[0]!;
+    expect(row[16]).toBe(''); // consent column blanked
+    expect(sendConsentMock).toHaveBeenCalledTimes(1);
+    expect(sendReceivedMock).not.toHaveBeenCalled();
+  });
 
-    // Sheet row appended with consent column (index 16) blanked.
-    expect(appendMock).toHaveBeenCalledTimes(1);
-    const [tab, row] = appendMock.mock.calls[0]!;
-    expect(tab).toBe('Registrations');
-    expect(row[0]).toBe('Sam');
-    expect(row[1]).toBe('Smith');
-    expect(row[16]).toBe('');
+  it('full entry (consent on file): copies consent, keeps sheet consent TRUE, sends a confirmation', async () => {
+    limitMock.mockResolvedValueOnce([fullEntry]).mockResolvedValueOnce([]);
 
-    // Consent link emailed to the parent.
-    const [to, firstName, url] = sendConsentMock.mock.calls[0]!;
-    expect(to).toBe('pat@example.com');
-    expect(firstName).toBe('Sam');
-    expect(url).toMatch(/^http:\/\/localhost:4200\/verify-link\?token=/);
+    const res = await request(buildApp())
+      .post('/admin/waitlist/3/promote')
+      .set('Authorization', authed());
 
-    // Entry soft-deleted + marked placed.
-    const setArg = updateSetMock.mock.calls[0]![0] as { status: string; deletedAt: Date };
-    expect(setArg.status).toBe('placed');
-    expect(setArg.deletedAt).toBeInstanceOf(Date);
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ consentCaptured: true, addedToSheet: true });
+    expect(insertValuesMock).toHaveBeenCalledWith(
+      expect.objectContaining({ consentGeneral: 'accept', consentAcceptedAt: fullEntry.consentAcceptedAt })
+    );
+    const [, row] = appendMock.mock.calls[0]!;
+    expect(row[16]).toBe('TRUE'); // consent column kept
+    expect(sendReceivedMock).toHaveBeenCalledTimes(1);
+    expect(sendConsentMock).not.toHaveBeenCalled();
   });
 
   it('reuses an existing camper instead of inserting a duplicate', async () => {
-    limitMock.mockResolvedValueOnce([entry]).mockResolvedValueOnce([{ id: 99 }]); // duplicate found
+    limitMock.mockResolvedValueOnce([minimalEntry]).mockResolvedValueOnce([{ id: 99 }]);
 
     const res = await request(buildApp())
       .post('/admin/waitlist/3/promote')
       .set('Authorization', authed());
 
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual({ camperId: 99, alreadyCamper: true, addedToSheet: true, ok: true });
+    expect(res.body).toMatchObject({ camperId: 99, alreadyCamper: true });
     expect(insertValuesMock).not.toHaveBeenCalled();
-    expect(sendConsentMock).toHaveBeenCalledTimes(1);
   });
 
   it('does NOT append to the sheet when the camper is already on it', async () => {
-    limitMock.mockResolvedValueOnce([entry]).mockResolvedValueOnce([]);
+    limitMock.mockResolvedValueOnce([minimalEntry]).mockResolvedValueOnce([]);
     rowExistsMock.mockResolvedValueOnce(true);
 
     const res = await request(buildApp())
       .post('/admin/waitlist/3/promote')
       .set('Authorization', authed());
 
-    expect(res.status).toBe(200);
     expect(res.body.addedToSheet).toBe(false);
     expect(appendMock).not.toHaveBeenCalled();
-    // Consent is still requested even when they're already on the sheet.
-    expect(sendConsentMock).toHaveBeenCalledTimes(1);
   });
 
   it('404s when the entry is missing', async () => {
@@ -164,14 +176,64 @@ describe('POST /admin/waitlist/:id/promote', () => {
       .post('/admin/waitlist/3/promote')
       .set('Authorization', authed());
     expect(res.status).toBe(404);
+  });
+});
+
+describe('POST /admin/campers/:id/demote', () => {
+  const camper = {
+    id: 5,
+    year: 2026,
+    firstName: 'Sam',
+    lastName: 'Smith',
+    parentEmail: 'pat@x.com',
+    parentPhone: '082',
+    grade: '9',
+    friends: [],
+    consentAcceptedAt: new Date(),
+    consentGeneral: 'accept',
+    deletedAt: null,
+  };
+
+  beforeEach(() => {
+    limitMock.mockReset();
+    insertValuesMock.mockReset();
+    updateSetMock.mockReset();
+  });
+
+  it('requires an admin token', async () => {
+    const res = await request(buildApp()).post('/admin/campers/5/demote');
+    expect(res.status).toBe(401);
     expect(insertValuesMock).not.toHaveBeenCalled();
   });
 
-  it('leaves the surname blank for a single-word camper name', async () => {
-    limitMock.mockResolvedValueOnce([{ ...entry, camperName: 'Cher' }]).mockResolvedValueOnce([]);
-    await request(buildApp()).post('/admin/waitlist/3/promote').set('Authorization', authed());
+  it('copies the full camper (incl. consent) to the waitlist and soft-deletes the camper', async () => {
+    limitMock.mockResolvedValueOnce([camper]);
+
+    const res = await request(buildApp())
+      .post('/admin/campers/5/demote')
+      .set('Authorization', authed());
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ waitlistId: 42, ok: true });
     expect(insertValuesMock).toHaveBeenCalledWith(
-      expect.objectContaining({ firstName: 'Cher', lastName: '' })
+      expect.objectContaining({
+        camperName: 'Sam Smith',
+        firstName: 'Sam',
+        status: 'waiting',
+        consentGeneral: 'accept',
+        consentAcceptedAt: camper.consentAcceptedAt,
+      })
     );
+    const setArg = updateSetMock.mock.calls[0]![0] as { deletedAt: Date };
+    expect(setArg.deletedAt).toBeInstanceOf(Date);
+  });
+
+  it('404s when the camper is missing', async () => {
+    limitMock.mockResolvedValueOnce([]);
+    const res = await request(buildApp())
+      .post('/admin/campers/5/demote')
+      .set('Authorization', authed());
+    expect(res.status).toBe(404);
+    expect(insertValuesMock).not.toHaveBeenCalled();
   });
 });

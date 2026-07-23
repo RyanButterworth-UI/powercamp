@@ -248,6 +248,36 @@ export const waitlist = pgTable(
     phone: text('phone'),
     grade: text('grade'),
     note: text('note'),
+    // Full-registration fields (added 2026-07-23, see sql/2026-07-23-waitlist-
+    // full-flow.sql). Mirror the campers columns so a family can complete the
+    // whole flow — including consent — when they join the waiting list, and so
+    // promote/demote can copy everything across losslessly. All nullable:
+    // legacy minimal entries (camperName + parentEmail only) leave these NULL,
+    // which the promote flow treats as "consent not captured".
+    firstName: text('first_name'),
+    lastName: text('last_name'),
+    dob: text('dob'),
+    gender: text('gender'),
+    age: text('age'),
+    email: text('email'),
+    camperCell: text('camper_cell'),
+    medical: text('medical'),
+    tshirt: text('tshirt'),
+    church: text('church'),
+    generalInfo: text('general_info'),
+    friends: text('friends').array().default([]),
+    consentGeneral: text('consent_general'),
+    consentLocation: text('consent_location'),
+    consentRisk: text('consent_risk'),
+    consentPowerCamp: text('consent_power_camp'),
+    consentBehaviour: text('consent_behaviour'),
+    consentPhoto: text('consent_photo'),
+    consentEmergencyName: text('consent_emergency_name'),
+    consentEmergencyContact: text('consent_emergency_contact'),
+    consentMedicalAidName: text('consent_medical_aid_name'),
+    consentMedicalAidNumber: text('consent_medical_aid_number'),
+    consentDate: text('consent_date'),
+    consentAcceptedAt: timestamp('consent_accepted_at'),
     // 'waiting' | 'contacted' | 'placed' | 'declined' — free-text so the
     // admin UI can evolve the workflow without a migration.
     status: text('status').default('waiting').notNull(),

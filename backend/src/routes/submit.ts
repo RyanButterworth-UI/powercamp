@@ -21,7 +21,9 @@ const lenientOptionalString = z
   .nullable()
   .transform((v) => (v === null || v === undefined ? undefined : String(v)));
 
-const camperBody = z.object({
+// Exported so the waiting-list full-flow join (routes/waitlist.ts) validates the
+// exact same camper shape — one source of truth for "a registration's fields".
+export const camperBody = z.object({
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   parentEmail: z.string().email(),
@@ -40,7 +42,7 @@ const camperBody = z.object({
   parentPhone: lenientOptionalString,
 });
 
-const consentBody = z.object({
+export const consentBody = z.object({
   general: z.string().min(1),
   location: z.string().min(1),
   risk: z.string().min(1),

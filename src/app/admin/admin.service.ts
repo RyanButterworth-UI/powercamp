@@ -438,6 +438,16 @@ export class AdminService {
     );
   }
 
+  // Move a camper BACK to the waiting list (the inverse of promote). Copies the
+  // full record incl. consent onto the waiting list and soft-deletes the camper.
+  demoteCamper(camperId: number): Observable<{ waitlistId: number; ok: boolean }> {
+    return this.http.post<{ waitlistId: number; ok: boolean }>(
+      `${environment.baseApi}/admin/campers/${camperId}/demote`,
+      {},
+      { headers: this.authHeaders() }
+    );
+  }
+
   markLeaderPaid(leaderId: number): Observable<{ id: number; paymentReceivedAt: string }> {
     return this.http.post<{ id: number; paymentReceivedAt: string }>(
       `${environment.baseApi}/admin/leaders/${leaderId}/mark-paid`,

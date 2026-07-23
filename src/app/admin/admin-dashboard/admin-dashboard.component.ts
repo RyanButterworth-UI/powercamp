@@ -417,6 +417,16 @@ const COLUMN_GROUPS: ColumnGroup[] = GROUP_ORDER.map((g) => ({
                         </svg>
                         {{ deletingFor() === c.id ? 'Deleting…' : 'Delete' }}
                       </button>
+                      <button
+                        type="button"
+                        (click)="demote(c)"
+                        [disabled]="demotingFor() === c.id"
+                        class="text-xs px-2 py-1 rounded saga-btn saga-btn-secondary inline-flex items-center gap-1 cursor-pointer"
+                        [title]="'Move ' + c.firstName + ' ' + c.lastName + ' back to the waiting list'"
+                        [attr.data-testid]="'demote-' + c.id"
+                      >
+                        {{ demotingFor() === c.id ? 'Moving…' : 'To waitlist' }}
+                      </button>
                     </span>
                   </td>
                   @for (col of visibleColumns(); track col.key) {
@@ -543,6 +553,7 @@ export class AdminDashboardComponent {
   markingPaidFor = signal<number | null>(null);
   requestingConsentFor = signal<number | null>(null);
   deletingFor = signal<number | null>(null);
+  demotingFor = signal<number | null>(null);
   searchQuery = signal('');
   campYear = signal<number | null>(null);
   // Inline edit: the camper whose row is open in the drawer (null = closed),
@@ -952,6 +963,35 @@ export class AdminDashboardComponent {
       error: (err) => {
         this.deletingFor.set(null);
         this.ui.toast(deleteErrorMessage(err), 'error');
+      },
+    });
+  }
+
+  async demote(c: AdminCamper): Promise<void> {
+    const ok = await this.ui.confirm(
+      `Move ${c.firstName} ${c.lastName} back to the waiting list? Their full details and consent are kept, so they can be moved back to the main list later. They'll be removed from the main list here — tidy their row on the Google Sheet by hand.`,
+      'Move to waiting list',
+      'Cancel'
+    );
+    if (!ok) return;
+
+    this.demotingFor.set(c.id);
+    this.admin.demoteCamper(c.id).subscribe({
+      next: () => {
+        this.demotingFor.set(null);
+        // Drop the row locally rather than refetching, matching deleteCamper.
+        this.campers.set(this.campers().filter((row) => row.id !== c.id));
+        this.total.update((n) => Math.max(0, n - 1));
+        this.ui.toast(`${c.firstName} ${c.lastName} moved back to the waiting list.`, 'success');
+      },
+      error: (err) => {
+        this.demotingFor.set(null);
+        this.ui.toast(
+          err?.status === 401
+            ? 'Session expired — sign in again.'
+            : 'Failed to move to the waiting list.',
+          'error'
+        );
       },
     });
   }

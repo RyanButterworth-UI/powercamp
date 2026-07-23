@@ -54,9 +54,13 @@ import { ResetRegistrationService } from '../reset-registration.service';
               [errorMessage]="submitErrorMessage()"
               (refreshApp)="refreshApp()"
               (registerAnother)="registerAnotherChild()"
+              [waitlist]="waitlistMode()"
             ></app-success-dialog>
-          } @else if (!registrationsOpen()) {
-            <app-registration-closed [waitlistEmail]="waitlistEmail()"></app-registration-closed>
+          } @else if (!registrationsOpen() && !waitlistMode()) {
+            <app-registration-closed
+              [waitlistEmail]="waitlistEmail()"
+              (join)="enterWaitlistMode()"
+            ></app-registration-closed>
           } @else {
             @if (isSubmitting()) {
               <div
@@ -184,6 +188,11 @@ export class FormComponent {
   // for NEW registrations only — existing families edit via their link
   // (/verify-link), which is unaffected.
   registrationsOpen = signal(true);
+  // When true, the same full form runs as a waiting-list join: identical steps
+  // and consent, but the final submit posts to /waitlist and the success dialog
+  // shows the "you're on the waiting list" copy. Set when a family taps "Join
+  // the waiting list" on the closed-registrations screen.
+  waitlistMode = signal(false);
   waitlistEmail = signal('powercamplife@gmail.com');
   // Hides the form area on first paint so the stepper doesn't flash in before
   // the rest of the layout settles. Flipped to true after a short tick — gives
@@ -449,7 +458,10 @@ export class FormComponent {
       if (k.startsWith('consent_')) delete camper[k];
     }
 
-    const url = `${environment.baseApi}/submit`;
+    // Waitlist mode posts the same {camper, consent} body to /waitlist, which
+    // stores it as a full waiting-list entry (consent included) rather than a
+    // confirmed registration.
+    const url = `${environment.baseApi}${this.waitlistMode() ? '/waitlist' : '/submit'}`;
     this.http.post(url, { camper, consent }).subscribe({
       next: () => {
         this.submissionStatus.set('success');
@@ -483,6 +495,17 @@ export class FormComponent {
         this.isSubmitting.set(false);
       },
     });
+  }
+
+  // Switch the full registration form into waiting-list mode and drop the
+  // family straight into the first camper step. Same flow and consent as a
+  // normal registration; only the submit target and success copy differ.
+  enterWaitlistMode(): void {
+    this.waitlistMode.set(true);
+    this.currentStep.set(StepKey.CamperInfo);
+    this.stepVisible.set(true);
+    this.ready.set(true);
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   fadeToStep(step: keyof typeof StepKey | number) {

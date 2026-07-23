@@ -47,7 +47,9 @@ import { Component, input, Input, output } from '@angular/core';
 
               <div class="mt-4 text-center">
                 <h3 class="text-lg font-semibold">
-                  @if (!consent() && !feedback()) {
+                  @if (waitlist()) {
+                    {{ status === 'success' ? "You're on the waiting list" : (errorTitle || "Hmm, that didn't go through") }}
+                  } @else if (!consent() && !feedback()) {
                     {{ status === 'success' ? "You're in!" : (errorTitle || "Hmm, that didn't go through") }}
                   } @else if (feedback()) {
                     {{ status === 'success' ? 'Got it — thank you!' : "We didn't catch that" }}
@@ -56,7 +58,23 @@ import { Component, input, Input, output } from '@angular/core';
                   }
                 </h3>
                 <div class="mt-2 text-sm" style="color: var(--color-saga-text-muted)">
-                  @if (!consent() && !feedback()) {
+                  @if (waitlist()) {
+                    @if (status === 'success') {
+                      <p>
+                        {{ camperName }}, you're on the Power Camp 2026 waiting list — this is
+                        <strong>not</strong> a confirmed spot. Camp is currently full; we'll email you
+                        if a place opens up. We have all your details and consent on file, so there's
+                        nothing else to do for now.
+                      </p>
+                    } @else if (errorMessage) {
+                      <p>{{ errorMessage }}</p>
+                    } @else {
+                      <p>
+                        {{ camperName }}, that didn't go through. Please try again, and if it keeps
+                        grumbling, give us a shout.
+                      </p>
+                    }
+                  } @else if (!consent() && !feedback()) {
                     @if (status === 'success') {
                       <p>
                         {{ camperName }}, your spot at Power Camp 2026 is provisionally held. We'll
@@ -89,7 +107,7 @@ import { Component, input, Input, output } from '@angular/core';
             </div>
 
             <div class="mt-5 flex flex-col sm:flex-row gap-2">
-              @if (status === 'success' && !consent() && !feedback()) {
+              @if (status === 'success' && !consent() && !feedback() && !waitlist()) {
                 <button
                   type="button"
                   class="saga-btn saga-btn-secondary w-full sm:flex-1"
@@ -124,6 +142,9 @@ export class SuccessDialogComponent {
   @Input() errorMessage = '';
   consent = input<boolean>(false);
   feedback = input<boolean>(false);
+  // When true, the success copy reflects a waiting-list join (not a confirmed
+  // registration) — see FormComponent's waitlist mode.
+  waitlist = input<boolean>(false);
   refreshApp = output();
   registerAnother = output();
 }

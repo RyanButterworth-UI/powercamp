@@ -211,6 +211,78 @@ function consentRequestHtml(firstName: string, url: string): string {
 </html>`;
 }
 
+// Sent to the FAMILY when they join the waiting list via the full flow. The one
+// job of the wording is to be unmistakable that this is NOT a confirmed place —
+// they're in a queue, and we'll only be in touch if a spot opens up.
+export async function sendWaitlistConfirmation(
+  to: string,
+  firstName: string,
+  cc?: string | null
+): Promise<void> {
+  const fromName = env.FROM_NAME ?? 'Power Camp';
+  const ccList = cc && cc.trim().toLowerCase() !== to.trim().toLowerCase() ? cc : undefined;
+  await safeSendMail({
+    from: `"${fromName}" <${env.GMAIL_USER}>`,
+    to,
+    cc: ccList,
+    subject: "Power Camp 2026 — you're on the waiting list",
+    text: [
+      `Hi ${firstName || 'there'},`,
+      '',
+      "Thanks — we've added you to the Power Camp 2026 waiting list, and we have your",
+      'details and consent on file.',
+      '',
+      'IMPORTANT: this is NOT a confirmed place at camp. Camp is currently full. If a',
+      "spot opens up we'll contact you at this address to confirm — you don't need to do",
+      'anything else for now.',
+      '',
+      '— Power Camp',
+    ].join('\n'),
+    html: waitlistConfirmationHtml(firstName || 'there'),
+  });
+}
+
+function waitlistConfirmationHtml(firstName: string): string {
+  return `<!doctype html>
+<html lang="en">
+  <body style="margin:0; padding:0; background-color:#f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f3f4f6; padding:24px 0;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px; background-color:#ffffff; border-radius:12px; overflow:hidden;">
+            <tr>
+              <td style="padding:32px 32px 8px 32px;">
+                <h1 style="margin:0 0 8px 0; font-size:22px; color:#111827;">You're on the waiting list</h1>
+                <p style="margin:0; color:#374151; font-size:15px; line-height:22px;">
+                  Hi ${escapeHtml(firstName)}, thanks — we've added you to the Power Camp 2026 waiting
+                  list, and we have your details and consent on file.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:8px 32px 8px 32px;">
+                <div style="background-color:#fef3c7; border:1px solid #f59e0b; border-radius:8px; padding:14px 16px;">
+                  <p style="margin:0; color:#92400e; font-size:14px; line-height:21px;">
+                    <strong>This is not a confirmed place.</strong> Camp is currently full. If a spot
+                    opens up we'll contact you at this address to confirm — there's nothing else you
+                    need to do for now.
+                  </p>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 32px 24px 32px; border-top:1px solid #e5e7eb;">
+                <p style="margin:0; color:#9ca3af; font-size:12px;">— Power Camp Admin</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
+
 export async function sendRegistrationReceived(
   to: string,
   firstName: string,
