@@ -115,7 +115,6 @@ const COLUMN_GROUPS: ColumnGroup[] = GROUP_ORDER.map((g) => ({
         <a routerLink="/admin/teams" class="saga-tab no-underline">Teams</a>
         <a routerLink="/admin/bunks" class="saga-tab no-underline">Bunks</a>
         <a routerLink="/admin/waitlist" class="saga-tab no-underline">Waiting list</a>
-        <a routerLink="/admin/reconcile" class="saga-tab no-underline">Sync</a>
       </nav>
 
       <div class="flex items-center gap-3 mb-4 flex-wrap">
@@ -461,16 +460,16 @@ const COLUMN_GROUPS: ColumnGroup[] = GROUP_ORDER.map((g) => ({
                           @if (c.consentAcceptedAt) {
                             <span
                               class="status-pill is-ok"
-                              title="Consented"
+                              title="Consent completed"
                               [attr.data-testid]="'consent-badge-' + c.id"
-                            >✓</span>
+                            >Completed</span>
                           } @else {
                             <span class="inline-flex items-center gap-1.5">
                               <span
                                 class="status-pill is-bad"
-                                title="Outstanding"
+                                title="Consent not completed"
                                 [attr.data-testid]="'consent-badge-' + c.id"
-                              >!</span>
+                              >Not completed</span>
                               <button
                                 type="button"
                                 (click)="requestConsent(c)"
