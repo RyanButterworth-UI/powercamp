@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, input, OnInit, signal } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -7,328 +7,328 @@ import {
 } from '@angular/forms';
 import { SuccessDialogComponent } from '../success-dialog/success-dialog.component';
 import { PageGhostComponent } from '../skeleton/page-ghost.component';
+import {
+  FormStepperComponent,
+  StepperStep,
+} from '../form-stepper/form-stepper.component';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 
+// The four scored questions. Driving them off one list keeps the markup to a
+// single loop instead of four near-identical blocks.
+const SCALES = [
+  {
+    control: 'campOrganization',
+    label: 'Organisation of camp',
+    hint: 'Did camp run well?',
+  },
+  {
+    control: 'spiritualInput',
+    label: 'Spiritual input',
+    hint: 'How did you find the speaker and devotions?',
+  },
+  {
+    control: 'activities',
+    label: 'Activities',
+    hint: 'Did you have the best time ever?',
+  },
+  {
+    control: 'facilities',
+    label: 'Meals / campsite',
+    hint: "This applies to YFC's facilities",
+  },
+] as const;
+
 @Component({
   selector: 'app-feedback',
-  imports: [ReactiveFormsModule, SuccessDialogComponent, PageGhostComponent],
+  imports: [
+    ReactiveFormsModule,
+    SuccessDialogComponent,
+    PageGhostComponent,
+    FormStepperComponent,
+  ],
   template: `
     @if (!ready()) {
-      <app-page-ghost height="60vh" />
+      <app-page-ghost [height]="embedded() ? '20vh' : '60vh'" />
     } @else {
-    <div
-      class="container mx-auto bg:white lg:bg-slate-100 my-0 min-h-[calc(100dvh-var(--site-nav-h))] font-inter flex lg:justify-center lg:items-center page-fade-in"
-    >
-      <div class="w-full lg:w-1/2 h-full flex flex-col">
-        <div class="w-full mx-auto h-full flex flex-col">
-          @if (showDialog()) {
-            <app-success-dialog
-              [camperName]="submittedCamperName()"
-              [status]="submissionStatus()"
-              [feedback]="true"
-              [consent]="false"
-              [errorTitle]="errorTitle()"
-              [errorMessage]="errorMessage()"
-              [errorDismissLabel]="errorDismissLabel()"
-              (refreshApp)="refreshApp()"
-            ></app-success-dialog>
-          } @else {
-            @if (isSubmitting()) {
-              <div
-                class="fixed inset-0 z-50 flex items-center justify-center bg-white/80"
-              >
+      <!-- Standalone at /feedback this owns the page; embedded in the landing
+           page it drops the full-height centring shell and just flows inline. -->
+      <div
+        [class]="
+          embedded()
+            ? 'w-full'
+            : 'container mx-auto my-0 min-h-[calc(100dvh-var(--site-nav-h))] font-inter flex lg:justify-center lg:items-center page-fade-in'
+        "
+      >
+        <div [class]="embedded() ? 'w-full' : 'w-full lg:w-1/2 h-full flex flex-col'">
+          <div class="w-full mx-auto h-full flex flex-col">
+            @if (showDialog()) {
+              <app-success-dialog
+                [camperName]="submittedCamperName()"
+                [status]="submissionStatus()"
+                [feedback]="true"
+                [consent]="false"
+                [errorTitle]="errorTitle()"
+                [errorMessage]="errorMessage()"
+                [errorDismissLabel]="errorDismissLabel()"
+                (refreshApp)="refreshApp()"
+              ></app-success-dialog>
+            } @else {
+              @if (isSubmitting()) {
                 <div
-                  class="animate-spin rounded-full h-16 w-16 border-t-4 border-indigo-600 border-solid"
-                ></div>
-              </div>
-            }
-            <form [formGroup]="feedback" class="w-full lg:w-1/2 mx-auto px-4" (ngSubmit)="onSubmit()">
-              @if (currentStep() === 0) {
-                <div class="my-4 flex flex-col justify-between">
-                  <img src='./assets/Pc2025.png' alt="" class="p-4">
-                  <p class="block text-sm/4 font-medium text-gray-900 mb-3">Thank you for attending {{ campLabel() }}!
-                    Please take the time to fill out the feedback form. We use this info to plan for next year.</p>
-                  <p class="block text-sm/4 font-medium text-gray-900 mb-3">It's one response per camper, so give us
-                    everything you've got.</p>
-                  @for (notice of seasonNotices; track notice) {
-                    <p class="block text-sm/4 font-medium text-gray-900 mb-3">{{ notice }}</p>
-                  }
-                  <div class="flex justify-between mt-2">
-                    <button
-                      class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded"
-                      (click)="previousStep()"
-                      type="button"
-                    >
-                      back
-                    </button>
-                    <button
-                      class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded"
-                      (click)="nextStep()"
-                      type="button"
-                    >
-                      Continue
-                    </button>
-                  </div>
-                </div>
-              }
-              @if (currentStep() === 1) {
-                <div>
-                  <div>
-                    <p class="block text-sm/4 font-medium text-gray-500 py-2">
-                     Camper Feedback:
-                    </p>
-                    <label class="block text-xs/6 font-medium text-gray-900 my-2">
-                     Please enter the FULL name of the camper
-                      <span class="required-star">*</span>
-                    </label>
-                    <input
-                      formControlName="camperName"
-                      placeholder="e.g John Calvin"
-                      name="camperName"
-                      class="w-full border rounded px-3 py-2 mb-4 text-sm"
-                    />
-                  </div>
-                  <div class="my-4">
-                    <p class="block text-sm/2 font-medium text-gray-900 mb-3">
-                      Organisation Of Camp <span class="required-star">*</span>
-                    </p>
-                    <p class="block text-sm/2 font-medium text-gray-500 mb-3">
-                      Did Camp run well?
-                    </p>
-                    <div class="flex gap-2 w-full">
-                      @for (size of ['0', '1', '2', '3', '4', '5']; track size) {
-                        <div class="w-full">
-                          <label
-                            [attr.aria-label]="size"
-                            class="group relative flex items-center justify-center rounded-md border border-gray-300 bg-white p-3 has-checked:border-green-300 has-checked:bg-green-300 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-green-600 has-disabled:border-gray-400 has-disabled:bg-gray-200 has-disabled:opacity-25 cursor-pointer"
-                          >
-                            <input
-                              type="radio"
-                              formControlName="campOrganization"
-                              [value]="size"
-                              class="absolute inset-0 appearance-none focus:outline-none text-white"
-                            />
-                            <span
-                              class="text-sm font-medium uppercase group-has-checked:text-green-900 text-gray-900"
-                            >{{ size.charAt(0).toUpperCase() }}</span
-                            >
-                          </label>
-                        </div>
-                      }
-                    </div>
-                  </div>
-                  <div class="my-4">
-                    <p class="block text-sm/2 font-medium text-gray-900 mb-3">
-                      Spirtual Input <span class="required-star">*</span>
-                    </p>
-                    <p class="block text-sm/2 font-medium text-gray-500 mb-3">
-                      How did you find the speaker and devotions?
-                    </p>
-                    <div class="flex gap-2 w-full">
-                      @for (spiritualInput of ['0', '1', '2', '3', '4', '5'];
-                        track spiritualInput) {
-                        <div class="w-full">
-                          <label
-                            [attr.aria-label]="spiritualInput"
-                            class="group relative flex items-center justify-center rounded-md border border-gray-300 bg-white p-3 has-checked:border-green-300 has-checked:bg-green-300 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-green-600 has-disabled:border-gray-400 has-disabled:bg-gray-200 has-disabled:opacity-25 cursor-pointer"
-                          >
-                            <input
-                              type="radio"
-                              formControlName="spiritualInput"
-                              [value]="spiritualInput"
-                              class="absolute inset-0 appearance-none focus:outline-none text-white"
-                            />
-                            <span
-                              class="text-sm font-medium uppercase group-has-checked:text-green-900 text-gray-900"
-                            >{{ spiritualInput.charAt(0).toUpperCase() }}</span
-                            >
-                          </label>
-                        </div>
-                      }
-                    </div>
-                  </div>
-                  <div class="my-4">
-                    <p class="block text-sm/2 font-medium text-gray-900 mb-3">
-                      Activities <span class="required-star">*</span>
-                    </p>
-                    <p class="block text-sm/2 font-medium text-gray-500 mb-3">
-                      Did you have the best time ever?
-                    </p>
-                    <div class="flex gap-2 w-full">
-                      @for (activities of ['0', '1', '2', '3', '4', '5'];
-                        track activities) {
-                        <div class="w-full">
-                          <label
-                            [attr.aria-label]="activities"
-                            class="group relative flex items-center justify-center rounded-md border border-gray-300 bg-white p-3 has-checked:border-green-300 has-checked:bg-green-300 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-green-600 has-disabled:border-gray-400 has-disabled:bg-gray-200 has-disabled:opacity-25 cursor-pointer"
-                          >
-                            <input
-                              type="radio"
-                              formControlName="activities"
-                              [value]="activities"
-                              class="absolute inset-0 appearance-none focus:outline-none text-white"
-                            />
-                            <span
-                              class="text-sm font-medium uppercase group-has-checked:text-green-900 text-gray-900"
-                            >{{ activities.charAt(0).toUpperCase() }}</span
-                            >
-                          </label>
-                        </div>
-                      }
-                    </div>
-                  </div>
-                  <div class="my-4">
-                    <p class="block text-sm/2 font-medium text-gray-900 mb-3">
-                      Meals/Campsite <span class="required-star">*</span>
-                    </p>
-                    <p class="block text-sm/2 font-medium text-gray-500 mb-3">
-                      This applies to YFC's facilites
-                    </p>
-                    <div class="flex gap-2 w-full">
-                      @for (facilities of ['0', '1', '2', '3', '4', '5'];
-                        track facilities) {
-                        <div class="w-full">
-                          <label
-                            [attr.aria-label]="facilities"
-                            class="group relative flex items-center justify-center rounded-md border border-gray-300 bg-white p-3 has-checked:border-green-300 has-checked:bg-green-300 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-green-600 has-disabled:border-gray-400 has-disabled:bg-gray-200 has-disabled:opacity-25 cursor-pointer"
-                          >
-                            <input
-                              type="radio"
-                              formControlName="facilities"
-                              [value]="facilities"
-                              class="absolute inset-0 appearance-none focus:outline-none text-white"
-                            />
-                            <span
-                              class="text-sm font-medium uppercase group-has-checked:text-green-900 text-gray-900"
-                            >{{ facilities.charAt(0).toUpperCase() }}</span
-                            >
-                          </label>
-                        </div>
-                      }
-                    </div>
-                    <div class="w-full mt-2">
-                      <p class="text-xs text-red-700">0 - Needs Work</p>
-                      <p class="text-xs text-yellow-600">
-                        2 - Middle of the Road
-                      </p>
-                      <p class="text-xs text-green-700">5 - Couldn't be better</p>
-                    </div>
-                  </div>
-                  <div class="flex justify-between mt-2">
-                    <button
-                      class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded"
-                      (click)="previousStep()"
-                      type="button"
-                    >
-                      back
-                    </button>
-                    <button
-                      [disabled]="!areFieldsValid(required)"
-                      class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded"
-                      (click)="nextStep()"
-                      type="button"
-                    >
-                      Continue
-                    </button>
-                  </div>
-                </div>
-              }
-
-              @if (currentStep() === 2) {
-                <div class="my-4">
-                  <label class="block text-sm/4 font-medium text-gray-900 mb-3">
-                    Please give us some input on your highlight of this years
-                    camp.
-                    <span class="text-sm text-gray-500">(Optional)</span>
-                  </label>
-
-                  <div class="mt-2">
-                  <textarea
-                    id="comment"
-                    formControlName="userComment"
-                    rows="4"
-                    class="block w-full rounded-md px-3 py-1.5 text-base text-gray-900 border border-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 sm:text-sm"
-                  ></textarea>
-                  </div>
-                </div>
-                <div class="flex flex-col w-full">
-                  <label class="block text-sm/2 font-medium text-gray-900 mb-2">
-                    Describe {{ campLabel() }} in one word <span class="text-sm text-gray-500">(Optional)</span>
-                  </label>
-                  <input
-                    placeholder="SuperIncredibleAmazingAwesomeness"
-                    type="text"
-                    formControlName="oneWord"
-                    class="w-full border border-gray-300 rounded px-3 py-2 mb-4 text-sm text-gray-900 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600"
-                  />
-                </div>
-                <p class="block text-sm/4 font-medium text-gray-900 mb-3">
-                  Would you like any follow-up after camp?<span
-                  class="text-red-700"
-                >*</span
+                  class="fixed inset-0 z-50 flex items-center justify-center"
+                  style="background-color: rgba(17, 18, 23, 0.8)"
                 >
-                </p>
+                  <div
+                    class="animate-spin rounded-full h-16 w-16"
+                    style="border: 3px solid var(--color-saga-border); border-top-color: var(--color-saga-action);"
+                  ></div>
+                </div>
+              }
 
-                <div class="flex gap-2 w-full">
-                  @for (requiresFeedback of ['Yes', 'No'];
-                    track requiresFeedback) {
-                    <div class="w-full">
-                      <label
-                        [attr.aria-label]="requiresFeedback"
-                        class="group relative flex items-center justify-center rounded-md border border-gray-300 bg-white p-3 has-checked:border-green-300 has-checked:bg-green-300 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-green-600 has-disabled:border-gray-400 has-disabled:bg-gray-200 has-disabled:opacity-25 cursor-pointer"
-                      >
-                        <input
-                          type="radio"
-                          formControlName="requiresFeedback"
-                          [value]="requiresFeedback"
-                          class="absolute inset-0 appearance-none focus:outline-none text-white"
+              <app-form-stepper
+                [steps]="steps()"
+                [current]="currentStep()"
+                (stepClick)="onStepperJump($event)"
+              ></app-form-stepper>
+
+              <form [formGroup]="feedback" (ngSubmit)="onSubmit()">
+                <div class="customer-wrapper">
+                  @if (currentStep() === 0) {
+                    <div>
+                      <div class="saga-card p-5 mb-4">
+                        <img
+                          src="./assets/Pc2025.png"
+                          alt=""
+                          class="w-40 mx-auto mb-5"
                         />
-                        <span
-                          class="text-sm font-medium uppercase group-has-checked:text-green-900 text-gray-900"
-                        >{{ requiresFeedback }}</span
+                        <h2 class="mb-3">Thanks for coming to {{ campLabel() }}</h2>
+                        <p class="text-sm mb-3">
+                          Tell us how it went. We read every one of these and it's
+                          what we plan next year's camp off.
+                        </p>
+                        <p
+                          class="text-xs mb-3"
+                          style="color: var(--color-saga-text-muted)"
                         >
-                      </label>
+                          It takes about two minutes, and it's one response per
+                          camper — so give us everything you've got.
+                        </p>
+                        @for (notice of seasonNotices; track notice) {
+                          <p
+                            class="text-xs mb-2"
+                            style="color: var(--color-saga-text-muted)"
+                          >
+                            {{ notice }}
+                          </p>
+                        }
+                      </div>
+                      <div class="flex gap-3 mt-6 items-center flex-wrap">
+                        <button
+                          type="button"
+                          (click)="nextStep()"
+                          class="saga-btn saga-btn-primary"
+                        >
+                          Start
+                        </button>
+                      </div>
+                    </div>
+                  }
+
+                  @if (currentStep() === 1) {
+                    <div>
+                      <div>
+                        <label class="block mb-1 font-medium">
+                          Camper's full name <span class="required-star">*</span>
+                        </label>
+                        <p
+                          class="text-xs mb-2"
+                          style="color: var(--color-saga-text-muted)"
+                        >
+                          The name they registered under, so we can match this to
+                          their record.
+                        </p>
+                        <input
+                          formControlName="camperName"
+                          placeholder="e.g. John Calvin"
+                          name="camperName"
+                          class="w-full rounded-lg px-3 py-2 text-sm"
+                        />
+                      </div>
+
+                      <p
+                        class="text-xs mt-5 mb-1"
+                        style="color: var(--color-saga-text-muted)"
+                      >
+                        Rate each one from 0 (needs work) to 5 (couldn't be
+                        better).
+                      </p>
+
+                      @for (scale of scales; track scale.control) {
+                        <div class="mt-4">
+                          <label class="block mb-1 font-medium">
+                            {{ scale.label }} <span class="required-star">*</span>
+                          </label>
+                          <p
+                            class="text-xs mb-2"
+                            style="color: var(--color-saga-text-muted)"
+                          >
+                            {{ scale.hint }}
+                          </p>
+                          <div class="grid grid-cols-6 gap-2">
+                            @for (value of ratings; track value) {
+                              <label
+                                [attr.aria-label]="scale.label + ' ' + value"
+                                class="group relative flex items-center justify-center rounded-md border border-gray-300 bg-white p-3 has-checked:border-green-300 has-checked:bg-green-300 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-green-600 cursor-pointer"
+                              >
+                                <input
+                                  type="radio"
+                                  [formControlName]="scale.control"
+                                  [value]="value"
+                                  class="absolute inset-0 appearance-none focus:outline-none"
+                                />
+                                <span
+                                  class="text-sm font-medium group-has-checked:text-green-900"
+                                  >{{ value }}</span
+                                >
+                              </label>
+                            }
+                          </div>
+                        </div>
+                      }
+
+                      @if (missingLabels().length > 0) {
+                        <p
+                          class="text-xs mt-4"
+                          style="color: var(--color-saga-warning)"
+                        >
+                          Still need: {{ missingLabels().join(', ') }}
+                        </p>
+                      }
+
+                      <div class="flex gap-3 mt-6 items-center flex-wrap">
+                        @if (canGoBack()) {
+                          <button
+                            type="button"
+                            (click)="previousStep()"
+                            class="saga-btn saga-btn-secondary"
+                          >
+                            Back
+                          </button>
+                        }
+                        <button
+                          type="button"
+                          [disabled]="!ratingsComplete()"
+                          (click)="nextStep()"
+                          class="saga-btn saga-btn-primary"
+                        >
+                          Continue
+                        </button>
+                      </div>
+                    </div>
+                  }
+
+                  @if (currentStep() === 2) {
+                    <div>
+                      <div>
+                        <label class="block mb-1 font-medium">
+                          Your highlight of this year's camp
+                          <span
+                            class="text-xs"
+                            style="color: var(--color-saga-text-muted)"
+                            >(optional)</span
+                          >
+                        </label>
+                        <textarea
+                          formControlName="userComment"
+                          rows="4"
+                          placeholder="The bit you'll still be talking about in a month."
+                          class="w-full rounded-lg px-3 py-2 text-sm"
+                        ></textarea>
+                      </div>
+
+                      <div class="mt-4">
+                        <label class="block mb-1 font-medium">
+                          {{ campLabel() }} in one word
+                          <span
+                            class="text-xs"
+                            style="color: var(--color-saga-text-muted)"
+                            >(optional)</span
+                          >
+                        </label>
+                        <input
+                          type="text"
+                          formControlName="oneWord"
+                          placeholder="SuperIncredibleAmazingAwesomeness"
+                          class="w-full rounded-lg px-3 py-2 text-sm"
+                        />
+                      </div>
+
+                      <div class="mt-4">
+                        <label class="block mb-2 font-medium">
+                          Would you like any follow-up after camp?
+                        </label>
+                        <div class="grid grid-cols-2 gap-3">
+                          @for (option of ['Yes', 'No']; track option) {
+                            <label
+                              [attr.aria-label]="option"
+                              class="group relative flex items-center justify-center rounded-md border border-gray-300 bg-white p-3 has-checked:border-green-300 has-checked:bg-green-300 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-green-600 cursor-pointer"
+                            >
+                              <input
+                                type="radio"
+                                formControlName="requiresFeedback"
+                                [value]="option"
+                                class="absolute inset-0 appearance-none focus:outline-none"
+                              />
+                              <span
+                                class="text-sm font-medium group-has-checked:text-green-900"
+                                >{{ option }}</span
+                              >
+                            </label>
+                          }
+                        </div>
+                      </div>
+
+                      <div class="mt-4">
+                        <label class="block mb-1 font-medium">
+                          Anything else you'd like to tell us?
+                          <span
+                            class="text-xs"
+                            style="color: var(--color-saga-text-muted)"
+                            >(optional)</span
+                          >
+                        </label>
+                        <textarea
+                          formControlName="additionalInfo"
+                          rows="4"
+                          class="w-full rounded-lg px-3 py-2 text-sm"
+                        ></textarea>
+                      </div>
+
+                      <div class="flex gap-3 mt-6 items-center flex-wrap">
+                        <button
+                          type="button"
+                          (click)="previousStep()"
+                          class="saga-btn saga-btn-secondary"
+                        >
+                          Back
+                        </button>
+                        <button
+                          type="submit"
+                          [disabled]="!ratingsComplete()"
+                          class="saga-btn saga-btn-primary"
+                        >
+                          Submit feedback
+                        </button>
+                      </div>
                     </div>
                   }
                 </div>
-                <div class="my-4">
-                  <label class="block text-sm/4 font-medium text-gray-900 mb-3">
-                    Is there anything else you would like to let us know? <span
-                    class="text-sm text-gray-500">(Optional)</span>
-                  </label>
-
-                  <div class="mt-2">
-                  <textarea
-                    id="comment"
-                    formControlName="additionalInfo"
-                    rows="4"
-                    class="block w-full rounded-md px-3 py-1.5 text-base text-gray-900 border border-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 sm:text-sm"
-                  ></textarea>
-                  </div>
-                </div>
-                <div class="flex justify-between mt-2">
-                  <button
-                    class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded"
-                    (click)="previousStep()"
-                    type="button"
-                  >
-                    back
-                  </button>
-                  <button
-                    type="submit"
-                    [disabled]="!areFieldsValid(required)"
-                    class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded"
-                  >
-                    Submit
-                  </button>
-                </div>
-              }
-            </form>
-          }
+              </form>
+            }
+          </div>
         </div>
       </div>
-    </div>
     }
   `,
   styles: ``,
@@ -336,6 +336,13 @@ import { environment } from '../../environments/environment';
 export class FeedbackComponent implements OnInit {
   fb = inject(FormBuilder);
   private readonly http = inject(HttpClient);
+
+  readonly scales = SCALES;
+  readonly ratings = ['0', '1', '2', '3', '4', '5'];
+
+  // Set by the landing page, which renders this form inline. Drops the
+  // full-height page shell so the form sits in the flow of the page around it.
+  embedded = input<boolean>(false);
 
   feedback!: FormGroup;
   currentStep = signal<number>(0);
@@ -345,6 +352,7 @@ export class FeedbackComponent implements OnInit {
   isSubmitting = signal(false);
   ready = signal(false);
   campYear = signal<number | null>(null);
+  steps = signal<StepperStep[]>([]);
 
   // Populated for the 409 "one response per camper" case so the dialog says
   // what actually happened instead of offering a retry that can't work.
@@ -354,11 +362,10 @@ export class FeedbackComponent implements OnInit {
 
   // Year-specific notices on the intro step. These are the ONLY dated
   // sentences on the page — everything else derives from campYear — so a new
-  // season means editing this array and nothing else. The entries below are
-  // last season's; clear or rewrite them before the form goes out.
+  // season means editing this array and nothing else.
   readonly seasonNotices: string[] = [
-    'We had some technical glitches this year and this has already been noted.',
-    'Dates for next year: Due to planning and scheduling, Power camp will be: 31 July - 2 August.',
+    'New this year: Power Camp has moved to an app experience — registration, consent, the kit list and this feedback form all live in one place.',
+    "We don't have dates for Power Camp 2027 yet. We'll email everyone as soon as they're locked in.",
   ];
 
   campLabel(): string {
@@ -366,14 +373,32 @@ export class FeedbackComponent implements OnInit {
     return year ? `Power Camp ${year}` : 'Power Camp';
   }
 
+  // Embedded in the landing page, the welcome step is redundant — the page
+  // around it already does that job — so the flow starts at the ratings.
+  private minStep(): number {
+    return this.embedded() ? 1 : 0;
+  }
+
+  // Embedded, the ratings step IS the first step — there's nothing behind it,
+  // so "Back" would be a dead control.
+  canGoBack(): boolean {
+    return this.currentStep() > this.minStep();
+  }
+
   nextStep() {
-    this.currentStep.set(this.currentStep() + 1);
+    this.currentStep.set(Math.min(2, this.currentStep() + 1));
   }
 
   previousStep() {
-    // Clamped: "back" on the intro step used to drop currentStep to -1, which
+    // Clamped: "back" on the first step used to drop currentStep to -1, which
     // matches no @if branch and blanks the form out.
-    this.currentStep.set(Math.max(0, this.currentStep() - 1));
+    this.currentStep.set(Math.max(this.minStep(), this.currentStep() - 1));
+  }
+
+  // The stepper only lets you jump to a step it hasn't locked.
+  onStepperJump(key: number): void {
+    if (key === 2 && !this.ratingsComplete()) return;
+    this.currentStep.set(Math.max(this.minStep(), key));
   }
 
   required = [
@@ -385,14 +410,39 @@ export class FeedbackComponent implements OnInit {
   ];
 
   areFieldsValid(fields: string[]): boolean {
-    return fields.every((field) => this.feedback.get(field)?.valid);
+    return fields.every((field) => this.feedback?.get(field)?.valid);
+  }
+
+  ratingsComplete(): boolean {
+    return this.areFieldsValid(this.required);
+  }
+
+  // Named list of what's still blank, so "Continue" being greyed out is never
+  // a mystery. Mirrors the registration form's own "Still need:" hint.
+  missingLabels(): string[] {
+    if (!this.feedback) return [];
+    const labels: string[] = [];
+    if (!this.feedback.get('camperName')?.valid) labels.push("camper's name");
+    for (const scale of SCALES) {
+      if (!this.feedback.get(scale.control)?.valid) labels.push(scale.label);
+    }
+    return labels;
+  }
+
+  private syncSteps(): void {
+    const all: StepperStep[] = [
+      { key: 0, label: 'Welcome' },
+      { key: 1, label: 'Ratings' },
+      { key: 2, label: 'Comments', locked: !this.ratingsComplete() },
+    ];
+    this.steps.set(all.filter((s) => s.key >= this.minStep()));
   }
 
   ngOnInit() {
     setTimeout(() => this.ready.set(true), 300);
 
     // The camp year drives the copy, so a new season needs no code change.
-    // Best-effort: if it doesn't load, the copy falls back to "this year".
+    // Best-effort: if it doesn't load, the copy falls back to "Power Camp".
     this.http
       .get<{ campYear: number }>(`${environment.baseApi}/public-config`)
       .subscribe({
@@ -408,9 +458,14 @@ export class FeedbackComponent implements OnInit {
       facilities: ['', Validators.required],
       userComment: [''],
       oneWord: [''],
-      requiresFeedback: ['', Validators.required],
+      requiresFeedback: ['No'],
       additionalInfo: [''],
     });
+
+    this.currentStep.set(this.minStep());
+    this.syncSteps();
+    // Keeps the stepper's locked state in step with what's been filled in.
+    this.feedback.valueChanges.subscribe(() => this.syncSteps());
   }
 
   onSubmit() {
@@ -450,6 +505,7 @@ export class FeedbackComponent implements OnInit {
       },
     });
   }
+
   refreshApp() {
     window.location.reload();
     this.showDialog.set(false);

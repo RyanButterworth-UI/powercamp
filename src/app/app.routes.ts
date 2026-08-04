@@ -33,6 +33,11 @@ export const routes: Routes = [
       import('./info/info.component').then((m) => m.InfoComponent),
   },
   {
+    path: 'history',
+    loadComponent: () =>
+      import('./history/history.component').then((m) => m.HistoryComponent),
+  },
+  {
     path: 'kit-list',
     loadComponent: () =>
       import('./kit-list/kit-list.component').then((m) => m.KitListComponent),
