@@ -17,7 +17,7 @@ describe('RegistrationClosedComponent', () => {
     fixture.detectChanges();
   });
 
-  it('renders a mailto link to the waiting-list address', () => {
+  it('renders a mailto link to the camp address', () => {
     const link: HTMLAnchorElement = fixture.nativeElement.querySelector(
       '[data-testid="waitlist-mailto"]'
     );
@@ -25,14 +25,9 @@ describe('RegistrationClosedComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Registrations are closed');
   });
 
-  it('emits (join) when the 2027 list button is clicked', () => {
-    let joined = false;
-    fixture.componentInstance.join.subscribe(() => (joined = true));
-    const btn: HTMLButtonElement = fixture.nativeElement.querySelector(
-      '[data-testid="waitlist-start"]'
-    );
-    btn.click();
-    expect(joined).toBe(true);
+  it('offers no 2027 sign-up — nothing is open yet', () => {
+    expect(fixture.nativeElement.querySelector('[data-testid="waitlist-start"]')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('nothing to sign up for');
   });
 
   it('leads with the post-camp thank-you rather than a "camp is full" message', () => {

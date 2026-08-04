@@ -7,10 +7,11 @@ import { FeedbackComponent } from '../feedback/feedback.component';
 // thank people, show the highlights reel, collect feedback inline, and point at
 // next year.
 //
-// It still owns the waiting-list entry point (the parent switches the full
-// registration form into waitlist mode on (join)), reworded as "get on the 2027
-// list" so an interested family can raise their hand all year instead of
-// bouncing off a dead end.
+// There is deliberately NO 2027 sign-up here — nothing is open yet, so the page
+// doesn't ask anyone to pre-register. The (join) output is kept because the
+// parent still binds it to waitlist mode; nothing emits it while camp is over,
+// and it's the hook to re-expose a waiting list when 2027 registration opens
+// and capacity becomes the reason we're closed.
 //
 // NOTE: this screen also shows if an admin closes registrations mid-season
 // because camp filled up. In that state the post-camp copy below reads wrong —
@@ -72,30 +73,18 @@ import { FeedbackComponent } from '../feedback/feedback.component';
         <h2 class="mb-1">Power Camp 2027</h2>
         <p class="text-sm mb-3" style="color: var(--color-saga-text-muted)">
           We don't have dates yet — we'll email everyone as soon as they're locked in.
-          Registrations are closed until then.
+          Registrations are closed until then, and there's nothing to sign up for in the
+          meantime.
         </p>
-        <p class="text-sm mb-4" style="color: var(--color-saga-text)">
-          Want in for 2027? Get on the list and we'll come to you first. You can complete
-          the whole registration now, consent and all, and we'll hold it on file.
-        </p>
-        <button
-          type="button"
-          (click)="join.emit()"
-          class="saga-btn saga-btn-primary"
-          data-testid="waitlist-start"
-        >
-          Get on the 2027 list
-        </button>
-        <div class="mt-4 text-sm" style="color: var(--color-saga-text-muted)">
-          Prefer email? Write to
+        <div class="text-sm" style="color: var(--color-saga-text-muted)">
+          Questions? Write to
           <a
             [href]="mailtoHref()"
             class="font-semibold"
             style="color: var(--color-saga-primary)"
             data-testid="waitlist-mailto"
             >{{ waitlistEmail() }}</a
-          >
-          and ask to be added.
+          >.
         </div>
       </div>
     </div>

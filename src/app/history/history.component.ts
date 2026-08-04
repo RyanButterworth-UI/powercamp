@@ -2,14 +2,14 @@ import { Component } from '@angular/core';
 
 // Public "History" page — where Power Camp came from and who runs it now.
 //
-// The founder's own account of how camp started belongs here. Until that text
-// is supplied, the section below is intentionally absent rather than filled
-// with invented history: set FOUNDER_STORY to the real paragraphs (one string
-// per paragraph) and the section renders itself.
+// Wilhelm Smalberger's own account of how camp started belongs here. Paste his
+// text as one string per paragraph and the "How it started" section renders
+// itself; leave it empty and the section stays hidden. Deliberately empty
+// rather than filled with invented history — nobody should be quoted saying
+// something they didn't write.
 const FOUNDER_STORY: string[] = [];
 
-// Optional attribution shown under the founder's story.
-const FOUNDER_NAME = '';
+const FOUNDER_NAME = 'Wilhelm Smalberger';
 
 @Component({
   selector: 'app-history',

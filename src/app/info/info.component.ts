@@ -79,11 +79,8 @@ import { PageGhostComponent } from '../skeleton/page-ghost.component';
         </p>
       </div>
 
-      <div class="text-center mt-8">
-        <a routerLink="/" class="saga-btn saga-btn-primary no-underline">
-          Register for 2026
-        </a>
-      </div>
+      <!-- No "Register for 2026" call to action: camp has run and registrations
+           are closed, so there's nothing to send anyone to. -->
     </div>
     }
   `,
