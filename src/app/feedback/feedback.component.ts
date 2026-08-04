@@ -624,13 +624,22 @@ export class FeedbackComponent implements OnInit {
     }, SUGGEST_DEBOUNCE_MS);
   }
 
-  // "Is this you?" — clicking a suggestion writes the exact registered
-  // spelling into the field, so the submit-time check can't trip on a typo.
+  // Writes the registered spelling into the field. lastCheckedKey is set FIRST
+  // so the valueChanges handler recognises the new value as already-checked and
+  // doesn't bounce the status back to 'idle' or re-run the lookup.
+  private applyResolvedName(name: string): void {
+    this.lastCheckedKey = this.normalise(name);
+    this.suggestions.set([]);
+    if (this.feedback.get('camperName')?.value !== name) {
+      this.feedback.get('camperName')?.setValue(name);
+    }
+  }
+
+  // "Is this you?" — clicking a suggestion completes the field to the exact
+  // registered spelling, so the submit-time check can't trip on a typo.
   pickSuggestion(suggestion: NameSuggestion): void {
     if (suggestion.alreadySubmitted) return;
-    this.suggestions.set([]);
-    this.feedback.get('camperName')?.setValue(suggestion.name);
-    this.lastCheckedKey = this.normalise(suggestion.name);
+    this.applyResolvedName(suggestion.name);
     this.nameStatus.set('ok');
   }
 
@@ -652,7 +661,7 @@ export class FeedbackComponent implements OnInit {
     this.nameStatus.set('checking');
 
     this.http
-      .post<{ found: boolean; alreadySubmitted: boolean }>(
+      .post<{ found: boolean; alreadySubmitted: boolean; name: string | null }>(
         `${environment.baseApi}/feedback/check-name`,
         { camperName: raw }
       )
@@ -663,9 +672,14 @@ export class FeedbackComponent implements OnInit {
           if (this.normalise(String(this.feedback?.get('camperName')?.value ?? '')) !== key) {
             return;
           }
-          if (!res.found) this.nameStatus.set('unknown');
-          else if (res.alreadySubmitted) this.nameStatus.set('duplicate');
-          else this.nameStatus.set('ok');
+          if (!res.found) {
+            this.nameStatus.set('unknown');
+            return;
+          }
+          // Complete the short form into the registered spelling, so what gets
+          // submitted matches the register — "ben" becomes "Benjamin Woudstra".
+          if (res.name) this.applyResolvedName(res.name);
+          this.nameStatus.set(res.alreadySubmitted ? 'duplicate' : 'ok');
         },
         error: () => this.nameStatus.set('error'),
       });

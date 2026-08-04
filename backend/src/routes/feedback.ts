@@ -110,11 +110,14 @@ export interface RosterMatch {
   // "Lexi Butterworth" collapse to the same person instead of buying a second
   // go at the form. Null when nothing matched.
   canonicalKey: string | null;
+  // The same name as actually spelled on the register, for display. The form
+  // fills the field with this, so "ben" becomes "Benjamin Woudstra".
+  canonicalName: string | null;
 }
 
 export function matchRoster(key: string, roster: RosterPerson[]): RosterMatch {
-  const canonicalOf = (p: RosterPerson) =>
-    nameKey(`${p.firstName} ${p.lastName}`);
+  const displayOf = (p: RosterPerson) => `${p.firstName} ${p.lastName}`;
+  const canonicalOf = (p: RosterPerson) => nameKey(displayOf(p));
 
   const full = roster.filter((p) => canonicalOf(p) === key);
   if (full.length > 0) {
@@ -123,6 +126,7 @@ export function matchRoster(key: string, roster: RosterPerson[]): RosterMatch {
       found: true,
       camperId: matchedCampers.length === 1 ? matchedCampers[0].id : null,
       canonicalKey: canonicalOf(full[0]),
+      canonicalName: displayOf(full[0]),
     };
   }
 
@@ -132,10 +136,11 @@ export function matchRoster(key: string, roster: RosterPerson[]): RosterMatch {
       found: true,
       camperId: firstOnly[0].kind === 'camper' ? firstOnly[0].id : null,
       canonicalKey: canonicalOf(firstOnly[0]),
+      canonicalName: displayOf(firstOnly[0]),
     };
   }
 
-  return { found: false, camperId: null, canonicalKey: null };
+  return { found: false, camperId: null, canonicalKey: null, canonicalName: null };
 }
 
 // Has this person already had their say? Checks the canonical name key and,
@@ -243,7 +248,12 @@ feedbackRouter.post('/feedback/check-name', async (req, res) => {
     const alreadySubmitted = match.found
       ? await hasAlreadySubmitted(match.canonicalKey!, match.camperId)
       : false;
-    res.json({ found: match.found, alreadySubmitted });
+    // `name` lets the form complete a short form into the registered spelling.
+    res.json({
+      found: match.found,
+      alreadySubmitted,
+      name: match.canonicalName,
+    });
   } catch (err) {
     console.error('feedback check-name error:', err);
     res.status(500).json({ error: 'Failed to check the name' });

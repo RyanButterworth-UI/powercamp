@@ -110,6 +110,7 @@ describe('matchRoster', () => {
       found: true,
       camperId: 42,
       canonicalKey: 'timothy cable',
+      canonicalName: 'Timothy Cable',
     });
   });
 
@@ -119,6 +120,7 @@ describe('matchRoster', () => {
       camperId: 43,
       // Short form resolves to the REGISTERED name, so it can't buy a second go.
       canonicalKey: 'emma cable',
+      canonicalName: 'Emma Cable',
     });
   });
 
@@ -127,6 +129,7 @@ describe('matchRoster', () => {
       found: true,
       camperId: null,
       canonicalKey: 'jody marais',
+      canonicalName: 'Jody Marais',
     });
   });
 
@@ -135,11 +138,13 @@ describe('matchRoster', () => {
       found: false,
       camperId: null,
       canonicalKey: null,
+      canonicalName: null,
     });
     expect(matchRoster('cable', ROSTER)).toEqual({
       found: false,
       camperId: null,
       canonicalKey: null,
+      canonicalName: null,
     });
   });
 
@@ -148,6 +153,7 @@ describe('matchRoster', () => {
       found: false,
       camperId: null,
       canonicalKey: null,
+      canonicalName: null,
     });
   });
 
@@ -160,6 +166,7 @@ describe('matchRoster', () => {
       found: true,
       camperId: null,
       canonicalKey: 'sam smith',
+      canonicalName: 'Sam Smith',
     });
   });
 
@@ -172,6 +179,7 @@ describe('matchRoster', () => {
       found: false,
       camperId: null,
       canonicalKey: null,
+      canonicalName: null,
     });
   });
 });
@@ -437,7 +445,11 @@ describe('POST /feedback/check-name', () => {
       .send({ camperName: 'Timothy Cable' });
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ found: true, alreadySubmitted: false });
+    expect(res.body).toEqual({
+      found: true,
+      alreadySubmitted: false,
+      name: 'Timothy Cable',
+    });
   });
 
   it('reports a name that is not on the register', async () => {
@@ -445,7 +457,11 @@ describe('POST /feedback/check-name', () => {
       .post('/feedback/check-name')
       .send({ camperName: 'Random Spammer' });
 
-    expect(res.body).toEqual({ found: false, alreadySubmitted: false });
+    expect(res.body).toEqual({
+      found: false,
+      alreadySubmitted: false,
+      name: null,
+    });
   });
 
   it('flags someone who has already had their say', async () => {
@@ -457,7 +473,11 @@ describe('POST /feedback/check-name', () => {
       .post('/feedback/check-name')
       .send({ camperName: 'Timothy Cable' });
 
-    expect(res.body).toEqual({ found: true, alreadySubmitted: true });
+    expect(res.body).toEqual({
+      found: true,
+      alreadySubmitted: true,
+      name: 'Timothy Cable',
+    });
   });
 
   it('flags a short form of a name that has already responded', async () => {
@@ -469,7 +489,11 @@ describe('POST /feedback/check-name', () => {
       .post('/feedback/check-name')
       .send({ camperName: 'Emma' });
 
-    expect(res.body).toEqual({ found: true, alreadySubmitted: true });
+    expect(res.body).toEqual({
+      found: true,
+      alreadySubmitted: true,
+      name: 'Emma Cable',
+    });
   });
 
   it('leaks nothing beyond the two booleans', async () => {
@@ -477,7 +501,19 @@ describe('POST /feedback/check-name', () => {
       .post('/feedback/check-name')
       .send({ camperName: 'Timothy Cable' });
 
-    expect(Object.keys(res.body).sort()).toEqual(['alreadySubmitted', 'found']);
+    expect(Object.keys(res.body).sort()).toEqual([
+      'alreadySubmitted',
+      'found',
+      'name',
+    ]);
+  });
+
+  it('returns the registered spelling so a short form can be completed', async () => {
+    const res = await request(buildApp())
+      .post('/feedback/check-name')
+      .send({ camperName: 'emma' });
+
+    expect(res.body.name).toBe('Emma Cable');
   });
 
   it('rejects an empty name', async () => {

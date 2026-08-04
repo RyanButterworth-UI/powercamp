@@ -1,10 +1,15 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-// Speakers as recorded in Wilhelm Smalberger's account. His list runs to 2010 —
-// the year Lynnwood handed over — and the later years were left blank. Rather
-// than guess at them, the page says plainly that they aren't recorded yet.
-const SPEAKERS: { year: number; name: string }[] = [
+// 2001–2010 come from Wilhelm Smalberger's account; 2013 onward were supplied
+// separately, in order, ending with Riaan Strydom in 2026.
+//
+// Anchoring the run at 2026 and counting back lands the two COVID years on 2020
+// and 2021 (no camp), Siya Pantshwa on 2022, and Athi Mgqibelo on 2024 — which
+// matches the 2024 feedback responses that mention Athi preaching, and matches
+// the years we have highlights reels for. 2011 and 2012 fall in the gap: the
+// Cables' first two years, with no speaker on record.
+const SPEAKERS: { year: number; name: string; cancelled?: boolean }[] = [
   { year: 2001, name: 'Grant Philips' },
   { year: 2002, name: 'David Holdt' },
   { year: 2003, name: 'Jeff Gage' },
@@ -15,6 +20,20 @@ const SPEAKERS: { year: number; name: string }[] = [
   { year: 2008, name: 'Joshua Mack' },
   { year: 2009, name: 'Tyrell Haag' },
   { year: 2010, name: 'Clint Archer' },
+  { year: 2013, name: 'Andrew Zekveld' },
+  { year: 2014, name: 'Parmesh Venkatasamy' },
+  { year: 2015, name: 'Gus Pritchard' },
+  { year: 2016, name: 'Lonngren Taljaard' },
+  { year: 2017, name: 'David de Bruyn' },
+  { year: 2018, name: 'Gareth Franks' },
+  { year: 2019, name: 'Karabo Msiza' },
+  { year: 2020, name: 'No camp — COVID', cancelled: true },
+  { year: 2021, name: 'No camp — COVID', cancelled: true },
+  { year: 2022, name: 'Siya Pantshwa' },
+  { year: 2023, name: 'Lelo Kunene' },
+  { year: 2024, name: 'Athi Mgqibelo' },
+  { year: 2025, name: 'Akani Hlungwane' },
+  { year: 2026, name: 'Riaan Strydom' },
 ];
 
 const ACROSTIC: { letter: string; word: string }[] = [
@@ -123,12 +142,14 @@ const ACROSTIC: { letter: string; word: string }[] = [
         <dl class="text-sm grid grid-cols-[4rem_1fr] gap-x-4 gap-y-1.5">
           @for (s of speakers; track s.year) {
             <dt style="color: var(--color-saga-text-muted)">{{ s.year }}</dt>
-            <dd>{{ s.name }}</dd>
+            <dd [style.color]="s.cancelled ? 'var(--color-saga-text-muted)' : 'inherit'">
+              {{ s.name }}
+            </dd>
           }
         </dl>
         <p class="text-xs mt-4" style="color: var(--color-saga-text-muted)">
-          The record of speakers from 2011 onward hasn't been collected yet. If you know who
-          spoke in a given year, we'd love to fill in the gaps.
+          2011 and 2012 are missing — the Cables' first two years, with no speaker on
+          record. If you know who spoke, we'd love to fill the gap.
         </p>
       </section>
 
