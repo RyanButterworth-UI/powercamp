@@ -39,6 +39,23 @@ const SCALES = [
   },
 ] as const;
 
+export interface NameSuggestion {
+  name: string;
+  kind: 'camper' | 'leader';
+  alreadySubmitted: boolean;
+}
+
+// How long the field sits quiet before we ask the server. Long enough not to
+// fire on every keystroke, short enough that suggestions feel immediate — the
+// point is that nobody has to click out of the field to get an answer.
+const SUGGEST_DEBOUNCE_MS = 250;
+
+// How long the name sits untouched before we settle the verdict ourselves.
+// The typeahead fires much sooner, but it only resolves a name typed in full or
+// one picked from the list — this catches everything else, so nobody has to
+// click out of the field to find out where they stand.
+const NAME_CHECK_IDLE_MS = 2000;
+
 @Component({
   selector: 'app-feedback',
   imports: [
@@ -150,12 +167,103 @@ const SCALES = [
                         </p>
                         <input
                           formControlName="camperName"
-                          placeholder="e.g. John Calvin"
+                          placeholder="Start typing your name…"
                           name="camperName"
+                          autocomplete="off"
+                          (blur)="checkName()"
                           class="w-full rounded-lg px-3 py-2 text-sm"
+                          data-testid="camper-name"
                         />
+
+                        <!-- "Is this you?" — the register, filtered as they
+                             type. Picking one guarantees the exact registered
+                             spelling, so the submit-time check can't fail on a
+                             typo. -->
+                        @if (suggestions().length > 0 && nameStatus() !== 'ok') {
+                          <div class="mt-2" data-testid="name-suggestions">
+                            <p
+                              class="text-xs mb-1"
+                              style="color: var(--color-saga-text-muted)"
+                            >
+                              Is this you?
+                            </p>
+                            <ul
+                              class="saga-card divide-y"
+                              style="border-color: var(--color-saga-border)"
+                            >
+                              @for (s of suggestions(); track s.name) {
+                                <li style="border-color: var(--color-saga-border)">
+                                  <button
+                                    type="button"
+                                    (click)="pickSuggestion(s)"
+                                    [disabled]="s.alreadySubmitted"
+                                    class="w-full text-left px-3 py-2 text-sm cursor-pointer"
+                                    [style.opacity]="s.alreadySubmitted ? '0.55' : '1'"
+                                    [attr.data-testid]="'suggestion-' + s.name"
+                                  >
+                                    <span style="color: var(--color-saga-text-strong)">{{ s.name }}</span>
+                                    @if (s.kind === 'leader') {
+                                      <span
+                                        class="text-xs ml-2"
+                                        style="color: var(--color-saga-action)"
+                                        >leader</span
+                                      >
+                                    }
+                                    @if (s.alreadySubmitted) {
+                                      <span
+                                        class="text-xs ml-2"
+                                        style="color: var(--color-saga-warning)"
+                                        >already completed</span
+                                      >
+                                    }
+                                  </button>
+                                </li>
+                              }
+                            </ul>
+                          </div>
+                        }
+
+                        @if (nameStatus() === 'checking') {
+                          <p
+                            class="text-xs mt-2"
+                            style="color: var(--color-saga-text-muted)"
+                            data-testid="name-checking"
+                          >
+                            Checking the camper list…
+                          </p>
+                        } @else if (nameStatus() === 'unknown') {
+                          <div class="saga-error-card mt-2" data-testid="name-unknown">
+                            We can't find that name on this year's camp list. Please use the
+                            name they registered under — first and last. If you think it
+                            should be there, give us a shout.
+                          </div>
+                        } @else if (nameStatus() === 'duplicate') {
+                          <div class="saga-error-card mt-2" data-testid="name-duplicate">
+                            We already have feedback for that name — it's one response per
+                            camper. Thank you, we've got it!
+                          </div>
+                        } @else if (nameStatus() === 'ok') {
+                          <p
+                            class="text-xs mt-2"
+                            style="color: var(--color-saga-success)"
+                            data-testid="name-ok"
+                          >
+                            Found you — thanks!
+                          </p>
+                        }
                       </div>
 
+                      <!-- Everything past the name stays locked until we've
+                           recognised who's filling this in. A native fieldset
+                           does it properly — the radios aren't just greyed out,
+                           they're genuinely not interactive. -->
+                      <fieldset
+                        [disabled]="!nameAccepted()"
+                        style="border: 0; padding: 0; margin: 0; min-inline-size: 0;"
+                        [style.opacity]="nameAccepted() ? '1' : '0.45'"
+                        [style.pointerEvents]="nameAccepted() ? 'auto' : 'none'"
+                        data-testid="ratings-fieldset"
+                      >
                       <p
                         class="text-xs mt-5 mb-1"
                         style="color: var(--color-saga-text-muted)"
@@ -197,6 +305,8 @@ const SCALES = [
                         </div>
                       }
 
+                      </fieldset>
+
                       @if (missingLabels().length > 0) {
                         <p
                           class="text-xs mt-4"
@@ -218,7 +328,7 @@ const SCALES = [
                         }
                         <button
                           type="button"
-                          [disabled]="!ratingsComplete()"
+                          [disabled]="!canContinueFromRatings()"
                           (click)="nextStep()"
                           class="saga-btn saga-btn-primary"
                         >
@@ -315,7 +425,7 @@ const SCALES = [
                         </button>
                         <button
                           type="submit"
-                          [disabled]="!ratingsComplete()"
+                          [disabled]="!canContinueFromRatings()"
                           class="saga-btn saga-btn-primary"
                         >
                           Submit feedback
@@ -359,6 +469,25 @@ export class FeedbackComponent implements OnInit {
   errorTitle = signal('');
   errorMessage = signal('');
   errorDismissLabel = signal('');
+
+  // Result of the live check behind the name field.
+  //   idle      — nothing typed yet, or the name changed since the last check
+  //   checking  — request in flight
+  //   ok        — on the register and hasn't responded yet
+  //   unknown   — not on this year's register (the spam gate)
+  //   duplicate — on the register but has already had their say
+  //   error     — the check itself failed; we let them through and the server
+  //               re-checks on submit, so a flaky network can't lock anyone out
+  nameStatus = signal<
+    'idle' | 'checking' | 'ok' | 'unknown' | 'duplicate' | 'error'
+  >('idle');
+  private lastCheckedKey = '';
+
+  // Typeahead over this year's register.
+  suggestions = signal<NameSuggestion[]>([]);
+  private suggestTimer: ReturnType<typeof setTimeout> | null = null;
+  private idleCheckTimer: ReturnType<typeof setTimeout> | null = null;
+  private suggestSeq = 0;
 
   // Year-specific notices on the intro step. These are the ONLY dated
   // sentences on the page — everything else derives from campYear — so a new
@@ -417,12 +546,143 @@ export class FeedbackComponent implements OnInit {
     return this.areFieldsValid(this.required);
   }
 
+  // The name has to be affirmatively recognised before the form opens up.
+  // 'idle' used to pass, which is what let someone read "already completed" in
+  // the suggestion list and carry on filling the form anyway — a half-typed
+  // name never resolved to a verdict, so nothing stopped them. Now they either
+  // pick themselves from the list or type the name in full.
+  //
+  // 'error' still passes: if our own check is down, nobody gets locked out of
+  // giving feedback, and the server re-checks on submit regardless.
+  nameAccepted(): boolean {
+    const status = this.nameStatus();
+    return status === 'ok' || status === 'error';
+  }
+
+  canContinueFromRatings(): boolean {
+    return this.ratingsComplete() && this.nameAccepted();
+  }
+
+  // Same normalisation the server keys on, so we don't re-check a name that
+  // only differs by spacing or case.
+  private normalise(raw: string): string {
+    return raw
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
+  }
+
+  // Debounced as they type — no need to click out of the field to find out
+  // whether we know them.
+  private queueSuggest(raw: string): void {
+    if (this.suggestTimer) clearTimeout(this.suggestTimer);
+    if (this.idleCheckTimer) clearTimeout(this.idleCheckTimer);
+
+    const key = this.normalise(raw);
+    if (key.length < 3) {
+      this.suggestions.set([]);
+      return;
+    }
+
+    // Typing stopped and the name still hasn't resolved (they typed a partial
+    // name and didn't pick from the list) — settle it rather than leaving them
+    // staring at a locked form with no idea why.
+    this.idleCheckTimer = setTimeout(() => {
+      if (this.nameStatus() === 'idle') this.checkName();
+    }, NAME_CHECK_IDLE_MS);
+
+    this.suggestTimer = setTimeout(() => {
+      const seq = ++this.suggestSeq;
+      this.http
+        .post<{ suggestions: NameSuggestion[] }>(
+          `${environment.baseApi}/feedback/suggest`,
+          { q: raw }
+        )
+        .subscribe({
+          // Ignore a response that a later keystroke has already superseded.
+          next: (res) => {
+            if (seq !== this.suggestSeq) return;
+            this.suggestions.set(res.suggestions ?? []);
+
+            // Typed the full name exactly? Settle the verdict now rather than
+            // making them pick their own name out of a list of one.
+            const exact = (res.suggestions ?? []).find(
+              (s) => this.normalise(s.name) === this.normalise(raw)
+            );
+            if (exact) {
+              this.lastCheckedKey = this.normalise(exact.name);
+              this.nameStatus.set(exact.alreadySubmitted ? 'duplicate' : 'ok');
+              this.suggestions.set([]);
+            }
+          },
+          error: () => {
+            if (seq === this.suggestSeq) this.suggestions.set([]);
+          },
+        });
+    }, SUGGEST_DEBOUNCE_MS);
+  }
+
+  // "Is this you?" — clicking a suggestion writes the exact registered
+  // spelling into the field, so the submit-time check can't trip on a typo.
+  pickSuggestion(suggestion: NameSuggestion): void {
+    if (suggestion.alreadySubmitted) return;
+    this.suggestions.set([]);
+    this.feedback.get('camperName')?.setValue(suggestion.name);
+    this.lastCheckedKey = this.normalise(suggestion.name);
+    this.nameStatus.set('ok');
+  }
+
+  // Blur fallback, for a name typed in full and never picked from the list.
+  // Confirms the person was actually at camp (so randoms can't spam the form)
+  // and whether they've already had their say.
+  checkName(): void {
+    const raw = String(this.feedback?.get('camperName')?.value ?? '').trim();
+    const key = this.normalise(raw);
+
+    if (!key) {
+      this.nameStatus.set('idle');
+      this.lastCheckedKey = '';
+      return;
+    }
+    if (key === this.lastCheckedKey && this.nameStatus() !== 'error') return;
+
+    this.lastCheckedKey = key;
+    this.nameStatus.set('checking');
+
+    this.http
+      .post<{ found: boolean; alreadySubmitted: boolean }>(
+        `${environment.baseApi}/feedback/check-name`,
+        { camperName: raw }
+      )
+      .subscribe({
+        next: (res) => {
+          // A name typed after the request went out wins — don't overwrite a
+          // newer check with a stale response.
+          if (this.normalise(String(this.feedback?.get('camperName')?.value ?? '')) !== key) {
+            return;
+          }
+          if (!res.found) this.nameStatus.set('unknown');
+          else if (res.alreadySubmitted) this.nameStatus.set('duplicate');
+          else this.nameStatus.set('ok');
+        },
+        error: () => this.nameStatus.set('error'),
+      });
+  }
+
   // Named list of what's still blank, so "Continue" being greyed out is never
   // a mystery. Mirrors the registration form's own "Still need:" hint.
   missingLabels(): string[] {
     if (!this.feedback) return [];
     const labels: string[] = [];
-    if (!this.feedback.get('camperName')?.valid) labels.push("camper's name");
+    if (!this.feedback.get('camperName')?.valid) {
+      labels.push("camper's name");
+    } else if (!this.nameAccepted()) {
+      // Name typed but not yet recognised — say so, otherwise a disabled
+      // Continue with every rating filled in looks broken.
+      labels.push('pick your name from the list above');
+    }
     for (const scale of SCALES) {
       if (!this.feedback.get(scale.control)?.valid) labels.push(scale.label);
     }
@@ -433,7 +693,7 @@ export class FeedbackComponent implements OnInit {
     const all: StepperStep[] = [
       { key: 0, label: 'Welcome' },
       { key: 1, label: 'Ratings' },
-      { key: 2, label: 'Comments', locked: !this.ratingsComplete() },
+      { key: 2, label: 'Comments', locked: !this.canContinueFromRatings() },
     ];
     this.steps.set(all.filter((s) => s.key >= this.minStep()));
   }
@@ -464,8 +724,18 @@ export class FeedbackComponent implements OnInit {
 
     this.currentStep.set(this.minStep());
     this.syncSteps();
-    // Keeps the stepper's locked state in step with what's been filled in.
-    this.feedback.valueChanges.subscribe(() => this.syncSteps());
+    // Keeps the stepper's locked state in step with what's been filled in, and
+    // clears a stale verdict as soon as the name is edited — the old "found
+    // you" must not linger over a name we haven't checked.
+    this.feedback.valueChanges.subscribe(() => {
+      this.syncSteps();
+      const raw = String(this.feedback.get('camperName')?.value ?? '');
+      const key = this.normalise(raw);
+      if (key !== this.lastCheckedKey) {
+        if (this.nameStatus() !== 'checking') this.nameStatus.set('idle');
+        this.queueSuggest(raw);
+      }
+    });
   }
 
   onSubmit() {
@@ -496,6 +766,15 @@ export class FeedbackComponent implements OnInit {
               `the same name, say), give us a shout and we'll sort it out.`
           );
           this.errorDismissLabel.set("We're done");
+        } else if (err?.status === 422) {
+          // The server's copy of the spam gate. Reachable if the register
+          // changed under us, or if someone skipped the browser check.
+          this.errorTitle.set("We can't find that name");
+          this.errorMessage.set(
+            `We couldn't match ${name} to anyone on this year's camp list. Please use ` +
+              `the name they registered under — first and last — and try again. If you ` +
+              `think it should be there, give us a shout.`
+          );
         } else {
           console.error('Error:', err);
         }

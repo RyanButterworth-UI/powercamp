@@ -38,7 +38,10 @@ describe('RegistrationClosedComponent', () => {
     const iframe: HTMLIFrameElement = fixture.nativeElement.querySelector(
       '[data-testid="highlights-video"] iframe'
     );
-    expect(iframe.getAttribute('src')).toContain('youtube.com/embed/80OJqIUfw_U');
+    // nocookie: no tracking cookies until someone actually presses play.
+    expect(iframe.getAttribute('src')).toContain(
+      'youtube-nocookie.com/embed/80OJqIUfw_U'
+    );
     expect(fixture.nativeElement.querySelector('[data-testid="feedback-embed"]')).toBeTruthy();
   });
 

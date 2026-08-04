@@ -126,12 +126,28 @@ export interface WaitlistEntry {
 }
 
 // ----- Post-camp feedback (read-only) -----
+// Contact details for a matched camper, so a follow-up request can be actioned
+// straight from the feedback page. Null on the entry when the typed name didn't
+// resolve to exactly one camper.
+export interface FeedbackCamperContact {
+  id: number;
+  firstName: string;
+  lastName: string;
+  grade: string | null;
+  email: string | null;
+  camperCell: string | null;
+  parentName: string | null;
+  parentEmail: string;
+  parentPhone: string | null;
+}
+
 export interface FeedbackEntry {
   id: number;
   year: number;
   // Best-effort match to a camper record — null for a joint entry
   // ("Abigail and Joshua Calitz") or a name that didn't resolve.
   camperId: number | null;
+  camper: FeedbackCamperContact | null;
   camperName: string;
   campOrganization: number;
   spiritualInput: number;

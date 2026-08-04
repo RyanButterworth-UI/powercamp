@@ -80,6 +80,37 @@ type CategoryKey = (typeof CATEGORIES)[number]['key'];
           }
         </div>
 
+        <div class="flex items-center gap-3 mb-3 flex-wrap">
+          <input
+            type="text"
+            [value]="query()"
+            (input)="query.set($any($event.target).value)"
+            placeholder="Search name, one word, or comments…"
+            class="rounded-lg px-3 py-2 text-sm"
+            style="min-width: 18rem;"
+            data-testid="feedback-search"
+          />
+          <button
+            type="button"
+            (click)="followUpOnly.set(!followUpOnly())"
+            class="filter-pill"
+            [class.is-active]="followUpOnly()"
+            data-testid="filter-follow-up"
+          >
+            Wants a callback ({{ summary()!.followUpRequested }})
+          </button>
+          @if (query() || followUpOnly()) {
+            <button
+              type="button"
+              (click)="clearFilters()"
+              class="saga-btn-ghost text-sm underline cursor-pointer"
+              data-testid="clear-filters"
+            >
+              Clear
+            </button>
+          }
+        </div>
+
         <div class="flex items-center gap-3 mb-4 flex-wrap">
           <button
             type="button"
@@ -101,18 +132,15 @@ type CategoryKey = (typeof CATEGORIES)[number]['key'];
           </span>
         </div>
 
-        <!-- Follow-up requests first: these are the ones needing action. -->
-        @if (followUps().length > 0) {
-          <div class="saga-card p-3 mb-4" data-testid="follow-up-panel">
-            <p class="text-sm font-semibold mb-2">Asked for follow-up after camp</p>
-            <ul class="text-sm list-disc pl-5">
-              @for (f of followUps(); track f.id) {
-                <li>{{ f.camperName }}</li>
-              }
-            </ul>
-          </div>
-        }
-
+        @if (visible().length === 0) {
+          <p class="text-sm" data-testid="no-matches" style="color: var(--color-saga-text-muted)">
+            No responses match that. <button type="button" (click)="clearFilters()"
+              class="underline cursor-pointer" style="color: var(--color-saga-action)">Clear the filters</button>.
+          </p>
+        } @else {
+        <p class="text-sm mb-2" style="color: var(--color-saga-text-muted)">
+          Showing {{ visible().length }} of {{ total() }}. Click a row for contact details.
+        </p>
         <div class="overflow-x-auto">
           <table class="saga-table text-sm" data-testid="feedback-table">
             <thead>
@@ -124,20 +152,24 @@ type CategoryKey = (typeof CATEGORIES)[number]['key'];
                 <th>One word</th>
                 <th>Highlight</th>
                 <th>Anything else</th>
-                <th>Follow-up</th>
+                <th>Callback</th>
                 <th>Received</th>
               </tr>
             </thead>
             <tbody>
-              @for (f of entries(); track f.id) {
-                <tr [attr.data-testid]="'feedback-row-' + f.id">
+              @for (f of visible(); track f.id) {
+                <tr
+                  [attr.data-testid]="'feedback-row-' + f.id"
+                  (click)="toggleExpanded(f.id)"
+                  style="cursor: pointer;"
+                >
                   <td style="white-space:nowrap;">
                     {{ f.camperName }}
                     @if (f.camperId === null) {
                       <span
                         class="text-xs"
                         style="color: var(--color-saga-text-muted)"
-                        title="This name didn't resolve to a single camper on the register — a joint entry or a typo. The response still counts."
+                        title="This name didn't resolve to a single camper on the register — a leader, a joint entry, or a name two campers share. The response still counts."
                       >&nbsp;·&nbsp;unmatched</span>
                     }
                   </td>
@@ -156,10 +188,65 @@ type CategoryKey = (typeof CATEGORIES)[number]['key'];
                   </td>
                   <td style="white-space:nowrap;">{{ formatDate(f.createdAt) }}</td>
                 </tr>
+                @if (expandedId() === f.id) {
+                  <tr [attr.data-testid]="'contact-row-' + f.id">
+                    <td [attr.colspan]="categories.length + 6" style="background-color: var(--color-saga-surface-2);">
+                      @if (f.camper; as c) {
+                        <div class="p-2">
+                          <div class="font-semibold mb-2" style="color: var(--color-saga-text-strong)">
+                            {{ c.firstName }} {{ c.lastName }}
+                            @if (c.grade) {
+                              <span class="font-normal text-xs" style="color: var(--color-saga-text-muted)">
+                                · Grade {{ c.grade }}
+                              </span>
+                            }
+                          </div>
+                          <dl class="grid grid-cols-1 sm:grid-cols-[9rem_1fr] gap-x-4 gap-y-1.5">
+                            <dt style="color: var(--color-saga-text-muted)">Parent / guardian</dt>
+                            <dd>{{ c.parentName || '—' }}</dd>
+                            <dt style="color: var(--color-saga-text-muted)">Parent email</dt>
+                            <dd>
+                              <a [href]="'mailto:' + c.parentEmail" style="color: var(--color-saga-action)"
+                                >{{ c.parentEmail }}</a>
+                            </dd>
+                            <dt style="color: var(--color-saga-text-muted)">Parent phone</dt>
+                            <dd>
+                              @if (c.parentPhone) {
+                                <a [href]="'tel:' + c.parentPhone" style="color: var(--color-saga-action)"
+                                  >{{ c.parentPhone }}</a>
+                              } @else { — }
+                            </dd>
+                            <dt style="color: var(--color-saga-text-muted)">Camper email</dt>
+                            <dd>
+                              @if (c.email) {
+                                <a [href]="'mailto:' + c.email" style="color: var(--color-saga-action)"
+                                  >{{ c.email }}</a>
+                              } @else { — }
+                            </dd>
+                            <dt style="color: var(--color-saga-text-muted)">Camper cell</dt>
+                            <dd>
+                              @if (c.camperCell) {
+                                <a [href]="'tel:' + c.camperCell" style="color: var(--color-saga-action)"
+                                  >{{ c.camperCell }}</a>
+                              } @else { — }
+                            </dd>
+                          </dl>
+                        </div>
+                      } @else {
+                        <div class="p-2 text-sm" style="color: var(--color-saga-text-muted)">
+                          No contact details — "{{ f.camperName }}" didn't match a single camper on
+                          the {{ year() }} register, so there's no record to pull them from. Search
+                          the Campers list by hand if you need to reach them.
+                        </div>
+                      }
+                    </td>
+                  </tr>
+                }
               }
             </tbody>
           </table>
         </div>
+        }
 
         <!-- Chase list. Approximate on purpose — see the note in the markup. -->
         @if (summary()!.awaiting.length > 0) {
@@ -203,7 +290,43 @@ export class AdminFeedbackComponent {
   loadError = signal<string | null>(null);
   showAwaiting = signal(false);
 
+  query = signal('');
+  followUpOnly = signal(false);
+  // Which row has its contact panel open. One at a time — this is a scan-and-
+  // call workflow, not a comparison one.
+  expandedId = signal<number | null>(null);
+
   followUps = computed(() => this.entries().filter((f) => f.requiresFollowUp));
+
+  // Search covers what an admin would actually scan for: who said it, their
+  // one word, and the free text. Ratings are filtered by eye off the columns.
+  visible = computed(() => {
+    const q = this.query().trim().toLowerCase();
+    return this.entries().filter((f) => {
+      if (this.followUpOnly() && !f.requiresFollowUp) return false;
+      if (!q) return true;
+      return [
+        f.camperName,
+        f.oneWord,
+        f.userComment,
+        f.additionalInfo,
+        f.camper ? `${f.camper.firstName} ${f.camper.lastName}` : '',
+        f.camper?.parentName ?? '',
+        f.camper?.parentEmail ?? '',
+      ]
+        .filter(Boolean)
+        .some((field) => String(field).toLowerCase().includes(q));
+    });
+  });
+
+  toggleExpanded(id: number): void {
+    this.expandedId.set(this.expandedId() === id ? null : id);
+  }
+
+  clearFilters(): void {
+    this.query.set('');
+    this.followUpOnly.set(false);
+  }
 
   responseRate = computed(() => {
     const registered = this.summary()?.registeredCampers ?? 0;

@@ -18,7 +18,11 @@ import { publicConfigRouter } from './routes/public-config';
 import { registrationStatusRouter } from './routes/registration-status';
 import { waitlistRouter } from './routes/waitlist';
 import { reconcileRouter } from './routes/reconcile';
-import { loginRateLimiter, publicFormRateLimiter } from './middleware/rate-limit';
+import {
+  loginRateLimiter,
+  publicFormRateLimiter,
+  nameCheckRateLimiter,
+} from './middleware/rate-limit';
 
 const app = express();
 
@@ -81,7 +85,12 @@ app.use('/waitlist', publicFormRateLimiter);
 app.use('/leaders/apply', publicFormRateLimiter);
 app.use('/request-link', publicFormRateLimiter);
 app.use('/request-consent-resend', publicFormRateLimiter);
-app.use('/feedback', publicFormRateLimiter);
+// Scoped with app.post (not app.use) so it covers the submit only — the
+// read-only name check below gets its own, looser bucket rather than eating
+// into the submit budget.
+app.post('/feedback', publicFormRateLimiter);
+app.use('/feedback/check-name', nameCheckRateLimiter);
+app.use('/feedback/suggest', nameCheckRateLimiter);
 
 app.use(submitRouter);
 app.use(consentRouter);

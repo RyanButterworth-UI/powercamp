@@ -48,6 +48,11 @@ import { Router, RouterLink, RouterLinkActive } from '@angular/router';
             class="saga-tab no-underline"
           >Info</a>
           <a
+            routerLink="/videos"
+            routerLinkActive="is-active"
+            class="saga-tab no-underline"
+          >Videos</a>
+          <a
             routerLink="/history"
             routerLinkActive="is-active"
             class="saga-tab no-underline"
@@ -126,6 +131,9 @@ import { Router, RouterLink, RouterLinkActive } from '@angular/router';
           </li>
           <li>
             <a routerLink="/info" routerLinkActive="is-active" class="mobile-menu-link">Info</a>
+          </li>
+          <li>
+            <a routerLink="/videos" routerLinkActive="is-active" class="mobile-menu-link">Videos</a>
           </li>
           <li>
             <a routerLink="/history" routerLinkActive="is-active" class="mobile-menu-link">History</a>

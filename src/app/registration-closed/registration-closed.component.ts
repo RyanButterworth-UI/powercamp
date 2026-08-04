@@ -1,6 +1,8 @@
-import { Component, computed, input, output } from '@angular/core';
+import { Component, computed, inject, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { FeedbackComponent } from '../feedback/feedback.component';
+import { LATEST_VIDEO, youtubeEmbedUrl } from '../data/videos';
 
 // The public landing page whenever registrations are closed — which, right
 // after camp, is the page every visitor lands on. So it does the post-camp job:
@@ -41,8 +43,8 @@ import { FeedbackComponent } from '../feedback/feedback.component';
       >
         <div style="position: relative; width: 100%; padding-top: 56.25%;">
           <iframe
-            src="https://www.youtube.com/embed/80OJqIUfw_U"
-            title="Power Camp 2026 highlights"
+            [src]="latestVideoUrl"
+            [title]="'Power Camp ' + latestVideo.year + ' highlights'"
             style="position: absolute; inset: 0; width: 100%; height: 100%; border: 0;"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             referrerpolicy="strict-origin-when-cross-origin"
@@ -92,6 +94,16 @@ import { FeedbackComponent } from '../feedback/feedback.component';
   styles: ``,
 })
 export class RegistrationClosedComponent {
+  private readonly sanitizer = inject(DomSanitizer);
+
+  // Newest reel, from the shared list the Videos page also renders — so next
+  // year's highlights land here by adding one entry to data/videos.ts.
+  readonly latestVideo = LATEST_VIDEO;
+  readonly latestVideoUrl: SafeResourceUrl =
+    this.sanitizer.bypassSecurityTrustResourceUrl(
+      youtubeEmbedUrl(LATEST_VIDEO.youtubeId)
+    );
+
   // The camp's public mailbox families are pointed at. Provided by the parent
   // (read from /registration-status) so it stays configurable.
   waitlistEmail = input<string>('powercamplife@gmail.com');

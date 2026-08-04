@@ -33,6 +33,11 @@ export const routes: Routes = [
       import('./info/info.component').then((m) => m.InfoComponent),
   },
   {
+    path: 'videos',
+    loadComponent: () =>
+      import('./videos/videos.component').then((m) => m.VideosComponent),
+  },
+  {
     path: 'history',
     loadComponent: () =>
       import('./history/history.component').then((m) => m.HistoryComponent),

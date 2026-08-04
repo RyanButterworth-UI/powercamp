@@ -12,10 +12,23 @@ describe('AdminFeedbackComponent', () => {
   let fixture: ComponentFixture<AdminFeedbackComponent>;
   let http: HttpTestingController;
 
+  const contact = {
+    id: 42,
+    firstName: 'Timothy',
+    lastName: 'Cable',
+    grade: '9',
+    email: 'tim@example.com',
+    camperCell: '0820000001',
+    parentName: 'Pat Cable',
+    parentEmail: 'pat@example.com',
+    parentPhone: '0820000002',
+  };
+
   const entry = (over: Partial<any> = {}) => ({
     id: 1,
     year: 2026,
     camperId: 42,
+    camper: contact,
     camperName: 'Timothy Cable',
     campOrganization: 5,
     spiritualInput: 5,
@@ -87,19 +100,76 @@ describe('AdminFeedbackComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('unmatched');
   });
 
-  it('surfaces campers who asked for follow-up in their own panel', () => {
+  it('filters to just the campers wanting a callback', () => {
     flush({
-      rows: [entry({ requiresFollowUp: true })],
+      rows: [
+        entry({ id: 1, camperName: 'Timothy Cable', requiresFollowUp: true }),
+        entry({ id: 2, camperName: 'Emma Cable', requiresFollowUp: false }),
+      ],
       summary: { followUpRequested: 1 },
     });
-    const panel = fixture.nativeElement.querySelector('[data-testid="follow-up-panel"]');
-    expect(panel).toBeTruthy();
-    expect(panel.textContent).toContain('Timothy Cable');
+    expect(fixture.componentInstance.visible().length).toBe(2);
+
+    fixture.nativeElement.querySelector('[data-testid="filter-follow-up"]').click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.visible().map((f: any) => f.camperName)).toEqual([
+      'Timothy Cable',
+    ]);
   });
 
-  it('hides the follow-up panel when nobody asked', () => {
-    flush({ rows: [entry()] });
-    expect(fixture.nativeElement.querySelector('[data-testid="follow-up-panel"]')).toBeFalsy();
+  it('searches across name, one word and the free text', () => {
+    flush({
+      rows: [
+        entry({ id: 1, camperName: 'Timothy Cable', oneWord: 'Organised' }),
+        entry({ id: 2, camperName: 'Emma Cable', oneWord: 'Incredible', userComment: 'the frisbee' }),
+      ],
+    });
+
+    fixture.componentInstance.query.set('frisbee');
+    fixture.detectChanges();
+    expect(fixture.componentInstance.visible().map((f: any) => f.id)).toEqual([2]);
+
+    fixture.componentInstance.query.set('organised');
+    fixture.detectChanges();
+    expect(fixture.componentInstance.visible().map((f: any) => f.id)).toEqual([1]);
+  });
+
+  it('clears both filters at once', () => {
+    flush({ rows: [entry({ requiresFollowUp: false })], summary: { followUpRequested: 0 } });
+    fixture.componentInstance.query.set('nothing matches this');
+    fixture.componentInstance.followUpOnly.set(true);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.visible().length).toBe(0);
+
+    fixture.nativeElement.querySelector('[data-testid="no-matches"] button').click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.visible().length).toBe(1);
+  });
+
+  it('shows contact details when a row is clicked', () => {
+    flush({ rows: [entry({ requiresFollowUp: true })], summary: { followUpRequested: 1 } });
+    expect(fixture.nativeElement.querySelector('[data-testid="contact-row-1"]')).toBeFalsy();
+
+    fixture.nativeElement.querySelector('[data-testid="feedback-row-1"]').click();
+    fixture.detectChanges();
+
+    const panel = fixture.nativeElement.querySelector('[data-testid="contact-row-1"]');
+    expect(panel).toBeTruthy();
+    expect(panel.textContent).toContain('pat@example.com');
+    expect(panel.textContent).toContain('0820000002');
+    expect(panel.querySelector('a[href="tel:0820000001"]')).toBeTruthy();
+  });
+
+  it('explains the gap when an unmatched entry has no record to pull contacts from', () => {
+    flush({
+      rows: [entry({ camperId: null, camper: null, camperName: 'Amelie and Louise' })],
+    });
+    fixture.nativeElement.querySelector('[data-testid="feedback-row-1"]').click();
+    fixture.detectChanges();
+
+    const panel = fixture.nativeElement.querySelector('[data-testid="contact-row-1"]');
+    expect(panel.textContent).toContain('No contact details');
   });
 
   it('computes the response rate against registered campers', () => {

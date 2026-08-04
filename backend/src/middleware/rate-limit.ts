@@ -126,3 +126,15 @@ export const publicFormRateLimiter = createRateLimiter({
   skip: () => limitingDisabled,
   message: 'Too many requests from this device. Please wait a little while and try again.',
 });
+
+// Looser: the feedback name check writes nothing and sends no email, and the
+// form calls it every time someone leaves the name field — so it gets its own
+// bucket rather than eating into the submit budget above. Still capped, because
+// it confirms whether a given name is on the register: at 6/min, working
+// through a list of names is slow enough to be pointless.
+export const nameCheckRateLimiter = createRateLimiter({
+  windowMs: 10 * 60 * 1000,
+  limit: 60,
+  skip: () => limitingDisabled,
+  message: 'Too many name checks from this device. Please wait a little while and try again.',
+});
