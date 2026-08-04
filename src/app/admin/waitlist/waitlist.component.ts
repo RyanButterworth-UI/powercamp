@@ -31,6 +31,7 @@ import { SkeletonComponent } from '../../skeleton/skeleton.component';
         <a routerLink="/admin/teams" class="saga-tab no-underline">Teams</a>
         <a routerLink="/admin/bunks" class="saga-tab no-underline">Bunks</a>
         <span class="saga-tab is-active">Waiting list</span>
+        <a routerLink="/admin/feedback" class="saga-tab no-underline">Feedback</a>
       </nav>
 
       <!-- Registrations open/closed master switch. -->

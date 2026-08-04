@@ -125,6 +125,43 @@ export interface WaitlistEntry {
   createdAt: string;
 }
 
+// ----- Post-camp feedback (read-only) -----
+export interface FeedbackEntry {
+  id: number;
+  year: number;
+  // Best-effort match to a camper record — null for a joint entry
+  // ("Abigail and Joshua Calitz") or a name that didn't resolve.
+  camperId: number | null;
+  camperName: string;
+  campOrganization: number;
+  spiritualInput: number;
+  activities: number;
+  facilities: number;
+  userComment: string | null;
+  oneWord: string | null;
+  requiresFollowUp: boolean;
+  additionalInfo: string | null;
+  createdAt: string;
+}
+
+export interface FeedbackSummary {
+  // null until at least one response is in.
+  campOrganization: number | null;
+  spiritualInput: number | null;
+  activities: number | null;
+  facilities: number | null;
+  followUpRequested: number;
+  registeredCampers: number;
+  awaiting: { id: number; name: string }[];
+}
+
+export interface FeedbackResult {
+  year: number;
+  total: number;
+  feedback: FeedbackEntry[];
+  summary: FeedbackSummary;
+}
+
 // ----- Sheet ↔ DB reconciliation report (read-only) -----
 export interface ReconcileFieldDiff {
   field: string;
@@ -258,6 +295,14 @@ export class AdminService {
   listWaitlist(): Observable<{ total: number; waitlist: WaitlistEntry[] }> {
     return this.http.get<{ total: number; waitlist: WaitlistEntry[] }>(
       `${environment.baseApi}/admin/waitlist`,
+      { headers: this.authHeaders() }
+    );
+  }
+
+  // ----- Post-camp feedback (read-only) -----
+  listFeedback(): Observable<FeedbackResult> {
+    return this.http.get<FeedbackResult>(
+      `${environment.baseApi}/admin/feedback`,
       { headers: this.authHeaders() }
     );
   }

@@ -79,6 +79,12 @@ export const routes: Routes = [
     canActivate: [adminGuard],
   },
   {
+    path: 'admin/feedback',
+    loadComponent: () =>
+      import('./admin/feedback/feedback.component').then((m) => m.AdminFeedbackComponent),
+    canActivate: [adminGuard],
+  },
+  {
     path: 'admin/reconcile',
     loadComponent: () =>
       import('./admin/reconcile/reconcile.component').then((m) => m.AdminReconcileComponent),

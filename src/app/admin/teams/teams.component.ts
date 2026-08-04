@@ -44,6 +44,7 @@ const TEAM_PALETTE = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#e
         <a routerLink="/admin/bulk-email" class="saga-tab no-underline">Bulk email</a>
         <span class="saga-tab is-active">Teams</span>
         <a routerLink="/admin/bunks" class="saga-tab no-underline">Bunks</a>
+        <a routerLink="/admin/feedback" class="saga-tab no-underline">Feedback</a>
       </nav>
 
       @if (loading()) {

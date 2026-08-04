@@ -28,6 +28,7 @@ import { SkeletonComponent } from '../../skeleton/skeleton.component';
         <a routerLink="/admin/teams" class="saga-tab no-underline">Teams</a>
         <a routerLink="/admin/bunks" class="saga-tab no-underline">Bunks</a>
         <a routerLink="/admin/waitlist" class="saga-tab no-underline">Waiting list</a>
+        <a routerLink="/admin/feedback" class="saga-tab no-underline">Feedback</a>
         <span class="saga-tab is-active">Sync</span>
       </nav>
 

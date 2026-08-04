@@ -28,6 +28,9 @@ import { environment } from '../../environments/environment';
               [status]="submissionStatus()"
               [feedback]="true"
               [consent]="false"
+              [errorTitle]="errorTitle()"
+              [errorMessage]="errorMessage()"
+              [errorDismissLabel]="errorDismissLabel()"
               (refreshApp)="refreshApp()"
             ></app-success-dialog>
           } @else {
@@ -44,13 +47,13 @@ import { environment } from '../../environments/environment';
               @if (currentStep() === 0) {
                 <div class="my-4 flex flex-col justify-between">
                   <img src='./assets/Pc2025.png' alt="" class="p-4">
-                  <p class="block text-sm/4 font-medium text-gray-900 mb-3">Thank you for attending Power Camp 2025!
+                  <p class="block text-sm/4 font-medium text-gray-900 mb-3">Thank you for attending {{ campLabel() }}!
                     Please take the time to fill out the feedback form. We use this info to plan for next year.</p>
-                  <p class="block text-sm/4 font-medium text-gray-900 mb-3"><span class="required-star">*</span> We had
-                    some technical glitches this year and
-                    this has already been noted.</p>
-                  <p class="block text-sm/4 font-medium text-gray-900 mb-3">Dates for next year: Due to planning and
-                    scheduling, Power camp will be: 31 July - 2 August. </p>
+                  <p class="block text-sm/4 font-medium text-gray-900 mb-3">It's one response per camper, so give us
+                    everything you've got.</p>
+                  @for (notice of seasonNotices; track notice) {
+                    <p class="block text-sm/4 font-medium text-gray-900 mb-3">{{ notice }}</p>
+                  }
                   <div class="flex justify-between mt-2">
                     <button
                       class="mt-2 bg-green-300 w-fit text-green-900 px-8 py-2 rounded"
@@ -251,7 +254,7 @@ import { environment } from '../../environments/environment';
                 </div>
                 <div class="flex flex-col w-full">
                   <label class="block text-sm/2 font-medium text-gray-900 mb-2">
-                    Describe PowerCamp 2025 in one word <span class="text-sm text-gray-500">(Optional)</span>
+                    Describe {{ campLabel() }} in one word <span class="text-sm text-gray-500">(Optional)</span>
                   </label>
                   <input
                     placeholder="SuperIncredibleAmazingAwesomeness"
@@ -341,13 +344,36 @@ export class FeedbackComponent implements OnInit {
   submissionStatus = signal<'success' | 'error'>('success');
   isSubmitting = signal(false);
   ready = signal(false);
+  campYear = signal<number | null>(null);
+
+  // Populated for the 409 "one response per camper" case so the dialog says
+  // what actually happened instead of offering a retry that can't work.
+  errorTitle = signal('');
+  errorMessage = signal('');
+  errorDismissLabel = signal('');
+
+  // Year-specific notices on the intro step. These are the ONLY dated
+  // sentences on the page — everything else derives from campYear — so a new
+  // season means editing this array and nothing else. The entries below are
+  // last season's; clear or rewrite them before the form goes out.
+  readonly seasonNotices: string[] = [
+    'We had some technical glitches this year and this has already been noted.',
+    'Dates for next year: Due to planning and scheduling, Power camp will be: 31 July - 2 August.',
+  ];
+
+  campLabel(): string {
+    const year = this.campYear();
+    return year ? `Power Camp ${year}` : 'Power Camp';
+  }
 
   nextStep() {
     this.currentStep.set(this.currentStep() + 1);
   }
 
   previousStep() {
-    this.currentStep.set(this.currentStep() - 1);
+    // Clamped: "back" on the intro step used to drop currentStep to -1, which
+    // matches no @if branch and blanks the form out.
+    this.currentStep.set(Math.max(0, this.currentStep() - 1));
   }
 
   required = [
@@ -364,6 +390,16 @@ export class FeedbackComponent implements OnInit {
 
   ngOnInit() {
     setTimeout(() => this.ready.set(true), 300);
+
+    // The camp year drives the copy, so a new season needs no code change.
+    // Best-effort: if it doesn't load, the copy falls back to "this year".
+    this.http
+      .get<{ campYear: number }>(`${environment.baseApi}/public-config`)
+      .subscribe({
+        next: (cfg) => this.campYear.set(cfg.campYear),
+        error: () => this.campYear.set(null),
+      });
+
     this.feedback = this.fb.group({
       camperName: ['', Validators.required],
       campOrganization: ['', Validators.required],
@@ -381,7 +417,11 @@ export class FeedbackComponent implements OnInit {
     this.isSubmitting.set(true);
     const url = `${environment.baseApi}/feedback`;
     const feedback = this.feedback.value;
-    this.submittedCamperName.set(feedback.camperName);
+    const name = String(feedback.camperName ?? '').trim();
+    this.submittedCamperName.set(name);
+    this.errorTitle.set('');
+    this.errorMessage.set('');
+    this.errorDismissLabel.set('');
 
     this.http.post(url, feedback).subscribe({
       next: () => {
@@ -390,7 +430,20 @@ export class FeedbackComponent implements OnInit {
         this.isSubmitting.set(false);
       },
       error: (err: any) => {
-        console.error('Error:', err);
+        // 409 = this camper already sent feedback. Not a failure to retry —
+        // it's the once-per-camper rule doing its job, so say so plainly and
+        // swap the retry button for a dismiss.
+        if (err?.status === 409) {
+          this.errorTitle.set("You've already sent this");
+          this.errorMessage.set(
+            `We already have feedback for ${name}. It's one response per camper — ` +
+              `thank you, we've got it. If you think this is a mix-up (two campers with ` +
+              `the same name, say), give us a shout and we'll sort it out.`
+          );
+          this.errorDismissLabel.set("We're done");
+        } else {
+          console.error('Error:', err);
+        }
         this.submissionStatus.set('error');
         this.showDialog.set(true);
         this.isSubmitting.set(false); // stop loader

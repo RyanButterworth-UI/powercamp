@@ -6,6 +6,7 @@ import {
   timestamp,
   boolean,
   index,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
 export const campers = pgTable(
@@ -290,3 +291,41 @@ export const waitlist = pgTable(
 
 export type WaitlistEntry = typeof waitlist.$inferSelect;
 export type NewWaitlistEntry = typeof waitlist.$inferInsert;
+
+// Post-camp feedback — one row per camper per year (see sql/2026-08-04-
+// feedback.sql). Identity is the normalised name rather than a foreign key:
+// the public form takes a free-text camper name and families routinely cover
+// siblings in a single entry ("Abigail and Joshua Calitz"), which a hard FK
+// would reject. `nameKey` is the lowercased, accent-stripped, punctuation-
+// collapsed name, and the unique (year, nameKey) index is what enforces "each
+// camper can only fill it once". `camperId` is a best-effort soft match to
+// this year's register — set when the typed name resolves to exactly one
+// camper, NULL otherwise — and feeds admin reporting only.
+export const feedback = pgTable(
+  'feedback',
+  {
+    id: serial('id').primaryKey(),
+    year: integer('year').notNull(),
+    camperId: integer('camper_id'),
+    camperName: text('camper_name').notNull(),
+    nameKey: text('name_key').notNull(),
+    // The four 0-5 scores, in the order the form asks them.
+    campOrganization: integer('camp_organization').notNull(),
+    spiritualInput: integer('spiritual_input').notNull(),
+    activities: integer('activities').notNull(),
+    facilities: integer('facilities').notNull(),
+    userComment: text('user_comment'),
+    oneWord: text('one_word'),
+    requiresFollowUp: boolean('requires_follow_up').default(false).notNull(),
+    additionalInfo: text('additional_info'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex('feedback_year_name_key_uidx').on(t.year, t.nameKey),
+    index('feedback_year_idx').on(t.year),
+    index('feedback_camper_idx').on(t.camperId),
+  ]
+);
+
+export type Feedback = typeof feedback.$inferSelect;
+export type NewFeedback = typeof feedback.$inferInsert;

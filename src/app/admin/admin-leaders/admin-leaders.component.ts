@@ -26,6 +26,7 @@ import { SkeletonComponent } from '../../skeleton/skeleton.component';
         <a routerLink="/admin/bulk-email" class="saga-tab no-underline">Bulk email</a>
         <a routerLink="/admin/teams" class="saga-tab no-underline">Teams</a>
         <a routerLink="/admin/bunks" class="saga-tab no-underline">Bunks</a>
+        <a routerLink="/admin/feedback" class="saga-tab no-underline">Feedback</a>
       </nav>
 
       <div class="flex items-center gap-3 mb-6 flex-wrap">

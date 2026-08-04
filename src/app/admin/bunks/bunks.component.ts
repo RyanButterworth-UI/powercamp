@@ -37,6 +37,7 @@ interface BunkColumn {
         <a routerLink="/admin/bulk-email" class="saga-tab no-underline">Bulk email</a>
         <a routerLink="/admin/teams" class="saga-tab no-underline">Teams</a>
         <span class="saga-tab is-active">Bunks</span>
+        <a routerLink="/admin/feedback" class="saga-tab no-underline">Feedback</a>
       </nav>
 
       @if (loading()) {

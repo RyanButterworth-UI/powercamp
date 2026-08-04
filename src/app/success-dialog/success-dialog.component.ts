@@ -52,7 +52,7 @@ import { Component, input, Input, output } from '@angular/core';
                   } @else if (!consent() && !feedback()) {
                     {{ status === 'success' ? "You're in!" : (errorTitle || "Hmm, that didn't go through") }}
                   } @else if (feedback()) {
-                    {{ status === 'success' ? 'Got it — thank you!' : "We didn't catch that" }}
+                    {{ status === 'success' ? 'Got it — thank you!' : (errorTitle || "We didn't catch that") }}
                   } @else {
                     {{ status === 'success' ? 'Consent recorded' : 'Consent didn’t save' }}
                   }
@@ -94,9 +94,14 @@ import { Component, input, Input, output } from '@angular/core';
                       </p>
                     }
                   } @else if (feedback()) {
-                    <p>
-                      {{ status === 'success' ? camperName + ", thanks for taking the time. Future-you (and us) appreciates it." : camperName + ", the feedback didn't go through. One more try?" }}
-                    </p>
+                    @if (status === 'success') {
+                      <p>{{ camperName }}, thanks for taking the time. Future-you (and us) appreciates it.</p>
+                    } @else if (errorMessage) {
+                      <!-- e.g. the /feedback 409 "one response per camper" case. -->
+                      <p>{{ errorMessage }}</p>
+                    } @else {
+                      <p>{{ camperName }}, the feedback didn't go through. One more try?</p>
+                    }
                   } @else {
                     <p>
                       {{ status === 'success' ? camperName + ', consent saved. You\'re cleared for adventure.' : camperName + ", that consent didn't save. Try again or give us a shout." }}
@@ -121,7 +126,7 @@ import { Component, input, Input, output } from '@angular/core';
                 class="saga-btn saga-btn-primary w-full sm:flex-1"
                 (click)="refreshApp.emit()"
               >
-                {{ status === 'success' ? "We're done" : 'Please try again' }}
+                {{ status === 'success' ? "We're done" : (errorDismissLabel || 'Please try again') }}
               </button>
             </div>
           </div>
@@ -140,6 +145,10 @@ export class SuccessDialogComponent {
   // of a retry loop.
   @Input() errorTitle = '';
   @Input() errorMessage = '';
+  // Overrides the dismiss button's "Please try again" on error. For dead-end
+  // errors there's nothing to retry — the /feedback 409 ("you've already sent
+  // this") is the case in hand.
+  @Input() errorDismissLabel = '';
   consent = input<boolean>(false);
   feedback = input<boolean>(false);
   // When true, the success copy reflects a waiting-list join (not a confirmed
